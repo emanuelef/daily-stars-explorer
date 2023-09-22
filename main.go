@@ -7,7 +7,9 @@ import (
 	"os"
 
 	"github.com/emanuelef/gh-repo-stats-server/otel_instrumentation"
+	"github.com/emanuelef/github-repo-activity-stats/repostats"
 	_ "github.com/joho/godotenv/autoload"
+	"golang.org/x/oauth2"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/compress"
@@ -52,6 +54,14 @@ func main() {
 		log.Fatalf("failed to initialize OpenTelemetry: %e", err)
 	}
 
+	tokenSource := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: os.Getenv("PAT")},
+	)
+
+	oauthClient := oauth2.NewClient(context.Background(), tokenSource)
+	// client := repostats.NewClient(&oauthClient.Transport)
+	client := repostats.NewClientGQL(oauthClient)
+
 	app := fiber.New()
 
 	app.Use(otelfiber.Middleware(otelfiber.WithNext(func(c *fiber.Ctx) bool {
@@ -71,6 +81,13 @@ func main() {
 	// Basic GET API to show the OtelFiber middleware is taking
 	// care of creating the span when called
 	app.Get("/hello", func(c *fiber.Ctx) error {
+		result, err := client.GetAllStats(ctx, "kubernetes/kubernetes")
+		if err != nil {
+			log.Fatalf("Error getting all stats %v", err)
+		}
+
+		log.Println(result.Stars)
+
 		return c.Send(nil)
 	})
 
