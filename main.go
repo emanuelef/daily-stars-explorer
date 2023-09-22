@@ -63,13 +63,13 @@ func NewCache() *Cache {
 }
 
 // Set adds an item to the cache with a specified key and expiration time.
-func (c *Cache) Set(key string, value *repostats.RepoStats, expiration time.Duration) {
+func (c *Cache) Set(key string, value *repostats.RepoStats, expiration time.Time) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	c.items[key] = CacheItem{
 		Value:      value,
-		Expiration: time.Now().Add(expiration),
+		Expiration: expiration,
 	}
 }
 
@@ -145,7 +145,9 @@ func main() {
 			log.Fatalf("Error getting all stats %v", err)
 		}
 
-		cache.Set(repo, result, 10*time.Minute)
+		nextDay := time.Now().UTC().Truncate(24 * time.Hour).Add(24 * time.Hour)
+
+		cache.Set(repo, result, nextDay)
 		return c.JSON(result)
 	})
 
