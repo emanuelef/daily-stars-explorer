@@ -91,6 +91,15 @@ func main() {
 		return c.Send(nil)
 	})
 
+	app.Get("/limits", func(c *fiber.Ctx) error {
+		result, err := client.GetCurrentLimits(ctx)
+		if err != nil {
+			log.Fatalf("Error getting limits %v", err)
+		}
+
+		return c.JSON(result)
+	})
+
 	host := getEnv("HOST", "localhost")
 	port := getEnv("PORT", "8080")
 	hostAddress := fmt.Sprintf("%s:%s", host, port)
