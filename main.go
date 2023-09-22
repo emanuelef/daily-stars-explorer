@@ -176,6 +176,7 @@ func main() {
 			"tSys":       bToMb(m.Sys),
 			"tNumGC":     m.NumGC,
 			"goroutines": runtime.NumGoroutine(),
+			"cachesize":  len(cache.items),
 		}
 
 		// percent, _ := cpu.Percent(time.Second, true)
