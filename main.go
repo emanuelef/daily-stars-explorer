@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/url"
 	"os"
 	"runtime"
 	"sync"
@@ -134,8 +135,13 @@ func main() {
 
 	// Basic GET API to show the OtelFiber middleware is taking
 	// care of creating the span when called
-	app.Get("/hello", func(c *fiber.Ctx) error {
-		repo := "kubernetes/kubernetes"
+	app.Get("/stats", func(c *fiber.Ctx) error {
+		param := c.Query("repo")
+		repo, err := url.QueryUnescape(param)
+		if err != nil {
+			return err
+		}
+
 		if res, hit := cache.Get(repo); hit {
 			return c.JSON(res)
 		}
