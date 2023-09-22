@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime"
+	"sync"
+	"time"
 
 	"github.com/emanuelef/gh-repo-stats-server/otel_instrumentation"
 	"github.com/emanuelef/github-repo-activity-stats/repostats"
@@ -22,10 +25,6 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-const (
-	externalURL = "https://pokeapi.co/api/v2/pokemon/ditto"
-)
-
 var tracer trace.Tracer
 
 func init() {
@@ -38,6 +37,59 @@ func getEnv(key, fallback string) string {
 		value = fallback
 	}
 	return value
+}
+
+func bToMb(b uint64) uint64 {
+	return b / 1024 / 1024
+}
+
+// Cache represents an in-memory cache.
+type Cache struct {
+	mu    sync.Mutex
+	items map[string]CacheItem
+}
+
+// CacheItem represents an item stored in the cache.
+type CacheItem struct {
+	Value      *repostats.RepoStats
+	Expiration time.Time
+}
+
+// NewCache creates a new instance of the cache.
+func NewCache() *Cache {
+	return &Cache{
+		items: make(map[string]CacheItem),
+	}
+}
+
+// Set adds an item to the cache with a specified key and expiration time.
+func (c *Cache) Set(key string, value *repostats.RepoStats, expiration time.Duration) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.items[key] = CacheItem{
+		Value:      value,
+		Expiration: time.Now().Add(expiration),
+	}
+}
+
+// Get retrieves an item from the cache by its key.
+func (c *Cache) Get(key string) (*repostats.RepoStats, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	item, found := c.items[key]
+	if !found {
+		return nil, false
+	}
+
+	if item.Expiration.Before(time.Now()) {
+		// Item has expired, remove it from the cache
+		delete(c.items, key)
+		return nil, false
+	}
+
+	return item.Value, true
 }
 
 func main() {
@@ -53,6 +105,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to initialize OpenTelemetry: %e", err)
 	}
+
+	cache := NewCache()
 
 	tokenSource := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: os.Getenv("PAT")},
@@ -81,14 +135,18 @@ func main() {
 	// Basic GET API to show the OtelFiber middleware is taking
 	// care of creating the span when called
 	app.Get("/hello", func(c *fiber.Ctx) error {
-		result, err := client.GetAllStats(ctx, "kubernetes/kubernetes")
+		repo := "kubernetes/kubernetes"
+		if res, hit := cache.Get(repo); hit {
+			return c.JSON(res)
+		}
+
+		result, err := client.GetAllStats(ctx, repo)
 		if err != nil {
 			log.Fatalf("Error getting all stats %v", err)
 		}
 
-		log.Println(result.Stars)
-
-		return c.Send(nil)
+		cache.Set(repo, result, 10*time.Minute)
+		return c.JSON(result)
 	})
 
 	app.Get("/limits", func(c *fiber.Ctx) error {
@@ -98,6 +156,24 @@ func main() {
 		}
 
 		return c.JSON(result)
+	})
+
+	app.Get("/infos", func(c *fiber.Ctx) error {
+		var m runtime.MemStats
+		runtime.ReadMemStats(&m)
+
+		res := map[string]any{
+			"Alloc":      bToMb(m.Alloc),
+			"TotalAlloc": bToMb(m.TotalAlloc),
+			"tSys":       bToMb(m.Sys),
+			"tNumGC":     m.NumGC,
+			"goroutines": runtime.NumGoroutine(),
+		}
+
+		// percent, _ := cpu.Percent(time.Second, true)
+		// fmt.Printf("  User: %.2f\n", percent[cpu.CPUser])
+
+		return c.JSON(res)
 	})
 
 	host := getEnv("HOST", "localhost")
