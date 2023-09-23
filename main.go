@@ -45,49 +45,51 @@ func bToMb(b uint64) uint64 {
 }
 
 // Cache represents an in-memory cache.
-type Cache struct {
+type Cache[T any] struct {
 	mu    sync.Mutex
-	items map[string]CacheItem
+	items map[string]CacheItem[T]
 }
 
 // CacheItem represents an item stored in the cache.
-type CacheItem struct {
-	Value      *repostats.RepoStats
+type CacheItem[T any] struct {
+	Value      T
 	Expiration time.Time
 }
 
 // NewCache creates a new instance of the cache.
-func NewCache() *Cache {
-	return &Cache{
-		items: make(map[string]CacheItem),
+func NewCache[T any]() *Cache[T] {
+	return &Cache[T]{
+		items: make(map[string]CacheItem[T]),
 	}
 }
 
 // Set adds an item to the cache with a specified key and expiration time.
-func (c *Cache) Set(key string, value *repostats.RepoStats, expiration time.Time) {
+func (c *Cache[T]) Set(key string, value T, expiration time.Time) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	c.items[key] = CacheItem{
+	c.items[key] = CacheItem[T]{
 		Value:      value,
 		Expiration: expiration,
 	}
 }
 
 // Get retrieves an item from the cache by its key.
-func (c *Cache) Get(key string) (*repostats.RepoStats, bool) {
+func (c *Cache[T]) Get(key string) (T, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	item, found := c.items[key]
 	if !found {
-		return nil, false
+		var zero T
+		return zero, false
 	}
 
 	if item.Expiration.Before(time.Now()) {
 		// Item has expired, remove it from the cache
 		delete(c.items, key)
-		return nil, false
+		var zero T
+		return zero, false
 	}
 
 	return item.Value, true
@@ -107,7 +109,8 @@ func main() {
 		log.Fatalf("failed to initialize OpenTelemetry: %e", err)
 	}
 
-	cache := NewCache()
+	cache := NewCache[*repostats.RepoStats]()
+	cacheStars := NewCache[[]repostats.StarsPerDay]()
 
 	tokenSource := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: os.Getenv("PAT")},
@@ -133,8 +136,6 @@ func main() {
 		return c.Send(nil)
 	})
 
-	// Basic GET API to show the OtelFiber middleware is taking
-	// care of creating the span when called
 	app.Get("/stats", func(c *fiber.Ctx) error {
 		param := c.Query("repo")
 		repo, err := url.QueryUnescape(param)
@@ -156,6 +157,41 @@ func main() {
 
 		cache.Set(repo, result, nextDay)
 		return c.JSON(result)
+	})
+
+	app.Get("/allStars", func(c *fiber.Ctx) error {
+		param := c.Query("repo")
+		repo, err := url.QueryUnescape(param)
+		if err != nil {
+			return err
+		}
+
+		if res, hit := cacheStars.Get(repo); hit {
+			return c.JSON(res)
+		}
+
+		result, err := client.GetAllStats(ctx, repo)
+		if err != nil {
+			log.Printf("Error getting all stats %v", err)
+			return c.Status(404).SendString("Custom 404 Error: Resource not found")
+		}
+
+		updateChannel := make(chan int)
+
+		var allStars []repostats.StarsPerDay
+
+		go func() {
+			allStars, _ = client.GetAllStarsHistory(ctx, repo, result.CreatedAt, updateChannel)
+		}()
+
+		for progress := range updateChannel {
+			fmt.Printf("Progress: %d\n", progress)
+		}
+
+		nextDay := time.Now().UTC().Truncate(24 * time.Hour).Add(24 * time.Hour)
+
+		cacheStars.Set(repo, allStars, nextDay)
+		return c.JSON(allStars)
 	})
 
 	app.Get("/limits", func(c *fiber.Ctx) error {
