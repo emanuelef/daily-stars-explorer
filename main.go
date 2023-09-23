@@ -214,6 +214,7 @@ func main() {
 			"tNumGC":     m.NumGC,
 			"goroutines": runtime.NumGoroutine(),
 			"cachesize":  len(cache.items),
+			"cacheStars": len(cacheStars.items),
 		}
 
 		// percent, _ := cpu.Percent(time.Second, true)
