@@ -79,20 +79,22 @@ const parseGitHubRepoURL = (url) => {
 };
 
 function App() {
+  const [selectedRepo, setSelectedRepo] = useState("kubernetes/kubernetes");
+  const [collapsed, setCollapsed] = useState(true);
+  const [result, setResult] = useState("");
+
   const fetchRepoStats = (repo) => {
     console.log(repo);
     fetch(`${HOST}/stats?repo=${repo}`)
       .then((response) => response.json())
       .then((stats) => {
         console.log(stats);
+        setResult(stats);
       })
       .catch((e) => {
         console.error(`An error occurred: ${e}`);
       });
   };
-
-  const [selectedRepo, setSelectedRepo] = useState("kubernetes/kubernetes");
-  const [collapsed, setCollapsed] = useState(true);
 
   const handleInputChange = (event, setStateFunction) => {
     const inputText = event.target.value;
@@ -110,6 +112,10 @@ function App() {
           value={selectedRepo}
           onChange={(e) => handleInputChange(e, setSelectedRepo)}
         />
+        <div>
+          <h1>JSON Data</h1>
+          <pre>{JSON.stringify(result, null, 2)}</pre>
+        </div>
       </div>
     );
   };
