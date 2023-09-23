@@ -3,7 +3,7 @@ module github.com/emanuelef/gh-repo-stats-server
 go 1.21.1
 
 require (
-	github.com/emanuelef/github-repo-activity-stats v0.0.0-20230922005115-21bf44e88b41
+	github.com/emanuelef/github-repo-activity-stats v0.0.0-20230923004913-cde3ae9a82b0
 	github.com/gofiber/contrib/otelfiber v1.0.10
 	github.com/gofiber/fiber/v2 v2.49.2
 	github.com/joho/godotenv v1.5.1

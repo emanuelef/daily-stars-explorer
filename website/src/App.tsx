@@ -59,6 +59,8 @@ const GitHubURL = "https://github.com/";
 
 const HOST = import.meta.env.VITE_HOST;
 
+console.log("HOST " + HOST);
+
 const csvURL =
   "https://raw.githubusercontent.com/emanuelef/cncf-repos-stats/main/analysis-latest.csv";
 
