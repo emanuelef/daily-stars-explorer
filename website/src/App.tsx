@@ -57,6 +57,8 @@ stars-per-mille-30d
 
 const GitHubURL = "https://github.com/";
 
+const HOST = import.meta.env.VITE_HOST;
+
 const csvURL =
   "https://raw.githubusercontent.com/emanuelef/cncf-repos-stats/main/analysis-latest.csv";
 
@@ -196,6 +198,17 @@ function App() {
       });
   };
 
+  const fetchRepoStats = () => {
+    fetch(`${HOST}/stats?repo=kubernetes/kubernetes`)
+      .then((response) => response.json())
+      .then((stats) => {
+        console.log(stats);
+      })
+      .catch((e) => {
+        console.error(`An error occurred: ${e}`);
+      });
+  };
+
   const [dataRows, setDataRows] = useState([]);
   const [treeMapData, setTreeMapData] = useState({});
   const [selectedRepo, setSelectedRepo] = useState("kubernetes/kubernetes");
@@ -203,6 +216,7 @@ function App() {
 
   useEffect(() => {
     fetchStats();
+    fetchRepoStats();
   }, []);
 
   const Table = () => {
