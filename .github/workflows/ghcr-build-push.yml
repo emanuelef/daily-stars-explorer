@@ -5,6 +5,8 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - "./website/**"
 
 env:
   REGISTRY: ghcr.io
