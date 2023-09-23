@@ -45,7 +45,7 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          VITE_HOST: "ciao"
+          VITE_HOST: "${{ env.VITE_HOST }}"
 
       - name: Setup Pages
         uses: actions/configure-pages@v3
