@@ -95,6 +95,12 @@ func (c *Cache[T]) Get(key string) (T, bool) {
 	return item.Value, true
 }
 
+func (c *Cache[T]) Reset() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.items = make(map[string]CacheItem[T])
+}
+
 func main() {
 	ctx := context.Background()
 	tp, exp, err := otel_instrumentation.InitializeGlobalTracerProvider(ctx)
@@ -221,6 +227,12 @@ func main() {
 		// fmt.Printf("  User: %.2f\n", percent[cpu.CPUser])
 
 		return c.JSON(res)
+	})
+
+	app.Post("/cleanAllCache", func(c *fiber.Ctx) error {
+		cache.Reset()
+		cacheStars.Reset()
+		return c.Send(nil)
 	})
 
 	host := getEnv("HOST", "localhost")
