@@ -148,7 +148,8 @@ func main() {
 
 		result, err := client.GetAllStats(ctx, repo)
 		if err != nil {
-			log.Fatalf("Error getting all stats %v", err)
+			log.Printf("Error getting all stats %v", err)
+			return c.Status(404).SendString("Custom 404 Error: Resource not found")
 		}
 
 		nextDay := time.Now().UTC().Truncate(24 * time.Hour).Add(24 * time.Hour)
