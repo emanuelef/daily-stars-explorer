@@ -1,0 +1,30 @@
+name: Golangci Lint Check
+
+on:
+  push:
+    branches:
+      - "main"
+    paths-ignore:
+      - "**.md"
+      - LICENSE
+      - ".github/ISSUE_TEMPLATE/*.yml"
+      - ".github/dependabot.yml"
+  pull_request:
+    branches:
+      - "*"
+    paths-ignore:
+      - "**.md"
+      - LICENSE
+      - ".github/ISSUE_TEMPLATE/*.yml"
+      - ".github/dependabot.yml"
+
+jobs:
+  golangci-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch Repository
+        uses: actions/checkout@v4
+      - name: Run golangci-lint
+        uses: reviewdog/action-golangci-lint@v2
+        with:
+          golangci_lint_flags: "--tests=false"
