@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/emanuelef/gh-repo-stats-server/cache"
 	"github.com/emanuelef/gh-repo-stats-server/otel_instrumentation"
 	"github.com/emanuelef/github-repo-activity-stats/repostats"
 	_ "github.com/joho/godotenv/autoload"
@@ -44,63 +45,6 @@ func bToMb(b uint64) uint64 {
 	return b / 1024 / 1024
 }
 
-// Cache represents an in-memory cache.
-type Cache[T any] struct {
-	mu    sync.Mutex
-	items map[string]CacheItem[T]
-}
-
-// CacheItem represents an item stored in the cache.
-type CacheItem[T any] struct {
-	Value      T
-	Expiration time.Time
-}
-
-// NewCache creates a new instance of the cache.
-func NewCache[T any]() *Cache[T] {
-	return &Cache[T]{
-		items: make(map[string]CacheItem[T]),
-	}
-}
-
-// Set adds an item to the cache with a specified key and expiration time.
-func (c *Cache[T]) Set(key string, value T, expiration time.Time) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	c.items[key] = CacheItem[T]{
-		Value:      value,
-		Expiration: expiration,
-	}
-}
-
-// Get retrieves an item from the cache by its key.
-func (c *Cache[T]) Get(key string) (T, bool) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	item, found := c.items[key]
-	if !found {
-		var zero T
-		return zero, false
-	}
-
-	if item.Expiration.Before(time.Now()) {
-		// Item has expired, remove it from the cache
-		delete(c.items, key)
-		var zero T
-		return zero, false
-	}
-
-	return item.Value, true
-}
-
-func (c *Cache[T]) Reset() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.items = make(map[string]CacheItem[T])
-}
-
 func main() {
 	ctx := context.Background()
 	tp, exp, err := otel_instrumentation.InitializeGlobalTracerProvider(ctx)
@@ -115,8 +59,8 @@ func main() {
 		log.Fatalf("failed to initialize OpenTelemetry: %e", err)
 	}
 
-	cache := NewCache[*repostats.RepoStats]()
-	cacheStars := NewCache[[]repostats.StarsPerDay]()
+	cacheOverall := cache.NewCache[*repostats.RepoStats]()
+	cacheStars := cache.NewCache[[]repostats.StarsPerDay]()
 
 	tokenSource := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: os.Getenv("PAT")},
@@ -149,7 +93,7 @@ func main() {
 			return err
 		}
 
-		if res, hit := cache.Get(repo); hit {
+		if res, hit := cacheOverall.Get(repo); hit {
 			return c.JSON(res)
 		}
 
@@ -161,8 +105,12 @@ func main() {
 
 		nextDay := time.Now().UTC().Truncate(24 * time.Hour).Add(24 * time.Hour)
 
-		cache.Set(repo, result, nextDay)
+		cacheOverall.Set(repo, result, nextDay)
 		return c.JSON(result)
+	})
+
+	app.Get("/allStarsKeys", func(c *fiber.Ctx) error {
+		return c.JSON(cacheStars.GetAllKeys())
 	})
 
 	app.Get("/allStars", func(c *fiber.Ctx) error {
@@ -183,16 +131,21 @@ func main() {
 		}
 
 		updateChannel := make(chan int)
-
 		var allStars []repostats.StarsPerDay
+		var wg sync.WaitGroup
+
+		wg.Add(1) // Increment the WaitGroup counter
 
 		go func() {
+			defer wg.Done()
 			allStars, _ = client.GetAllStarsHistory(ctx, repo, result.CreatedAt, updateChannel)
 		}()
 
 		for progress := range updateChannel {
 			fmt.Printf("Progress: %d\n", progress)
 		}
+
+		wg.Wait()
 
 		nextDay := time.Now().UTC().Truncate(24 * time.Hour).Add(24 * time.Hour)
 
@@ -219,8 +172,8 @@ func main() {
 			"tSys":       bToMb(m.Sys),
 			"tNumGC":     m.NumGC,
 			"goroutines": runtime.NumGoroutine(),
-			"cachesize":  len(cache.items),
-			"cacheStars": len(cacheStars.items),
+			"cachesize":  len(cacheOverall.GetAllKeys()),
+			"cacheStars": len(cacheStars.GetAllKeys()),
 		}
 
 		// percent, _ := cpu.Percent(time.Second, true)
@@ -230,7 +183,7 @@ func main() {
 	})
 
 	app.Post("/cleanAllCache", func(c *fiber.Ctx) error {
-		cache.Reset()
+		cacheOverall.Reset()
 		cacheStars.Reset()
 		return c.Send(nil)
 	})
