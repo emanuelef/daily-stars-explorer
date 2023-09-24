@@ -155,12 +155,19 @@ function App() {
           >
             Table
           </MenuItem>
+          <MenuItem
+            component={<Link to="/k8sstarstimeline" className="link" />}
+            icon={<TimelineRoundedIcon />}
+          >
+            K8s StarsTimeline
+          </MenuItem>
         </Menu>
       </Sidebar>
       <section>
         <Routes>
           <Route path="/" element={<Table />} />
           <Route path="/table" element={<Table />} />
+          <Route path="/k8sstarstimeline" element={<K8sTimeSeriesChart />} />
         </Routes>
       </section>
     </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
+import TextField from "@mui/material/TextField";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import FormControl from "@mui/material/FormControl";
 import FormLabel from "@mui/material/FormLabel";
@@ -8,6 +9,25 @@ import FusionCharts from "fusioncharts";
 import TimeSeries from "fusioncharts/fusioncharts.timeseries";
 import ReactFC from "react-fusioncharts";
 import schema from "./schema";
+
+const HOST = import.meta.env.VITE_HOST;
+
+const parseGitHubRepoURL = (url) => {
+  // Define the regular expression pattern to match GitHub repository URLs
+  const repoURLPattern =
+    /^(?:https?:\/\/github.com\/)?(?:\/)?([^/]+)\/([^/]+)$/;
+
+  // Use RegExp.exec to match the pattern against the URL
+  const match = repoURLPattern.exec(url);
+
+  if (match && match.length === 3) {
+    const owner = match[1];
+    const repoName = match[2];
+    return `${owner}/${repoName}`;
+  } else {
+    return null; // Invalid URL
+  }
+};
 
 ReactFC.fcRoot(FusionCharts, TimeSeries);
 const chart_props = {
@@ -17,8 +37,8 @@ const chart_props = {
     height: "800",
     dataEmptyMessage: "Fetching data...",
     dataSource: {
-      caption: { text: "K8s new stars per day" },
-      data: null,
+      caption: { text: "New stars per day" },
+      data: [],
       yAxis: [
         {
           plot: [
@@ -35,20 +55,6 @@ const chart_props = {
   },
 };
 
-const FULL_URL_CSV =
-  "https://raw.githubusercontent.com/emanuelef/github-repo-activity-stats/main/all-stars-history-k8s/all-stars-k8s.csv";
-
-const CSVToArray = (data, delimiter = ",", omitFirstRow = true) =>
-  data
-    .slice(omitFirstRow ? data.indexOf("\n") + 1 : 0)
-    .split("\n")
-    .map((v) => {
-      let arr = v.split(delimiter);
-      arr[1] = parseInt(arr[1]);
-      arr[2] = parseInt(arr[2]);
-      return arr;
-    });
-
 const movingAvg = (array, countBefore, countAfter = 0) => {
   const result = [];
   for (let i = 0; i < array.length; i++) {
@@ -63,42 +69,60 @@ const movingAvg = (array, countBefore, countAfter = 0) => {
   return result;
 };
 
-function K8sTimeSeriesChart({ repo }) {
+function K8sTimeSeriesChart() {
   const [ds, setds] = useState(chart_props);
+  const [selectedRepo, setSelectedRepo] = useState("kubernetes/kubernetes");
   const [selectedValue, setSelectedValue] = useState("increment");
+  const [result, setResult] = useState([]);
+
+  const fetchRepoStats = (repo) => {
+    console.log(repo);
+    fetch(`${HOST}/allStars?repo=${repo}`)
+      .then((response) => {
+        // Check if the response status indicates success (e.g., 200 OK)
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        // Attempt to parse the response as JSON
+        return response.json();
+      })
+      .then((data) => {
+        console.log(data);
+        setResult(data);
+        const fusionTable = new FusionCharts.DataStore().createDataTable(
+          data,
+          schema
+        );
+        const options = { ...ds };
+        options.timeseriesDs.dataSource.data = fusionTable;
+        options.timeseriesDs.dataSource.yAxis[0].plot[0].value =
+          selectedValue === "increment" ? "New Stars" : "Cumulative Stars";
+        setds(options);
+      })
+      .catch((e) => {
+        console.error(`An error occurred: ${e}`);
+      });
+  };
 
   const handleChange = (event) => {
     setSelectedValue(event.target.value);
   };
 
-  const loadData = async () => {
-    try {
-      const response = await fetch(FULL_URL_CSV);
-      const res = await response.text();
-      const data = CSVToArray(res);
-      console.log(data);
-
-      const fusionTable = new FusionCharts.DataStore().createDataTable(
-        data,
-        schema
-      );
-      const options = { ...ds };
-      options.timeseriesDs.dataSource.data = fusionTable;
-      options.timeseriesDs.dataSource.yAxis[0].plot[0].value =
-        selectedValue === "increment" ? "New Stars" : "Cumulative Stars";
-      setds(options);
-    } catch (err) {
-      console.log(err);
-    }
+  const handleInputChange = (event, setStateFunction) => {
+    const inputText = event.target.value;
+    setStateFunction(inputText);
+    fetchRepoStats(parseGitHubRepoURL(inputText));
   };
-
-  useEffect(() => {
-    console.log("render");
-    loadData();
-  }, [repo, selectedValue]);
 
   return (
     <div>
+      <TextField
+        style={{ marginTop: "20px", marginRight: "20px", marginLeft: "20px" }}
+        label="Enter a GitHub repository"
+        variant="outlined"
+        value={selectedRepo}
+        onChange={(e) => handleInputChange(e, setSelectedRepo)}
+      />
       <FormControl
         component="fieldset"
         style={{ marginTop: 20, marginLeft: 20 }}
