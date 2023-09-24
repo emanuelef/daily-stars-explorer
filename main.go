@@ -10,7 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/emanuelef/gh-repo-stats-server/cache"
+	//"github.com/emanuelef/gh-repo-stats-server/cache"
+	cache "github.com/Code-Hex/go-generics-cache"
 	"github.com/emanuelef/gh-repo-stats-server/otel_instrumentation"
 	"github.com/emanuelef/github-repo-activity-stats/repostats"
 	_ "github.com/joho/godotenv/autoload"
@@ -59,8 +60,8 @@ func main() {
 		log.Fatalf("failed to initialize OpenTelemetry: %e", err)
 	}
 
-	cacheOverall := cache.NewCache[*repostats.RepoStats]()
-	cacheStars := cache.NewCache[[]repostats.StarsPerDay]()
+	cacheOverall := cache.New[string, *repostats.RepoStats]()
+	cacheStars := cache.New[string, []repostats.StarsPerDay]()
 
 	tokenSource := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: os.Getenv("PAT")},
@@ -103,14 +104,20 @@ func main() {
 			return c.Status(404).SendString("Custom 404 Error: Resource not found")
 		}
 
-		nextDay := time.Now().UTC().Truncate(24 * time.Hour).Add(24 * time.Hour)
+		now := time.Now()
+		nextDay := now.UTC().Truncate(24 * time.Hour).Add(24 * time.Hour)
+		durationUntilEndOfDay := nextDay.Sub(now)
 
-		cacheOverall.Set(repo, result, nextDay)
+		cacheOverall.Set(repo, result, cache.WithExpiration(durationUntilEndOfDay))
 		return c.JSON(result)
 	})
 
+	app.Get("/allKeys", func(c *fiber.Ctx) error {
+		return c.JSON(cacheOverall.Keys())
+	})
+
 	app.Get("/allStarsKeys", func(c *fiber.Ctx) error {
-		return c.JSON(cacheStars.GetAllKeys())
+		return c.JSON(cacheStars.Keys())
 	})
 
 	app.Get("/allStars", func(c *fiber.Ctx) error {
@@ -147,9 +154,11 @@ func main() {
 
 		wg.Wait()
 
-		nextDay := time.Now().UTC().Truncate(24 * time.Hour).Add(24 * time.Hour)
+		now := time.Now()
+		nextDay := now.UTC().Truncate(24 * time.Hour).Add(24 * time.Hour)
+		durationUntilEndOfDay := nextDay.Sub(now)
 
-		cacheStars.Set(repo, allStars, nextDay)
+		cacheStars.Set(repo, allStars, cache.WithExpiration(durationUntilEndOfDay))
 		return c.JSON(allStars)
 	})
 
@@ -172,8 +181,8 @@ func main() {
 			"tSys":       bToMb(m.Sys),
 			"tNumGC":     m.NumGC,
 			"goroutines": runtime.NumGoroutine(),
-			"cachesize":  len(cacheOverall.GetAllKeys()),
-			"cacheStars": len(cacheStars.GetAllKeys()),
+			"cachesize":  len(cacheOverall.Keys()),
+			"cacheStars": len(cacheStars.Keys()),
 		}
 
 		// percent, _ := cpu.Percent(time.Second, true)
@@ -183,8 +192,8 @@ func main() {
 	})
 
 	app.Post("/cleanAllCache", func(c *fiber.Ctx) error {
-		cacheOverall.Reset()
-		cacheStars.Reset()
+		cacheOverall.DeleteExpired()
+		cacheStars.DeleteExpired()
 		return c.Send(nil)
 	})
 
