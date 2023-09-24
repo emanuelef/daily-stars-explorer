@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"fmt"
 	"sync"
 	"time"
 )
@@ -28,6 +29,8 @@ func NewCache[T any]() *Cache[T] {
 func (c *Cache[T]) Set(key string, value T, expiration time.Time) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
+	fmt.Printf("Setting %s\n", key)
 
 	c.items[key] = CacheItem[T]{
 		Value:      value,

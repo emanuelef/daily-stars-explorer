@@ -11,14 +11,15 @@ func TestCache(t *testing.T) {
 	cache := NewCache[int]()
 
 	// Test Set and Get
-	cache.Set("key1", 42, time.Now().Add(time.Minute))
-	cache.Set("key2", 123, time.Now().Add(time.Minute))
+	cache.Set("emanuelef/gh-repo-stats-server", 42, time.Now().Add(time.Minute))
 
-	val, found := cache.Get("key1")
+	val, found := cache.Get("emanuelef/gh-repo-stats-server")
 	assert.True(t, found)
 	assert.Equal(t, 42, val)
 
-	val, found = cache.Get("key2")
+	cache.Set("helm/helm-mapkubeapis", 123, time.Now().Add(time.Minute))
+
+	val, found = cache.Get("helm/helm-mapkubeapis")
 	assert.True(t, found)
 	assert.Equal(t, 123, val)
 
@@ -38,9 +39,9 @@ func TestCache(t *testing.T) {
 func TestGetAllKeys(t *testing.T) {
 	cache := NewCache[int]()
 
-	cache.Set("key1", 42, time.Now().Add(time.Minute))
-	cache.Set("key2", 123, time.Now().Add(time.Minute))
+	cache.Set("emanuelef/gh-repo-stats-server", 42, time.Now().Add(time.Minute))
+	cache.Set("helm/helm-mapkubeapis", 123, time.Now().Add(time.Minute))
 
 	keys := cache.GetAllKeys()
-	assert.ElementsMatch(t, []string{"key1", "key2"}, keys)
+	assert.ElementsMatch(t, []string{"emanuelef/gh-repo-stats-server", "helm/helm-mapkubeapis"}, keys)
 }

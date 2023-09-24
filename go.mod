@@ -3,6 +3,7 @@ module github.com/emanuelef/gh-repo-stats-server
 go 1.21.1
 
 require (
+	github.com/Code-Hex/go-generics-cache v1.3.1
 	github.com/emanuelef/github-repo-activity-stats v0.0.0-20230924005336-0dbcf3a83836
 	github.com/gofiber/contrib/otelfiber v1.0.10
 	github.com/gofiber/fiber/v2 v2.49.2
@@ -42,6 +43,7 @@ require (
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.44.0 // indirect
 	go.opentelemetry.io/otel/metric v1.18.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.0.0 // indirect
+	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
 	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/net v0.15.0 // indirect
 	golang.org/x/sys v0.12.0 // indirect
