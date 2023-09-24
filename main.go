@@ -94,6 +94,8 @@ func main() {
 			return err
 		}
 
+		repo = fmt.Sprintf("%s", repo)
+
 		if res, hit := cacheOverall.Get(repo); hit {
 			return c.JSON(res)
 		}
@@ -126,6 +128,8 @@ func main() {
 		if err != nil {
 			return err
 		}
+
+		repo = fmt.Sprintf("%s", repo)
 
 		if res, hit := cacheStars.Get(repo); hit {
 			return c.JSON(res)
