@@ -9,6 +9,7 @@ import FusionCharts from "fusioncharts";
 import TimeSeries from "fusioncharts/fusioncharts.timeseries";
 import ReactFC from "react-fusioncharts";
 import schema from "./schema";
+import EstimatedTimeProgress from "./EstimatedTimeProgress";
 
 const HOST = import.meta.env.VITE_HOST;
 
@@ -147,6 +148,7 @@ function K8sTimeSeriesChart() {
           />
         </RadioGroup>
       </FormControl>
+      <EstimatedTimeProgress totalTime={36} />
       <ReactFC {...ds.timeseriesDs} />
     </div>
   );
