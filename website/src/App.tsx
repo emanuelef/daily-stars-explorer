@@ -2,28 +2,18 @@ import { useState, useEffect } from "react";
 // @ts-ignore
 import Papa from "papaparse";
 import "./App.css";
-import { DataGrid, GridColDef } from "@mui/x-data-grid";
-import Linkweb from "@mui/material/Link";
-import { ResponsiveTreeMap } from "@nivo/treemap";
 
 import TextField from "@mui/material/TextField";
-import Autocomplete from "@mui/material/Autocomplete";
 
 import TimeSeriesChart from "./TimeSeriesChart";
 import K8sTimeSeriesChart from "./K8sTimeSeriesChart";
-import DepsChart from "./DepsChart";
-import LangBarChart from "./LangBarChart";
-import LangHCBarChart from "./LangHCBarChart";
 
 import { Sidebar, Menu, MenuItem } from "react-pro-sidebar";
 import { Routes, Route, Link, useParams } from "react-router-dom";
 
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import TableViewRounded from "@mui/icons-material/TableViewRounded";
-import BarChartRoundedIcon from "@mui/icons-material/BarChartRounded";
 import TimelineRoundedIcon from "@mui/icons-material/TimelineRounded";
-import ViewQuiltRounded from "@mui/icons-material/ViewQuiltRounded";
-import { Share } from "@mui/icons-material";
 
 /*
 archived
