@@ -6,7 +6,7 @@ on:
     branches:
       - main
     paths-ignore:
-      - "./website/**"
+      - "website/**"
 
 env:
   REGISTRY: ghcr.io
