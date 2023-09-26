@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
 import TextField from "@mui/material/TextField";
@@ -39,7 +39,7 @@ const chart_props = {
     dataEmptyMessage: "Fetching data...",
     dataSource: {
       caption: { text: "New stars per day" },
-      data: [],
+      data: null,
       yAxis: [
         {
           plot: [
@@ -51,28 +51,15 @@ const chart_props = {
       ],
       chart: {
         animation: "0",
+        theme: "candy",
       },
     },
   },
 };
 
-const movingAvg = (array, countBefore, countAfter = 0) => {
-  const result = [];
-  for (let i = 0; i < array.length; i++) {
-    const subArr = array.slice(
-      Math.max(i - countBefore, 0),
-      Math.min(i + countAfter + 1, array.length)
-    );
-    const avg =
-      subArr.reduce((a, b) => a + (isNaN(b) ? 0 : b), 0) / subArr.length;
-    result.push(avg);
-  }
-  return result;
-};
-
 function K8sTimeSeriesChart() {
   const [ds, setds] = useState(chart_props);
-  const [selectedRepo, setSelectedRepo] = useState("kubernetes/kubernetes");
+  const [selectedRepo, setSelectedRepo] = useState("helm/helm-mapkubeapis");
   const [selectedValue, setSelectedValue] = useState("increment");
   const [result, setResult] = useState([]);
 
@@ -97,7 +84,7 @@ function K8sTimeSeriesChart() {
         const options = { ...ds };
         options.timeseriesDs.dataSource.data = fusionTable;
         options.timeseriesDs.dataSource.yAxis[0].plot[0].value =
-          selectedValue === "increment" ? "New Stars" : "Cumulative Stars";
+          "Cumulative Stars";
         setds(options);
       })
       .catch((e) => {
@@ -105,9 +92,9 @@ function K8sTimeSeriesChart() {
       });
   };
 
-  const handleChange = (event) => {
-    setSelectedValue(event.target.value);
-  };
+  useEffect(() => {
+    fetchRepoStats(selectedRepo);
+  }, []);
 
   const handleInputChange = (event, setStateFunction) => {
     const inputText = event.target.value;
@@ -124,30 +111,6 @@ function K8sTimeSeriesChart() {
         value={selectedRepo}
         onChange={(e) => handleInputChange(e, setSelectedRepo)}
       />
-      <FormControl
-        component="fieldset"
-        style={{ marginTop: 20, marginLeft: 20 }}
-      >
-        <FormLabel component="legend">Select one option:</FormLabel>
-        <RadioGroup
-          aria-label="options"
-          name="options"
-          value={selectedValue}
-          onChange={handleChange}
-          row
-        >
-          <FormControlLabel
-            value="increment"
-            control={<Radio />}
-            label="Stars per day"
-          />
-          <FormControlLabel
-            value="cumulative"
-            control={<Radio />}
-            label="Cumulative stars"
-          />
-        </RadioGroup>
-      </FormControl>
       <EstimatedTimeProgress totalTime={36} />
       <ReactFC {...ds.timeseriesDs} />
     </div>

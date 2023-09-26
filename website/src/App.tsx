@@ -69,7 +69,7 @@ const parseGitHubRepoURL = (url) => {
 };
 
 function App() {
-  const [selectedRepo, setSelectedRepo] = useState("kubernetes/kubernetes");
+  const [selectedRepo, setSelectedRepo] = useState("helm/helm-mapkubeapis");
   const [collapsed, setCollapsed] = useState(true);
   const [result, setResult] = useState("");
 
