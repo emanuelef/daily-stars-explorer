@@ -8,6 +8,7 @@ import TextField from "@mui/material/TextField";
 import TimeSeriesChart from "./TimeSeriesChart";
 import K8sTimeSeriesChart from "./K8sTimeSeriesChart";
 import RequestsProgressBar from "./RequestsProgressBar";
+import EstimatedTimeProgress from "./EstimatedTimeProgress";
 
 import { Sidebar, Menu, MenuItem } from "react-pro-sidebar";
 import { Routes, Route, Link, useParams } from "react-router-dom";
@@ -75,6 +76,7 @@ function App() {
   const [result, setResult] = useState("");
   const [totalRequests, setTotalRequests] = useState(60);
   const [remainingRequests, setRemainingRequests] = useState(totalRequests);
+  const [resetLimitsTime, setResetLimitsTime] = useState(60);
 
   const fetchRepoStats = (repo) => {
     console.log(repo);
@@ -96,6 +98,15 @@ function App() {
       const jsonData = await response.json();
       setRemainingRequests(jsonData.Remaining);
       setTotalRequests(jsonData.Limit);
+      const utcDate = new Date(jsonData.ResetAt);
+      console.log("UTC Date:", utcDate);
+      const currentDate = new Date();
+      const timeDifferenceMilliseconds = utcDate - currentDate;
+      const timeDifferenceSeconds = Math.floor(
+        timeDifferenceMilliseconds / 1000
+      );
+      console.log("Time difference in seconds:", timeDifferenceSeconds);
+      setResetLimitsTime(timeDifferenceSeconds);
     } catch (error) {
       console.error("Error fetching data:", error);
     }
@@ -127,6 +138,7 @@ function App() {
           remainingRequests={remainingRequests}
           totalRequests={totalRequests}
         />
+        <EstimatedTimeProgress totalTime={resetLimitsTime} />
         <div>
           <h1>JSON Data</h1>
           <pre>{JSON.stringify(result, null, 2)}</pre>
