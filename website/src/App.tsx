@@ -7,6 +7,7 @@ import TextField from "@mui/material/TextField";
 
 import TimeSeriesChart from "./TimeSeriesChart";
 import K8sTimeSeriesChart from "./K8sTimeSeriesChart";
+import RequestsProgressBar from "./RequestsProgressBar";
 
 import { Sidebar, Menu, MenuItem } from "react-pro-sidebar";
 import { Routes, Route, Link, useParams } from "react-router-dom";
@@ -72,6 +73,8 @@ function App() {
   const [selectedRepo, setSelectedRepo] = useState("helm/helm-mapkubeapis");
   const [collapsed, setCollapsed] = useState(true);
   const [result, setResult] = useState("");
+  const [totalRequests, setTotalRequests] = useState(60);
+  const [remainingRequests, setRemainingRequests] = useState(totalRequests);
 
   const fetchRepoStats = (repo) => {
     console.log(repo);
@@ -85,6 +88,24 @@ function App() {
         console.error(`An error occurred: ${e}`);
       });
   };
+
+  const fetchLimits = async () => {
+    try {
+      // Make your API request here using fetch or an HTTP library like Axios
+      const response = await fetch(`${HOST}/limits`);
+      const jsonData = await response.json();
+      setRemainingRequests(jsonData.Remaining);
+      setTotalRequests(jsonData.Limit);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchLimits();
+    const intervalId = setInterval(fetchLimits, 30000);
+    return () => clearInterval(intervalId);
+  }, []);
 
   const handleInputChange = (event, setStateFunction) => {
     const inputText = event.target.value;
@@ -101,6 +122,10 @@ function App() {
           variant="outlined"
           value={selectedRepo}
           onChange={(e) => handleInputChange(e, setSelectedRepo)}
+        />
+        <RequestsProgressBar
+          remainingRequests={remainingRequests}
+          totalRequests={totalRequests}
         />
         <div>
           <h1>JSON Data</h1>
