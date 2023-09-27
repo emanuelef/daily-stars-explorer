@@ -138,7 +138,10 @@ function App() {
           remainingRequests={remainingRequests}
           totalRequests={totalRequests}
         />
-        <EstimatedTimeProgress totalTime={resetLimitsTime} />
+        <EstimatedTimeProgress
+          text="API Limits reset"
+          totalTime={resetLimitsTime}
+        />
         <div>
           <h1>JSON Data</h1>
           <pre>{JSON.stringify(result, null, 2)}</pre>

@@ -111,7 +111,7 @@ function K8sTimeSeriesChart() {
         value={selectedRepo}
         onChange={(e) => handleInputChange(e, setSelectedRepo)}
       />
-      <EstimatedTimeProgress totalTime={36} />
+      <EstimatedTimeProgress text="Estimated Time Left" totalTime={36} />
       <ReactFC {...ds.timeseriesDs} />
     </div>
   );

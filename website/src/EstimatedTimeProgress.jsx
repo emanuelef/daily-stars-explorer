@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { LinearProgress, Typography } from "@mui/material";
 
-const EstimatedTimeProgress = ({ totalTime }) => {
+const EstimatedTimeProgress = ({ text, totalTime }) => {
   const [elapsedTime, setElapsedTime] = useState(0);
 
   useEffect(() => {
@@ -24,7 +24,7 @@ const EstimatedTimeProgress = ({ totalTime }) => {
   return (
     <div>
       <Typography variant="h6">
-        Estimated Time Left: {formatTime(remainingTime)}
+        {text}: {formatTime(remainingTime)}
       </Typography>
       <LinearProgress variant="determinate" value={progressPercentage} />
     </div>
