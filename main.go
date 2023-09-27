@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"log"
@@ -13,8 +14,10 @@ import (
 	//"github.com/emanuelef/gh-repo-stats-server/cache"
 	cache "github.com/Code-Hex/go-generics-cache"
 	"github.com/emanuelef/gh-repo-stats-server/otel_instrumentation"
+	"github.com/emanuelef/gh-repo-stats-server/session"
 	"github.com/emanuelef/github-repo-activity-stats/repostats"
 	_ "github.com/joho/godotenv/autoload"
+	"github.com/valyala/fasthttp"
 	"golang.org/x/oauth2"
 
 	"github.com/gofiber/fiber/v2"
@@ -29,6 +32,8 @@ import (
 )
 
 var tracer trace.Tracer
+
+var currentSessions session.SessionsLock
 
 func init() {
 	tracer = otel.Tracer("github.com/emanuelef/gh-repo-stats-server")
@@ -74,7 +79,7 @@ func main() {
 	app := fiber.New()
 
 	app.Use(otelfiber.Middleware(otelfiber.WithNext(func(c *fiber.Ctx) bool {
-		return c.Path() == "/health"
+		return c.Path() == "/health" || c.Path() == "/sse"
 	})))
 
 	app.Use(recover.New())
@@ -94,6 +99,7 @@ func main() {
 			return err
 		}
 
+		// needed because c.Query cannot be used as a map key
 		repo = fmt.Sprintf("%s", repo)
 
 		if res, hit := cacheOverall.Get(repo); hit {
@@ -129,6 +135,7 @@ func main() {
 			return err
 		}
 
+		// needed because c.Query cannot be used as a map key
 		repo = fmt.Sprintf("%s", repo)
 
 		if res, hit := cacheStars.Get(repo); hit {
@@ -154,6 +161,20 @@ func main() {
 
 		for progress := range updateChannel {
 			fmt.Printf("Progress: %d\n", progress)
+
+			wg := &sync.WaitGroup{}
+
+			for _, s := range currentSessions.Sessions {
+				wg.Add(1)
+				go func(cs *session.Session) {
+					defer wg.Done()
+					if cs.Repo == repo {
+						cs.StateChannel <- progress
+					}
+				}(s)
+			}
+			wg.Wait()
+
 		}
 
 		wg.Wait()
@@ -195,10 +216,103 @@ func main() {
 		return c.JSON(res)
 	})
 
+	app.Get("/connections", func(c *fiber.Ctx) error {
+		m := map[string]any{
+			"open-connections": app.Server().GetOpenConnectionsCount(),
+			"Sessions":         len(currentSessions.Sessions),
+		}
+		return c.JSON(m)
+	})
+
 	app.Post("/cleanAllCache", func(c *fiber.Ctx) error {
 		cacheOverall.DeleteExpired()
 		cacheStars.DeleteExpired()
 		return c.Send(nil)
+	})
+
+	app.Get("/sse", func(c *fiber.Ctx) error {
+		c.Set("Content-Type", "text/event-stream")
+		c.Set("Cache-Control", "no-cache")
+		c.Set("Connection", "keep-alive")
+		c.Set("Transfer-Encoding", "chunked")
+
+		param := c.Query("repo")
+		repo, err := url.QueryUnescape(param)
+		if err != nil {
+			return err
+		}
+
+		// needed because c.Query cannot be used as a map key
+		repo = fmt.Sprintf("%s", repo)
+
+		log.Printf("New Request %s\n", repo)
+
+		stateChan := make(chan int)
+
+		s := session.Session{
+			Repo:         repo,
+			StateChannel: stateChan,
+		}
+
+		currentSessions.AddSession(&s)
+
+		notify := c.Context().Done()
+
+		c.Context().SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
+			keepAliveTickler := time.NewTicker(15 * time.Second)
+			keepAliveMsg := ":keepalive\n"
+
+			// listen to signal to close and unregister (doesn't seem to be called)
+			go func() {
+				<-notify
+				log.Printf("Stopped Request\n")
+				currentSessions.RemoveSession(&s)
+				keepAliveTickler.Stop()
+			}()
+
+			for loop := true; loop; {
+				select {
+
+				case ev := <-stateChan:
+					sseMessage, err := session.FormatSSEMessage("current-value", ev)
+					if err != nil {
+						log.Printf("Error formatting sse message: %v\n", err)
+						continue
+					}
+
+					// send sse formatted message
+					_, err = fmt.Fprintf(w, sseMessage)
+
+					if err != nil {
+						log.Printf("Error while writing Data: %v\n", err)
+						continue
+					}
+
+					err = w.Flush()
+					if err != nil {
+						log.Printf("Error while flushing Data: %v\n", err)
+						currentSessions.RemoveSession(&s)
+						keepAliveTickler.Stop()
+						loop = false
+						break
+					}
+				case <-keepAliveTickler.C:
+					fmt.Fprintf(w, keepAliveMsg)
+					err := w.Flush()
+					if err != nil {
+						log.Printf("Error while flushing: %v.\n", err)
+						currentSessions.RemoveSession(&s)
+						keepAliveTickler.Stop()
+						loop = false
+						break
+					}
+				}
+			}
+
+			log.Println("Exiting stream")
+		}))
+
+		return nil
 	})
 
 	host := getEnv("HOST", "localhost")
