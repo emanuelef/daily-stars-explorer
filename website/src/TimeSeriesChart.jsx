@@ -85,7 +85,7 @@ function TimeSeriesChart() {
         options.timeseriesDs.dataSource.data = fusionTable;
         options.timeseriesDs.dataSource.yAxis[0].plot[0].value =
           "Cumulative Stars";
-        //setds(options);
+        setds(options);
       })
       .catch((e) => {
         console.error(`An error occurred: ${e}`);
@@ -93,13 +93,13 @@ function TimeSeriesChart() {
   };
 
   useEffect(() => {
-    //fetchRepoStats(selectedRepo);
+    fetchRepoStats(selectedRepo);
   }, []);
 
   const handleInputChange = (event, setStateFunction) => {
     const inputText = event.target.value;
-    //setStateFunction(inputText);
-    //fetchRepoStats(parseGitHubRepoURL(inputText));
+    setStateFunction(inputText);
+    fetchRepoStats(parseGitHubRepoURL(inputText));
   };
 
   return (
