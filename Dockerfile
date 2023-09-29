@@ -1,7 +1,9 @@
 FROM golang:1.21.1-alpine as builder
 WORKDIR /app
 COPY main.go .
+COPY cache ./cache
 COPY otel_instrumentation ./otel_instrumentation
+COPY session ./session
 COPY go.mod .
 COPY go.sum .
 RUN go mod download
