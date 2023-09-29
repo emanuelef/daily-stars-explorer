@@ -1,12 +1,9 @@
 import { useState, useEffect } from "react";
-// @ts-ignore
-import Papa from "papaparse";
 import "./App.css";
 
 import TextField from "@mui/material/TextField";
 
 import TimeSeriesChart from "./TimeSeriesChart";
-import K8sTimeSeriesChart from "./K8sTimeSeriesChart";
 import RequestsProgressBar from "./RequestsProgressBar";
 import EstimatedTimeProgress from "./EstimatedTimeProgress";
 
@@ -186,10 +183,10 @@ function App() {
             Table
           </MenuItem>
           <MenuItem
-            component={<Link to="/k8sstarstimeline/:id" className="link" />}
+            component={<Link to="/starstimeline" className="link" />}
             icon={<TimelineRoundedIcon />}
           >
-            K8s StarsTimeline
+            StarsTimeline
           </MenuItem>
         </Menu>
       </Sidebar>
@@ -197,7 +194,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Table />} />
           <Route path="/table" element={<Table />} />
-          <Route path="/k8sstarstimeline" element={<K8sTimeSeriesChart />} />
+          <Route path="/starstimeline" element={<TimeSeriesChart />} />
         </Routes>
       </section>
     </div>

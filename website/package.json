@@ -18,7 +18,7 @@
     "@mui/x-data-grid": "^6.15.0",
     "@nivo/bar": "^0.83.0",
     "@nivo/treemap": "^0.83.0",
-    "fusioncharts": "^3.21.0",
+    "fusioncharts": "^3.20.0",
     "highcharts-react-official": "^3.2.1",
     "papaparse": "^5.4.1",
     "react": "^18.2.0",
