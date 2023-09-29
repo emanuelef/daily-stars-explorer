@@ -57,7 +57,7 @@ const chart_props = {
   },
 };
 
-function K8sTimeSeriesChart() {
+function K8sTimeSeriesChart({ repo }) {
   const [ds, setds] = useState(chart_props);
   const [selectedRepo, setSelectedRepo] = useState("helm/helm-mapkubeapis");
   const [selectedValue, setSelectedValue] = useState("increment");

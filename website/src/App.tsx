@@ -186,7 +186,7 @@ function App() {
             Table
           </MenuItem>
           <MenuItem
-            component={<Link to="/k8sstarstimeline" className="link" />}
+            component={<Link to="/k8sstarstimeline/:id" className="link" />}
             icon={<TimelineRoundedIcon />}
           >
             K8s StarsTimeline
