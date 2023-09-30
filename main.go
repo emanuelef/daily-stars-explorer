@@ -128,6 +128,27 @@ func main() {
 		return c.JSON(cacheStars.Keys())
 	})
 
+	app.Get("/totalStars", func(c *fiber.Ctx) error {
+		param := c.Query("repo")
+		repo, err := url.QueryUnescape(param)
+		if err != nil {
+			return err
+		}
+
+		stars, createdAt, err := client.GetTotalStars(ctx, repo)
+		if err != nil {
+			log.Printf("Error getting total stars %v", err)
+			return c.Status(404).SendString("Custom 404 Error: Resource not found")
+		}
+
+		data := map[string]any{
+			"stars":     stars,
+			"createdAt": createdAt,
+		}
+
+		return c.JSON(data)
+	})
+
 	app.Get("/allStars", func(c *fiber.Ctx) error {
 		param := c.Query("repo")
 		repo, err := url.QueryUnescape(param)
