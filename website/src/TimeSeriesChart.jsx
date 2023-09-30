@@ -5,6 +5,7 @@ import TextField from "@mui/material/TextField";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import FormControl from "@mui/material/FormControl";
 import FormLabel from "@mui/material/FormLabel";
+import { Link } from "@mui/material";
 import FusionCharts from "fusioncharts";
 import TimeSeries from "fusioncharts/fusioncharts.timeseries";
 import ReactFC from "react-fusioncharts";
@@ -109,6 +110,26 @@ function TimeSeriesChart() {
       });
   };
 
+  const downloadCSV = () => {
+    // Replace 'your-backend-url' with the actual URL of your CSV download endpoint
+    const downloadUrl = `${HOST}/allStars?repo=${selectedRepo}`;
+
+    fetch(downloadUrl)
+      .then((response) => response.blob())
+      .then((blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${selectedRepo.replace("/", "_")}-stars-history.csv`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+      })
+      .catch((error) => {
+        console.error("Error downloading CSV:", error);
+      });
+  };
+
   useEffect(() => {
     fetchRepoStats(selectedRepo);
   }, []);
@@ -160,7 +181,6 @@ function TimeSeriesChart() {
         }}
         id="total-stars"
         label="Total Stars"
-        defaultValue="0"
         value={totalStars}
         InputProps={{
           readOnly: true,
@@ -175,12 +195,18 @@ function TimeSeriesChart() {
         }}
         id="cration-date"
         label="Creation Date"
-        defaultValue="0"
         value={creationDate}
         InputProps={{
           readOnly: true,
         }}
       />
+      <Link
+        component="button" // Use a button style
+        variant="body2" // Choose a style variant
+        onClick={downloadCSV} // Call the downloadCSV function on click
+      >
+        Download CSV
+      </Link>
       <EstimatedTimeProgress
         text="Estimated Time Left"
         totalTime={estimatedTime}

@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -52,6 +53,19 @@ func bToMb(b uint64) uint64 {
 	return b / 1024 / 1024
 }
 
+func generateCSVData(repo string, data []repostats.StarsPerDay) (string, error) {
+	csvData := []string{"date,day-stars,total-stars"}
+
+	for _, entry := range data {
+		csvData = append(csvData, fmt.Sprintf("%s,%d,%d",
+			time.Time(entry.Day).Format("02-01-2006"),
+			entry.Stars,
+			entry.TotalStars))
+	}
+
+	return strings.Join(csvData, "\n"), nil
+}
+
 func main() {
 	ctx := context.Background()
 	tp, exp, err := otel_instrumentation.InitializeGlobalTracerProvider(ctx)
@@ -68,6 +82,8 @@ func main() {
 
 	cacheOverall := cache.New[string, *repostats.RepoStats]()
 	cacheStars := cache.New[string, []repostats.StarsPerDay]()
+
+	onGoingStars := make(map[string]bool)
 
 	tokenSource := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: os.Getenv("PAT")},
@@ -178,6 +194,8 @@ func main() {
 			return c.JSON(res)
 		}
 
+		onGoingStars[repo] = true
+
 		result, err := client.GetAllStats(ctx, repo)
 		if err != nil {
 			log.Printf("Error getting all stats %v", err)
@@ -220,6 +238,9 @@ func main() {
 		durationUntilEndOfDay := nextDay.Sub(now)
 
 		cacheStars.Set(repo, allStars, cache.WithExpiration(durationUntilEndOfDay))
+
+		delete(onGoingStars, repo)
+
 		return c.JSON(allStars)
 	})
 
@@ -264,6 +285,52 @@ func main() {
 		cacheOverall.DeleteExpired()
 		cacheStars.DeleteExpired()
 		return c.Send(nil)
+	})
+
+	app.Get("/allStarsCsv", func(c *fiber.Ctx) error {
+		param := c.Query("repo")
+		repo, err := url.QueryUnescape(param)
+		if err != nil {
+			return err
+		}
+
+		// Check if the data is cached
+		if res, hit := cacheStars.Get(repo); hit {
+			// Generate CSV data from the cached data
+			csvData, err := generateCSVData(repo, res)
+			if err != nil {
+				log.Printf("Error generating CSV data: %v", err)
+				return c.Status(500).SendString("Internal Server Error")
+			}
+
+			// Set response headers for CSV download
+			c.Set("Content-Disposition", `attachment; filename="stars_history.csv"`)
+			c.Set("Content-Type", "text/csv")
+
+			// Return the CSV data as a response
+			return c.SendString(csvData)
+		}
+
+		// Data not found in cache
+		return c.Status(404).SendString("Data not found")
+	})
+
+	app.Get("/status", func(c *fiber.Ctx) error {
+		param := c.Query("repo")
+		repo, err := url.QueryUnescape(param)
+		if err != nil {
+			return err
+		}
+
+		_, cached := cacheStars.Get(repo)
+		_, onGoing := onGoingStars[repo]
+
+		data := map[string]any{
+			"cached":  cached,
+			"onGoing": onGoing,
+		}
+
+		return c.JSON(data)
 	})
 
 	app.Get("/sse", func(c *fiber.Ctx) error {
