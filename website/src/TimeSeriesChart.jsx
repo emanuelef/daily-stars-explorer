@@ -63,6 +63,8 @@ function TimeSeriesChart() {
   const [selectedValue, setSelectedValue] = useState("increment");
   const [result, setResult] = useState([]);
   const [estimatedTime, setEstimatedTime] = useState(0);
+  const [totalStars, setTotalStars] = useState(0);
+  const [creationDate, setCreationDate] = useState("2021-01-01");
 
   const fetchTotalStars = async (repo) => {
     try {
@@ -114,10 +116,20 @@ function TimeSeriesChart() {
   const handleInputChange = async (event, setStateFunction) => {
     const inputText = event.target.value;
     setStateFunction(inputText);
-    fetchRepoStats(parseGitHubRepoURL(inputText));
 
-    const res = await fetchTotalStars(parseGitHubRepoURL(inputText));
+    const repoParsed = parseGitHubRepoURL(inputText);
+
+    if (repoParsed === null) {
+      return;
+    }
+
+    fetchRepoStats(repoParsed);
+
+    const res = await fetchTotalStars(repoParsed);
     console.log(res);
+
+    setTotalStars(res.stars);
+    setCreationDate(res.createdAt);
 
     let timeEstimate = res.stars / 339;
     timeEstimate = Math.max(1, Math.ceil(timeEstimate));
@@ -128,11 +140,46 @@ function TimeSeriesChart() {
   return (
     <div>
       <TextField
-        style={{ marginTop: "20px", marginRight: "20px", marginLeft: "20px" }}
+        style={{
+          marginTop: "20px",
+          marginRight: "20px",
+          marginLeft: "20px",
+          width: "500px",
+        }}
         label="Enter a GitHub repository"
         variant="outlined"
         value={selectedRepo}
         onChange={(e) => handleInputChange(e, setSelectedRepo)}
+      />
+      <TextField
+        style={{
+          marginTop: "20px",
+          marginRight: "20px",
+          marginLeft: "10px",
+          width: "100px",
+        }}
+        id="total-stars"
+        label="Total Stars"
+        defaultValue="0"
+        value={totalStars}
+        InputProps={{
+          readOnly: true,
+        }}
+      />
+      <TextField
+        style={{
+          marginTop: "20px",
+          marginRight: "20px",
+          marginLeft: "10px",
+          width: "200px",
+        }}
+        id="cration-date"
+        label="Creation Date"
+        defaultValue="0"
+        value={creationDate}
+        InputProps={{
+          readOnly: true,
+        }}
       />
       <EstimatedTimeProgress
         text="Estimated Time Left"

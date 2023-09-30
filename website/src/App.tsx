@@ -111,6 +111,7 @@ function App() {
 
   useEffect(() => {
     fetchLimits();
+    fetchRepoStats(selectedRepo);
     const intervalId = setInterval(fetchLimits, 30000);
     return () => clearInterval(intervalId);
   }, []);
