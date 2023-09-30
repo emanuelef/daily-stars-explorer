@@ -23,6 +23,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/compress"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 
 	"github.com/gofiber/contrib/otelfiber"
@@ -82,9 +83,23 @@ func main() {
 		return c.Path() == "/health" || c.Path() == "/sse"
 	})))
 
+	rateLimiter := limiter.New(limiter.Config{
+		Max:        100,           // Maximum number of requests allowed per hour
+		Expiration: 1 * time.Hour, // Duration for the rate limit window
+		KeyGenerator: func(c *fiber.Ctx) string {
+			// Exclude requests from localhost (127.0.0.1) from rate limiting
+			if c.IP() == "127.0.0.1" || c.IP() == "::1" {
+				return "localhost"
+			}
+			// Use the client's IP address as the key for rate limiting
+			return c.IP()
+		},
+	})
+
 	app.Use(recover.New())
 	app.Use(cors.New())
 	app.Use(compress.New())
+	app.Use(rateLimiter)
 
 	// Just to check health and an example of a very frequent request
 	// that we might not want to generate traces
