@@ -24,7 +24,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/compress"
 	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/limiter"
+	//"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 
 	"github.com/gofiber/contrib/otelfiber"
@@ -99,20 +99,20 @@ func main() {
 		return c.Path() == "/health" || c.Path() == "/sse"
 	})))
 
-	rateLimiter := limiter.New(limiter.Config{
-		Max:        100,           // Maximum number of requests allowed per hour
-		Expiration: 1 * time.Hour, // Duration for the rate limit window
-		KeyGenerator: func(c *fiber.Ctx) string {
-			// Exclude requests from localhost (127.0.0.1) from rate limiting
-			if c.IP() == "127.0.0.1" || c.IP() == "::1" {
-				return "localhost"
-			}
-			// Use the client's IP address as the key for rate limiting
-			return c.IP()
-		},
-	})
+	// rateLimiter := limiter.New(limiter.Config{
+	// 	Max:        100,           // Maximum number of requests allowed per hour
+	// 	Expiration: 1 * time.Hour, // Duration for the rate limit window
+	// 	KeyGenerator: func(c *fiber.Ctx) string {
+	// 		// Exclude requests from localhost (127.0.0.1) from rate limiting
+	// 		if c.IP() == "127.0.0.1" || c.IP() == "::1" {
+	// 			return "localhost"
+	// 		}
+	// 		// Use the client's IP address as the key for rate limiting
+	// 		return c.IP()
+	// 	},
+	// })
 
-	app.Use(rateLimiter)
+	// app.Use(rateLimiter)
 	app.Use(recover.New())
 	app.Use(cors.New())
 	app.Use(compress.New())
@@ -166,6 +166,8 @@ func main() {
 			return err
 		}
 
+		repo = fmt.Sprintf("%s", repo)
+
 		stars, createdAt, err := client.GetTotalStars(ctx, repo)
 		if err != nil {
 			log.Printf("Error getting total stars %v", err)
@@ -192,6 +194,11 @@ func main() {
 
 		if res, hit := cacheStars.Get(repo); hit {
 			return c.JSON(res)
+		}
+
+		// if another request is already getting the data, skip and rely on SSE updates
+		if _, hit := onGoingStars[repo]; hit {
+			return c.SendStatus(fiber.StatusNoContent)
 		}
 
 		onGoingStars[repo] = true
@@ -238,7 +245,6 @@ func main() {
 		durationUntilEndOfDay := nextDay.Sub(now)
 
 		cacheStars.Set(repo, allStars, cache.WithExpiration(durationUntilEndOfDay))
-
 		delete(onGoingStars, repo)
 
 		return c.JSON(allStars)
@@ -294,6 +300,8 @@ func main() {
 			return err
 		}
 
+		repo = fmt.Sprintf("%s", repo)
+
 		// Check if the data is cached
 		if res, hit := cacheStars.Get(repo); hit {
 			// Generate CSV data from the cached data
@@ -321,6 +329,8 @@ func main() {
 		if err != nil {
 			return err
 		}
+
+		repo = fmt.Sprintf("%s", repo)
 
 		_, cached := cacheStars.Get(repo)
 		_, onGoing := onGoingStars[repo]

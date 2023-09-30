@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
 import TextField from "@mui/material/TextField";
@@ -11,6 +11,7 @@ import TimeSeries from "fusioncharts/fusioncharts.timeseries";
 import ReactFC from "react-fusioncharts";
 import schema from "./schema";
 import EstimatedTimeProgress from "./EstimatedTimeProgress";
+import ProgressBar from "./ProgressBar";
 
 const HOST = import.meta.env.VITE_HOST;
 
@@ -66,6 +67,10 @@ function TimeSeriesChart() {
   const [estimatedTime, setEstimatedTime] = useState(0);
   const [totalStars, setTotalStars] = useState(0);
   const [creationDate, setCreationDate] = useState("2021-01-01");
+  const [progressValue, setProgressValue] = useState(0);
+  const [maxProgress, setMaxProgress] = useState(0);
+
+  const currentSSE = useRef(null);
 
   const fetchTotalStars = async (repo) => {
     try {
@@ -81,7 +86,21 @@ function TimeSeriesChart() {
     }
   };
 
-  const fetchRepoStats = (repo) => {
+  const fetchStatus = async (repo) => {
+    try {
+      const response = await fetch(`${HOST}/status?repo=${repo}`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error(`An error occurred: ${error}`);
+    }
+  };
+
+  const fetchAllStars = (repo) => {
     console.log(repo);
     fetch(`${HOST}/allStars?repo=${repo}`)
       .then((response) => {
@@ -130,8 +149,53 @@ function TimeSeriesChart() {
       });
   };
 
+  const closeSSE = () => {
+    if (currentSSE.current) {
+      console.log("STOP SSE");
+      currentSSE.current.close();
+    }
+  };
+
+  const startSSEUpates = (repo, callsNeeded, onGoing) => {
+    console.log(repo, callsNeeded, onGoing);
+    const sse = new EventSource(`${HOST}/sse?repo=${repo}`);
+    closeSSE();
+    currentSSE.current = sse;
+
+    sse.onerror = (err) => {
+      console.log("on error", err);
+    };
+
+    // The onmessage handler is called if no event name is specified for a message.
+    sse.onmessage = (msg) => {
+      console.log("on message", msg);
+    };
+
+    sse.onopen = (...args) => {
+      console.log("on open", args);
+    };
+
+    sse.addEventListener("current-value", (event) => {
+      const parsedData = JSON.parse(event.data);
+      const currentValue = parsedData.data;
+      setProgressValue(currentValue);
+
+      if (currentValue === callsNeeded) {
+        console.log("CLOSE SSE");
+        closeSSE();
+        if (onGoing) {
+          setTimeout(() => {
+            fetchAllStars(repo);
+          }, 2000);
+        }
+      }
+
+      //resultElement.innerHTML = currentValue + "<br>";
+    });
+  };
+
   useEffect(() => {
-    fetchRepoStats(selectedRepo);
+    fetchAllStars(selectedRepo);
   }, []);
 
   const handleInputChange = async (event, setStateFunction) => {
@@ -144,18 +208,31 @@ function TimeSeriesChart() {
       return;
     }
 
-    fetchRepoStats(repoParsed);
-
     const res = await fetchTotalStars(repoParsed);
     console.log(res);
 
     setTotalStars(res.stars);
     setCreationDate(res.createdAt);
 
-    let timeEstimate = res.stars / 339;
-    timeEstimate = Math.max(1, Math.ceil(timeEstimate));
+    const status = await fetchStatus(repoParsed);
+    console.log(status);
 
-    setEstimatedTime(timeEstimate);
+    setProgressValue(0);
+    setMaxProgress(0);
+
+    if (!status.onGoing) {
+      fetchAllStars(repoParsed);
+    }
+
+    if (!status.cached) {
+      let timeEstimate = res.stars / 339;
+      timeEstimate = Math.max(1, Math.ceil(timeEstimate));
+      setEstimatedTime(timeEstimate);
+    }
+
+    const callsNeeded = Math.floor(res.stars / 100);
+    setMaxProgress(callsNeeded);
+    startSSEUpates(repoParsed, callsNeeded, status.onGoing);
   };
 
   return (
@@ -211,6 +288,7 @@ function TimeSeriesChart() {
         text="Estimated Time Left"
         totalTime={estimatedTime}
       />
+      <ProgressBar value={progressValue} max={maxProgress} />
       <ReactFC {...ds.timeseriesDs} />
     </div>
   );
