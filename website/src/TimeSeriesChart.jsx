@@ -62,6 +62,21 @@ function TimeSeriesChart() {
   const [selectedRepo, setSelectedRepo] = useState("helm/helm-mapkubeapis");
   const [selectedValue, setSelectedValue] = useState("increment");
   const [result, setResult] = useState([]);
+  const [estimatedTime, setEstimatedTime] = useState(0);
+
+  const fetchTotalStars = async (repo) => {
+    try {
+      const response = await fetch(`${HOST}/totalStars?repo=${repo}`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error(`An error occurred: ${error}`);
+    }
+  };
 
   const fetchRepoStats = (repo) => {
     console.log(repo);
@@ -96,10 +111,18 @@ function TimeSeriesChart() {
     fetchRepoStats(selectedRepo);
   }, []);
 
-  const handleInputChange = (event, setStateFunction) => {
+  const handleInputChange = async (event, setStateFunction) => {
     const inputText = event.target.value;
     setStateFunction(inputText);
     fetchRepoStats(parseGitHubRepoURL(inputText));
+
+    const res = await fetchTotalStars(parseGitHubRepoURL(inputText));
+    console.log(res);
+
+    let timeEstimate = res.stars / 339;
+    timeEstimate = Math.max(1, Math.ceil(timeEstimate));
+
+    setEstimatedTime(timeEstimate);
   };
 
   return (
@@ -111,7 +134,10 @@ function TimeSeriesChart() {
         value={selectedRepo}
         onChange={(e) => handleInputChange(e, setSelectedRepo)}
       />
-      <EstimatedTimeProgress text="Estimated Time Left" totalTime={36} />
+      <EstimatedTimeProgress
+        text="Estimated Time Left"
+        totalTime={estimatedTime}
+      />
       <ReactFC {...ds.timeseriesDs} />
     </div>
   );
