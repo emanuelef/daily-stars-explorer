@@ -112,10 +112,10 @@ func main() {
 		},
 	})
 
+	app.Use(rateLimiter)
 	app.Use(recover.New())
 	app.Use(cors.New())
 	app.Use(compress.New())
-	app.Use(rateLimiter)
 
 	// Just to check health and an example of a very frequent request
 	// that we might not want to generate traces
