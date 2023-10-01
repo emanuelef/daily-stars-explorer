@@ -6,8 +6,15 @@ const RequestsProgressBar = ({ remainingRequests, totalRequests }) => {
   const progress = (remainingRequests / totalRequests) * 100;
 
   return (
-    <div>
-      <Typography variant="subtitle1" gutterBottom>
+    <div
+      style={{
+        marginTop: "10px",
+        marginRight: "20px",
+        marginLeft: "10px",
+        width: "1170px",
+      }}
+    >
+      <Typography variant="h8" gutterBottom>
         Remaining Requests: {remainingRequests} / {totalRequests}
       </Typography>
       <LinearProgress

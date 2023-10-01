@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import "./App.css";
 
 import TextField from "@mui/material/TextField";
+import LoadingButton from "@mui/lab/LoadingButton";
+import SendIcon from "@mui/icons-material/Send";
 
 import TimeSeriesChart from "./TimeSeriesChart";
 import RequestsProgressBar from "./RequestsProgressBar";
@@ -77,17 +79,21 @@ function App() {
   const [totalRequests, setTotalRequests] = useState(60);
   const [remainingRequests, setRemainingRequests] = useState(totalRequests);
   const [resetLimitsTime, setResetLimitsTime] = useState(60);
+  const [loading, setLoading] = useState(false);
 
   const fetchRepoStats = (repo) => {
     console.log(repo);
+    setLoading(true);
     fetch(`${HOST}/stats?repo=${repo}`)
       .then((response) => response.json())
       .then((stats) => {
         console.log(stats);
         setResult(stats);
+        setLoading(false);
       })
       .catch((e) => {
         console.error(`An error occurred: ${e}`);
+        setLoading(false);
       });
   };
 
@@ -119,22 +125,45 @@ function App() {
     return () => clearInterval(intervalId);
   }, []);
 
+  const handleClick = async () => {
+    fetchRepoStats(parseGitHubRepoURL(selectedRepo));
+  };
+
   const handleInputChange = (event, setStateFunction) => {
     const inputText = event.target.value;
     setStateFunction(inputText);
-    fetchRepoStats(parseGitHubRepoURL(inputText));
   };
 
   const Table = () => {
     return (
       <div className="chart-container">
         <TextField
-          style={{ marginTop: "20px", marginRight: "20px", marginLeft: "20px" }}
+          style={{
+            marginTop: "20px",
+            marginRight: "20px",
+            marginLeft: "10px",
+            width: "500px",
+          }}
           label="Enter a GitHub repository"
           variant="outlined"
           value={selectedRepo}
           onChange={(e) => handleInputChange(e, setSelectedRepo)}
         />
+        <LoadingButton
+          style={{
+            marginTop: "30px",
+            marginRight: "20px",
+            marginLeft: "10px",
+          }}
+          size="small"
+          onClick={handleClick}
+          endIcon={<SendIcon />}
+          loading={loading}
+          loadingPosition="end"
+          variant="contained"
+        >
+          <span>Fetch</span>
+        </LoadingButton>
         <RequestsProgressBar
           remainingRequests={remainingRequests}
           totalRequests={totalRequests}
