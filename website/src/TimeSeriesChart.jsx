@@ -329,8 +329,9 @@ function TimeSeriesChart() {
       />
       <div
         style={{
-          marginTop: "20px",
+          marginTop: "10px",
           marginLeft: "10px",
+          marginBottom: "10px",
         }}
       >
         <Link
@@ -343,7 +344,7 @@ function TimeSeriesChart() {
         <br />
         <Link
           style={{
-            marginTop: "4px",
+            marginTop: "2px",
           }}
           component="button" // Use a button style
           variant="body2" // Choose a style variant

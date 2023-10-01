@@ -6,13 +6,20 @@ const ProgressBar = ({ value, max }) => {
   const percentage = (value / max) * 100;
 
   return (
-    <div>
+    <div
+      style={{
+        marginTop: "10px",
+        marginRight: "20px",
+        marginLeft: "10px",
+        width: "1060px",
+      }}
+    >
       <LinearProgress
         variant="determinate"
         value={percentage}
         sx={{ width: "100%" }}
       />
-      <div style={{ textAlign: "center" }}>{`${value} / ${max}`}</div>
+      <div style={{ textAlign: "left" }}>{`GH Requests ${value} / ${max}`}</div>
     </div>
   );
 };

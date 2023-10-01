@@ -22,8 +22,15 @@ const EstimatedTimeProgress = ({ text, totalTime }) => {
   const progressPercentage = (elapsedTime / totalTime) * 100;
 
   return (
-    <div>
-      <Typography variant="h6">
+    <div
+      style={{
+        marginTop: "10px",
+        marginRight: "20px",
+        marginLeft: "10px",
+        width: "1060px",
+      }}
+    >
+      <Typography variant="h8">
         {text}: {formatTime(remainingTime)}
       </Typography>
       <LinearProgress variant="determinate" value={progressPercentage} />
