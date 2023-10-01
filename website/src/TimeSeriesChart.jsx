@@ -40,7 +40,7 @@ const chart_props = {
     height: "800",
     dataEmptyMessage: "Fetching data...",
     dataSource: {
-      caption: { text: "New stars per day" },
+      caption: { text: "Stars" },
       data: null,
       yAxis: [
         {
@@ -62,8 +62,6 @@ const chart_props = {
 function TimeSeriesChart() {
   const [ds, setds] = useState(chart_props);
   const [selectedRepo, setSelectedRepo] = useState("helm/helm-mapkubeapis");
-  const [selectedValue, setSelectedValue] = useState("increment");
-  const [result, setResult] = useState([]);
   const [estimatedTime, setEstimatedTime] = useState(0);
   const [totalStars, setTotalStars] = useState(0);
   const [creationDate, setCreationDate] = useState("2021-01-01");
@@ -113,7 +111,15 @@ function TimeSeriesChart() {
       })
       .then((data) => {
         console.log(data);
-        setResult(data);
+
+        // remove last element as the current day is not complete
+        if (data.length > 0) {
+          data.pop();
+          console.log(data);
+        } else {
+          console.log("Array is empty.");
+        }
+
         const fusionTable = new FusionCharts.DataStore().createDataTable(
           data,
           schema
@@ -130,7 +136,6 @@ function TimeSeriesChart() {
   };
 
   const downloadCSV = () => {
-    // Replace 'your-backend-url' with the actual URL of your CSV download endpoint
     const downloadUrl = `${HOST}/allStarsCsv?repo=${selectedRepo}`;
 
     fetch(downloadUrl)
@@ -278,6 +283,9 @@ function TimeSeriesChart() {
         }}
       />
       <Link
+        style={{
+          marginTop: "20px",
+        }}
         component="button" // Use a button style
         variant="body2" // Choose a style variant
         onClick={downloadCSV} // Call the downloadCSV function on click

@@ -24,12 +24,14 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/compress"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+
 	//"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 
 	"github.com/gofiber/contrib/otelfiber"
 
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -133,6 +135,9 @@ func main() {
 		// needed because c.Query cannot be used as a map key
 		repo = fmt.Sprintf("%s", repo)
 
+		span := trace.SpanFromContext(c.UserContext())
+		span.SetAttributes(attribute.String("github.repo", repo))
+
 		if res, hit := cacheOverall.Get(repo); hit {
 			return c.JSON(res)
 		}
@@ -191,6 +196,9 @@ func main() {
 
 		// needed because c.Query cannot be used as a map key
 		repo = fmt.Sprintf("%s", repo)
+
+		span := trace.SpanFromContext(c.UserContext())
+		span.SetAttributes(attribute.String("github.repo", repo))
 
 		if res, hit := cacheStars.Get(repo); hit {
 			return c.JSON(res)
