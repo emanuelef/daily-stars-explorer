@@ -131,7 +131,7 @@ function TimeSeriesChart() {
 
   const downloadCSV = () => {
     // Replace 'your-backend-url' with the actual URL of your CSV download endpoint
-    const downloadUrl = `${HOST}/allStars?repo=${selectedRepo}`;
+    const downloadUrl = `${HOST}/allStarsCsv?repo=${selectedRepo}`;
 
     fetch(downloadUrl)
       .then((response) => response.blob())
