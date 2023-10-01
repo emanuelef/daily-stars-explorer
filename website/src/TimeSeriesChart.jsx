@@ -193,7 +193,7 @@ function TimeSeriesChart() {
         //if (onGoing) {
         setTimeout(() => {
           fetchAllStars(repo);
-        }, 2000);
+        }, 1200);
         //}
       }
 
