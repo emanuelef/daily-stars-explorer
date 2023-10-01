@@ -71,7 +71,7 @@ function TimeSeriesChart() {
   const [age, setAge] = useState("");
   const [progressValue, setProgressValue] = useState(0);
   const [maxProgress, setMaxProgress] = useState(0);
-  const [loading, setLoading] = React.useState(false);
+  const [loading, setLoading] = useState(false);
 
   const currentSSE = useRef(null);
 
