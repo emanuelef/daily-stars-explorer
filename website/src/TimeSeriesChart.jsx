@@ -156,6 +156,25 @@ function TimeSeriesChart() {
       });
   };
 
+  const downloadJSON = () => {
+    const downloadUrl = `${HOST}/allStars?repo=${selectedRepo}`;
+
+    fetch(downloadUrl)
+      .then((response) => response.blob())
+      .then((blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${selectedRepo.replace("/", "_")}-stars-history.json`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+      })
+      .catch((error) => {
+        console.error("Error downloading JSON:", error);
+      });
+  };
+
   const closeSSE = () => {
     if (currentSSE.current) {
       console.log("STOP SSE");
@@ -308,26 +327,31 @@ function TimeSeriesChart() {
           readOnly: true,
         }}
       />
-      <Link
+      <div
         style={{
           marginTop: "20px",
+          marginLeft: "10px",
         }}
-        component="button" // Use a button style
-        variant="body2" // Choose a style variant
-        onClick={downloadCSV} // Call the downloadCSV function on click
       >
-        Download CSV
-      </Link>
-      <Link
-        style={{
-          marginTop: "20px",
-        }}
-        component="button" // Use a button style
-        variant="body2" // Choose a style variant
-        onClick={downloadCSV} // Call the downloadCSV function on click
-      >
-        Download Json
-      </Link>
+        <Link
+          component="button" // Use a button style
+          variant="body2" // Choose a style variant
+          onClick={downloadCSV} // Call the downloadCSV function on click
+        >
+          Download CSV
+        </Link>
+        <br />
+        <Link
+          style={{
+            marginTop: "4px",
+          }}
+          component="button" // Use a button style
+          variant="body2" // Choose a style variant
+          onClick={downloadJSON} // Call the downloadJSON function on click
+        >
+          Download Json
+        </Link>
+      </div>
       <EstimatedTimeProgress
         text="Estimated Time Left"
         totalTime={estimatedTime}
