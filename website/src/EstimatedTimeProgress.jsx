@@ -27,7 +27,7 @@ const EstimatedTimeProgress = ({ text, totalTime }) => {
         marginTop: "10px",
         marginRight: "20px",
         marginLeft: "10px",
-        width: "1060px",
+        width: "1170px",
       }}
     >
       <Typography variant="h8">

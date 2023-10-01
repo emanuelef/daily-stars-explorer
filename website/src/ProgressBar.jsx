@@ -11,7 +11,7 @@ const ProgressBar = ({ value, max }) => {
         marginTop: "10px",
         marginRight: "20px",
         marginLeft: "10px",
-        width: "1060px",
+        width: "1170px",
       }}
     >
       <LinearProgress

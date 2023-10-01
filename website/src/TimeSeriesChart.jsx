@@ -5,6 +5,8 @@ import TextField from "@mui/material/TextField";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import FormControl from "@mui/material/FormControl";
 import FormLabel from "@mui/material/FormLabel";
+import LoadingButton from "@mui/lab/LoadingButton";
+import SendIcon from "@mui/icons-material/Send";
 import { Link } from "@mui/material";
 import FusionCharts from "fusioncharts";
 import TimeSeries from "fusioncharts/fusioncharts.timeseries";
@@ -12,7 +14,7 @@ import ReactFC from "react-fusioncharts";
 import schema from "./schema";
 import EstimatedTimeProgress from "./EstimatedTimeProgress";
 import ProgressBar from "./ProgressBar";
-import { parseISO, intervalToDuration } from "date-fns";
+import { parseISO, intervalToDuration, set } from "date-fns";
 
 const HOST = import.meta.env.VITE_HOST;
 
@@ -69,6 +71,7 @@ function TimeSeriesChart() {
   const [age, setAge] = useState("");
   const [progressValue, setProgressValue] = useState(0);
   const [maxProgress, setMaxProgress] = useState(0);
+  const [loading, setLoading] = React.useState(false);
 
   const currentSSE = useRef(null);
 
@@ -214,9 +217,8 @@ function TimeSeriesChart() {
           fetchAllStars(repo);
         }, 1200);
         //}
+        setLoading(false);
       }
-
-      //resultElement.innerHTML = currentValue + "<br>";
     });
   };
 
@@ -224,15 +226,14 @@ function TimeSeriesChart() {
     fetchAllStars(selectedRepo);
   }, []);
 
-  const handleInputChange = async (event, setStateFunction) => {
-    const inputText = event.target.value;
-    setStateFunction(inputText);
-
-    const repoParsed = parseGitHubRepoURL(inputText);
+  const handleClick = async () => {
+    const repoParsed = parseGitHubRepoURL(selectedRepo);
 
     if (repoParsed === null) {
       return;
     }
+
+    setLoading(true);
 
     const res = await fetchTotalStars(repoParsed);
     console.log(res);
@@ -271,13 +272,18 @@ function TimeSeriesChart() {
     startSSEUpates(repoParsed, callsNeeded, status.onGoing);
   };
 
+  const handleInputChange = async (event, setStateFunction) => {
+    const inputText = event.target.value;
+    setStateFunction(inputText);
+  };
+
   return (
     <div>
       <TextField
         style={{
           marginTop: "20px",
           marginRight: "20px",
-          marginLeft: "20px",
+          marginLeft: "10px",
           width: "500px",
         }}
         label="Enter a GitHub repository"
@@ -285,6 +291,21 @@ function TimeSeriesChart() {
         value={selectedRepo}
         onChange={(e) => handleInputChange(e, setSelectedRepo)}
       />
+      <LoadingButton
+        style={{
+          marginTop: "30px",
+          marginRight: "20px",
+          marginLeft: "10px",
+        }}
+        size="small"
+        onClick={handleClick}
+        endIcon={<SendIcon />}
+        loading={loading}
+        loadingPosition="end"
+        variant="contained"
+      >
+        <span>Fetch</span>
+      </LoadingButton>
       <TextField
         style={{
           marginTop: "20px",
