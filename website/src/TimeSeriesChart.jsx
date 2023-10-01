@@ -225,7 +225,11 @@ function TimeSeriesChart() {
       start: parseISO(res.createdAt),
       end: Date.now(),
     });
-    setAge(`${years}y ${months}M ${days}d`);
+    setAge(
+      `${years !== 0 ? `${years}y ` : ""}${
+        months !== 0 ? `${months}m ` : ""
+      }${days}d`
+    );
 
     const status = await fetchStatus(repoParsed);
     console.log(status);
@@ -313,6 +317,16 @@ function TimeSeriesChart() {
         onClick={downloadCSV} // Call the downloadCSV function on click
       >
         Download CSV
+      </Link>
+      <Link
+        style={{
+          marginTop: "20px",
+        }}
+        component="button" // Use a button style
+        variant="body2" // Choose a style variant
+        onClick={downloadCSV} // Call the downloadCSV function on click
+      >
+        Download Json
       </Link>
       <EstimatedTimeProgress
         text="Estimated Time Left"
