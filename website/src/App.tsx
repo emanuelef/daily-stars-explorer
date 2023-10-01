@@ -14,6 +14,9 @@ import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import TableViewRounded from "@mui/icons-material/TableViewRounded";
 import TimelineRoundedIcon from "@mui/icons-material/TimelineRounded";
 
+import JsonView from "react18-json-view";
+import "react18-json-view/src/style.css";
+
 /*
 archived
 "false"
@@ -141,8 +144,7 @@ function App() {
           totalTime={resetLimitsTime}
         />
         <div>
-          <h1>JSON Data</h1>
-          <pre>{JSON.stringify(result, null, 2)}</pre>
+          <JsonView src={result} />
         </div>
       </div>
     );
