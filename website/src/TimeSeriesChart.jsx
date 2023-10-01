@@ -190,11 +190,11 @@ function TimeSeriesChart() {
       if (currentValue === callsNeeded) {
         console.log("CLOSE SSE");
         closeSSE();
-        if (onGoing) {
-          setTimeout(() => {
-            fetchAllStars(repo);
-          }, 2000);
-        }
+        //if (onGoing) {
+        setTimeout(() => {
+          fetchAllStars(repo);
+        }, 2000);
+        //}
       }
 
       //resultElement.innerHTML = currentValue + "<br>";
