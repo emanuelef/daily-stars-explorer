@@ -12,6 +12,7 @@ import ReactFC from "react-fusioncharts";
 import schema from "./schema";
 import EstimatedTimeProgress from "./EstimatedTimeProgress";
 import ProgressBar from "./ProgressBar";
+import { parseISO, intervalToDuration } from "date-fns";
 
 const HOST = import.meta.env.VITE_HOST;
 
@@ -65,6 +66,7 @@ function TimeSeriesChart() {
   const [estimatedTime, setEstimatedTime] = useState(0);
   const [totalStars, setTotalStars] = useState(0);
   const [creationDate, setCreationDate] = useState("2021-01-01");
+  const [age, setAge] = useState("");
   const [progressValue, setProgressValue] = useState(0);
   const [maxProgress, setMaxProgress] = useState(0);
 
@@ -219,6 +221,12 @@ function TimeSeriesChart() {
     setTotalStars(res.stars);
     setCreationDate(res.createdAt);
 
+    const { years, months, days } = intervalToDuration({
+      start: parseISO(res.createdAt),
+      end: Date.now(),
+    });
+    setAge(`${years}y ${months}M ${days}d`);
+
     const status = await fetchStatus(repoParsed);
     console.log(status);
 
@@ -275,9 +283,23 @@ function TimeSeriesChart() {
           marginLeft: "10px",
           width: "200px",
         }}
-        id="cration-date"
+        id="creation-date"
         label="Creation Date"
         value={creationDate}
+        InputProps={{
+          readOnly: true,
+        }}
+      />
+      <TextField
+        style={{
+          marginTop: "20px",
+          marginRight: "20px",
+          marginLeft: "10px",
+          width: "150px",
+        }}
+        id="age"
+        label="Age"
+        value={age}
         InputProps={{
           readOnly: true,
         }}
