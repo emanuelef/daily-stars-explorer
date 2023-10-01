@@ -131,6 +131,7 @@ function TimeSeriesChart() {
           schema
         );
         const options = { ...ds };
+        options.timeseriesDs.dataSource.caption = { text: `Stars ${repo}` };
         options.timeseriesDs.dataSource.data = fusionTable;
         options.timeseriesDs.dataSource.yAxis[0].plot[0].value =
           "Cumulative Stars";
