@@ -116,6 +116,7 @@ function TimeSeriesChart() {
       })
       .then((data) => {
         console.log(data);
+        setLoading(false);
 
         // remove last element as the current day is not complete
         if (data.length > 0) {
@@ -137,6 +138,7 @@ function TimeSeriesChart() {
       })
       .catch((e) => {
         console.error(`An error occurred: ${e}`);
+        setLoading(false);
       });
   };
 
