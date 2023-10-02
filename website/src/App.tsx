@@ -123,7 +123,7 @@ function App() {
     fetchRepoStats(selectedRepo);
     const intervalId = setInterval(fetchLimits, 30000);
     return () => clearInterval(intervalId);
-  }, [selectedRepo]);
+  }, []);
 
   const handleClick = async () => {
     fetchRepoStats(parseGitHubRepoURL(selectedRepo));
@@ -224,7 +224,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Table />} />
           <Route path="/table" element={<Table />} />
-          <Route path="/starstimeline" element={<StarsTimeline />} />
+          <Route path="/starstimeline" element={<TimeSeriesChart />} />
         </Routes>
       </section>
     </div>

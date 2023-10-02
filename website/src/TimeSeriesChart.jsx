@@ -382,7 +382,7 @@ function TimeSeriesChart() {
         totalTime={estimatedTime}
       />
       <ProgressBar value={progressValue} max={maxProgress} />
-      <ReactFC {...ds.timeseriesDs} />
+      <div>{ds != chart_props && <ReactFC {...ds.timeseriesDs} />}</div>
     </div>
   );
 }
