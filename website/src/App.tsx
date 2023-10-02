@@ -75,7 +75,7 @@ const parseGitHubRepoURL = (url) => {
 function App() {
   const [selectedRepo, setSelectedRepo] = useState("helm/helm-mapkubeapis");
   const [collapsed, setCollapsed] = useState(true);
-  const [result, setResult] = useState("");
+  const [result, setResult] = useState({});
   const [totalRequests, setTotalRequests] = useState(60);
   const [remainingRequests, setRemainingRequests] = useState(totalRequests);
   const [resetLimitsTime, setResetLimitsTime] = useState(60);
@@ -123,7 +123,7 @@ function App() {
     fetchRepoStats(selectedRepo);
     const intervalId = setInterval(fetchLimits, 30000);
     return () => clearInterval(intervalId);
-  }, []);
+  }, [selectedRepo]);
 
   const handleClick = async () => {
     fetchRepoStats(parseGitHubRepoURL(selectedRepo));
@@ -172,9 +172,7 @@ function App() {
           text="API Limits reset"
           totalTime={resetLimitsTime}
         />
-        <div>
-          <JsonView src={result} />
-        </div>
+        <div>{result && <JsonView src={result} collapsed={1} />}</div>
       </div>
     );
   };
