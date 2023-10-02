@@ -224,7 +224,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Table />} />
           <Route path="/table" element={<Table />} />
-          <Route path="/starstimeline" element={<TimeSeriesChart />} />
+          <Route path="/starstimeline" element={<StarsTimeline />} />
         </Routes>
       </section>
     </div>
