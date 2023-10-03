@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
 import TextField from "@mui/material/TextField";
@@ -74,6 +74,8 @@ function TimeSeriesChart() {
   const [maxProgress, setMaxProgress] = useState(0);
   const [loading, setLoading] = useState(false);
 
+  const navigate = useNavigate();
+
   const { id } = useParams();
   const decodedRepositoryId = decodeURIComponent(id);
 
@@ -81,7 +83,6 @@ function TimeSeriesChart() {
     decodedRepositoryId == ":id"
       ? "helm/helm-mapkubeapis"
       : decodedRepositoryId;
-  console.log(initialRepo);
 
   const [selectedRepo, setSelectedRepo] = useState(initialRepo);
 
@@ -92,12 +93,14 @@ function TimeSeriesChart() {
       const response = await fetch(`${HOST}/totalStars?repo=${repo}`);
 
       if (!response.ok) {
+        setLoading(false);
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
       const data = await response.json();
       return data;
     } catch (error) {
       console.error(`An error occurred: ${error}`);
+      setLoading(false);
     }
   };
 
@@ -243,6 +246,10 @@ function TimeSeriesChart() {
 
   const handleClick = async () => {
     const repoParsed = parseGitHubRepoURL(selectedRepo);
+
+    navigate(`/starstimeline/${encodeURIComponent(repoParsed)}`, {
+      replace: false,
+    });
 
     if (repoParsed === null) {
       return;
