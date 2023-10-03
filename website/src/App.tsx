@@ -213,7 +213,7 @@ function App() {
             Table
           </MenuItem>
           <MenuItem
-            component={<Link to="/starstimeline" className="link" />}
+            component={<Link to="/starstimeline/:id" className="link" />}
             icon={<TimelineRoundedIcon />}
           >
             StarsTimeline
@@ -224,7 +224,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Table />} />
           <Route path="/table" element={<Table />} />
-          <Route path="/starstimeline" element={<TimeSeriesChart />} />
+          <Route path="/starstimeline/:id" element={<TimeSeriesChart />} />
         </Routes>
       </section>
     </div>

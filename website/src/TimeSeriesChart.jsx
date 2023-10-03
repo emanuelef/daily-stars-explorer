@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useParams } from "react-router-dom";
 import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
 import TextField from "@mui/material/TextField";
@@ -64,7 +65,7 @@ const chart_props = {
 
 function TimeSeriesChart() {
   const [ds, setds] = useState(chart_props);
-  const [selectedRepo, setSelectedRepo] = useState("helm/helm-mapkubeapis");
+
   const [estimatedTime, setEstimatedTime] = useState(0);
   const [totalStars, setTotalStars] = useState(0);
   const [creationDate, setCreationDate] = useState("2021-01-01");
@@ -72,6 +73,17 @@ function TimeSeriesChart() {
   const [progressValue, setProgressValue] = useState(0);
   const [maxProgress, setMaxProgress] = useState(0);
   const [loading, setLoading] = useState(false);
+
+  const { id } = useParams();
+  const decodedRepositoryId = decodeURIComponent(id);
+
+  const initialRepo =
+    decodedRepositoryId == ":id"
+      ? "helm/helm-mapkubeapis"
+      : decodedRepositoryId;
+  console.log(initialRepo);
+
+  const [selectedRepo, setSelectedRepo] = useState(initialRepo);
 
   const currentSSE = useRef(null);
 
@@ -226,7 +238,7 @@ function TimeSeriesChart() {
   };
 
   useEffect(() => {
-    fetchAllStars(selectedRepo);
+    handleClick();
   }, []);
 
   const handleClick = async () => {

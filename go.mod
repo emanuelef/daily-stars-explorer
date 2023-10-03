@@ -4,7 +4,7 @@ go 1.21.1
 
 require (
 	github.com/Code-Hex/go-generics-cache v1.3.1
-	github.com/emanuelef/github-repo-activity-stats v0.0.0-20231002005209-1312a046d21b
+	github.com/emanuelef/github-repo-activity-stats v0.0.0-20231003005147-788c9926dd2f
 	github.com/gofiber/contrib/otelfiber v1.0.10
 	github.com/gofiber/fiber/v2 v2.49.2
 	github.com/joho/godotenv v1.5.1
@@ -49,8 +49,8 @@ require (
 	golang.org/x/sys v0.12.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20230920204549-e6e6cdab5c13 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20230920204549-e6e6cdab5c13 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20231002182017-d307bd883b97 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20231002182017-d307bd883b97 // indirect
 	google.golang.org/grpc v1.58.2 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
