@@ -312,6 +312,11 @@ function TimeSeriesChart() {
         variant="outlined"
         value={selectedRepo}
         onChange={(e) => handleInputChange(e, setSelectedRepo)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            handleClick();
+          }
+        }}
       />
       <LoadingButton
         style={{
