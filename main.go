@@ -92,7 +92,6 @@ func main() {
 	)
 
 	oauthClient := oauth2.NewClient(context.Background(), tokenSource)
-	// client := repostats.NewClient(&oauthClient.Transport)
 	client := repostats.NewClientGQL(oauthClient)
 
 	app := fiber.New()
