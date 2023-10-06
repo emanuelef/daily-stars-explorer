@@ -27,7 +27,11 @@ function App() {
     <ThemeProvider theme={darkTheme}>
       <CssBaseline />
       <div style={{ display: "flex", height: "100vh" }}>
-        <Sidebar className="app" collapsed={collapsed}  backgroundColor="rgb(51, 117, 117)">
+        <Sidebar
+          className="app"
+          collapsed={collapsed}
+          backgroundColor="rgb(51, 117, 117)"
+        >
           <Menu>
             <MenuItem
               component={<Link to="/" className="link" />}
@@ -56,7 +60,7 @@ function App() {
             </MenuItem>
           </Menu>
         </Sidebar>
-        <section style={{ width: "90%" }}>
+        <section style={{ width: "90%", height: "90%" }}>
           <Routes>
             <Route path="/" element={<MainPage />} />
             <Route path="/table" element={<MainPage />} />

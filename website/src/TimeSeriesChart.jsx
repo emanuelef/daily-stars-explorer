@@ -17,7 +17,7 @@ import EstimatedTimeProgress from "./EstimatedTimeProgress";
 import ProgressBar from "./ProgressBar";
 import { parseISO, intervalToDuration, set } from "date-fns";
 import { parseGitHubRepoURL } from "./githubUtils";
-import CandyTheme from 'fusioncharts/themes/fusioncharts.theme.candy';
+import CandyTheme from "fusioncharts/themes/fusioncharts.theme.candy";
 
 const HOST = import.meta.env.VITE_HOST;
 
@@ -26,7 +26,7 @@ const chart_props = {
   timeseriesDs: {
     type: "timeseries",
     width: "100%",
-    height: "800",
+    height: "100%",
     dataEmptyMessage: "Fetching data...",
     dataSource: {
       caption: { text: "Stars" },
@@ -391,7 +391,13 @@ function TimeSeriesChart() {
         totalTime={estimatedTime}
       />
       <ProgressBar value={progressValue} max={maxProgress} />
-      <div>{ds != chart_props && <ReactFC {...ds.timeseriesDs} />}</div>
+      <div
+        style={{
+          marginLeft: "10px",
+        }}
+      >
+        {ds != chart_props && <ReactFC {...ds.timeseriesDs} />}
+      </div>
     </div>
   );
 }
