@@ -25,7 +25,7 @@ ReactFC.fcRoot(FusionCharts, TimeSeries, CandyTheme);
 const chart_props = {
   timeseriesDs: {
     type: "timeseries",
-    width: "1200",
+    width: "100%",
     height: "800",
     dataEmptyMessage: "Fetching data...",
     dataSource: {

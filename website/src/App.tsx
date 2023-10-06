@@ -56,7 +56,7 @@ function App() {
             </MenuItem>
           </Menu>
         </Sidebar>
-        <section>
+        <section style={{ width: "90%" }}>
           <Routes>
             <Route path="/" element={<MainPage />} />
             <Route path="/table" element={<MainPage />} />
