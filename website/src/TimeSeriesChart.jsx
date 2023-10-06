@@ -26,7 +26,7 @@ const chart_props = {
   timeseriesDs: {
     type: "timeseries",
     width: "100%",
-    height: "100%",
+    height: "80%",
     dataEmptyMessage: "Fetching data...",
     dataSource: {
       caption: { text: "Stars" },
