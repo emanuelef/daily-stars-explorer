@@ -6,6 +6,10 @@ import TextField from "@mui/material/TextField";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import FormControl from "@mui/material/FormControl";
 import FormLabel from "@mui/material/FormLabel";
+import Box from "@mui/material/Box";
+import InputLabel from "@mui/material/InputLabel";
+import MenuItem from "@mui/material/MenuItem";
+import Select from "@mui/material/Select";
 import LoadingButton from "@mui/lab/LoadingButton";
 import SendIcon from "@mui/icons-material/Send";
 import { Link } from "@mui/material";
@@ -17,11 +21,13 @@ import EstimatedTimeProgress from "./EstimatedTimeProgress";
 import ProgressBar from "./ProgressBar";
 import { parseISO, intervalToDuration, set } from "date-fns";
 import { parseGitHubRepoURL } from "./githubUtils";
+import GammelTheme from "fusioncharts/themes/fusioncharts.theme.gammel";
 import CandyTheme from "fusioncharts/themes/fusioncharts.theme.candy";
+import ZuneTheme from "fusioncharts/themes/fusioncharts.theme.zune";
 
 const HOST = import.meta.env.VITE_HOST;
 
-ReactFC.fcRoot(FusionCharts, TimeSeries, CandyTheme);
+ReactFC.fcRoot(FusionCharts, TimeSeries, GammelTheme, CandyTheme, ZuneTheme);
 const chart_props = {
   timeseriesDs: {
     type: "timeseries",
@@ -59,6 +65,8 @@ function TimeSeriesChart() {
   const [maxProgress, setMaxProgress] = useState(0);
   const [loading, setLoading] = useState(false);
 
+  const [theme, setTheme] = useState("candy");
+
   const navigate = useNavigate();
 
   const { id } = useParams();
@@ -72,6 +80,13 @@ function TimeSeriesChart() {
   const [selectedRepo, setSelectedRepo] = useState(initialRepo);
 
   const currentSSE = useRef(null);
+
+  const handleThemeChange = (event) => {
+    setTheme(event.target.value);
+    const options = { ...ds };
+    options.timeseriesDs.dataSource.chart.theme = event.target.value;
+    setds(options);
+  };
 
   const fetchTotalStars = async (repo) => {
     try {
@@ -135,6 +150,7 @@ function TimeSeriesChart() {
         options.timeseriesDs.dataSource.data = fusionTable;
         options.timeseriesDs.dataSource.yAxis[0].plot[0].value =
           "Cumulative Stars";
+        options.timeseriesDs.dataSource.chart.theme = theme;
         setds(options);
       })
       .catch((e) => {
@@ -286,118 +302,144 @@ function TimeSeriesChart() {
 
   return (
     <div>
-      <TextField
-        style={{
-          marginTop: "20px",
-          marginRight: "20px",
-          marginLeft: "10px",
-          width: "500px",
-        }}
-        label="Enter a GitHub repository"
-        variant="outlined"
-        value={selectedRepo}
-        onChange={(e) => handleInputChange(e, setSelectedRepo)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            handleClick();
-          }
-        }}
-      />
-      <LoadingButton
-        style={{
-          marginTop: "30px",
-          marginRight: "20px",
-          marginLeft: "10px",
-        }}
-        size="small"
-        onClick={handleClick}
-        endIcon={<SendIcon />}
-        loading={loading}
-        loadingPosition="end"
-        variant="contained"
-      >
-        <span>Fetch</span>
-      </LoadingButton>
-      <TextField
-        style={{
-          marginTop: "20px",
-          marginRight: "20px",
-          marginLeft: "10px",
-          width: "100px",
-        }}
-        id="total-stars"
-        label="Total Stars"
-        value={totalStars}
-        InputProps={{
-          readOnly: true,
-        }}
-      />
-      <TextField
-        style={{
-          marginTop: "20px",
-          marginRight: "20px",
-          marginLeft: "10px",
-          width: "200px",
-        }}
-        id="creation-date"
-        label="Creation Date"
-        value={creationDate}
-        InputProps={{
-          readOnly: true,
-        }}
-      />
-      <TextField
-        style={{
-          marginTop: "20px",
-          marginRight: "20px",
-          marginLeft: "10px",
-          width: "150px",
-        }}
-        id="age"
-        label="Age"
-        value={age}
-        InputProps={{
-          readOnly: true,
-        }}
-      />
-      <div
-        style={{
-          marginTop: "10px",
-          marginLeft: "10px",
-          marginBottom: "10px",
-        }}
-      >
-        <Link
-          component="button" // Use a button style
-          variant="body2" // Choose a style variant
-          onClick={downloadCSV} // Call the downloadCSV function on click
-        >
-          Download CSV
-        </Link>
-        <br />
-        <Link
+      <div style={{ display: "flex", alignItems: "center" }}>
+        <TextField
           style={{
-            marginTop: "2px",
+            marginTop: "20px",
+            marginRight: "20px",
+            marginLeft: "10px",
+            width: "500px",
           }}
-          component="button" // Use a button style
-          variant="body2" // Choose a style variant
-          onClick={downloadJSON} // Call the downloadJSON function on click
+          label="Enter a GitHub repository"
+          variant="outlined"
+          value={selectedRepo}
+          onChange={(e) => handleInputChange(e, setSelectedRepo)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              handleClick();
+            }
+          }}
+        />
+        <LoadingButton
+          style={{
+            marginTop: "30px",
+            marginRight: "20px",
+            marginLeft: "10px",
+          }}
+          size="small"
+          onClick={handleClick}
+          endIcon={<SendIcon />}
+          loading={loading}
+          loadingPosition="end"
+          variant="contained"
         >
-          Download Json
-        </Link>
-      </div>
-      <EstimatedTimeProgress
-        text="Estimated Time Left"
-        totalTime={estimatedTime}
-      />
-      <ProgressBar value={progressValue} max={maxProgress} />
-      <div
-        style={{
-          marginLeft: "10px",
-        }}
-      >
-        {ds != chart_props && <ReactFC {...ds.timeseriesDs} />}
-      </div>
+          <span>Fetch</span>
+        </LoadingButton>
+        <TextField
+          style={{
+            marginTop: "20px",
+            marginRight: "20px",
+            marginLeft: "10px",
+            width: "100px",
+          }}
+          id="total-stars"
+          label="Total Stars"
+          value={totalStars}
+          InputProps={{
+            readOnly: true,
+          }}
+        />
+        <TextField
+          style={{
+            marginTop: "20px",
+            marginRight: "20px",
+            marginLeft: "10px",
+            width: "200px",
+          }}
+          id="creation-date"
+          label="Creation Date"
+          value={creationDate}
+          InputProps={{
+            readOnly: true,
+          }}
+        />
+        <TextField
+          style={{
+            marginTop: "20px",
+            marginRight: "20px",
+            marginLeft: "10px",
+            width: "150px",
+          }}
+          id="age"
+          label="Age"
+          value={age}
+          InputProps={{
+            readOnly: true,
+          }}
+        />
+        <div
+          style={{
+            marginTop: "20px",
+            marginRight: "20px",
+            marginLeft: "10px",
+            width: "150px",
+          }}
+        >
+          <FormControl>
+            <InputLabel id="demo-simple-select-label">Theme</InputLabel>
+            <Select
+              labelId="theme"
+              id="theme"
+              value={theme}
+              label="Theme"
+              onChange={handleThemeChange}
+            >
+              <MenuItem value={"fusion"}>Fusion</MenuItem>
+              <MenuItem value={"candy"}>Candy</MenuItem>
+              <MenuItem value={"gammel"}>Gammel</MenuItem>
+              <MenuItem value={"zune"}>Zune</MenuItem>
+            </Select>
+          </FormControl>
+        </div>
+        </div>
+        <div
+          style={{
+            marginTop: "10px",
+            marginLeft: "10px",
+            marginBottom: "10px",
+          }}
+        >
+          <Link
+            component="button" // Use a button style
+            variant="body2" // Choose a style variant
+            onClick={downloadCSV} // Call the downloadCSV function on click
+          >
+            Download CSV
+          </Link>
+          <br />
+          <Link
+            style={{
+              marginTop: "2px",
+            }}
+            component="button" // Use a button style
+            variant="body2" // Choose a style variant
+            onClick={downloadJSON} // Call the downloadJSON function on click
+          >
+            Download Json
+          </Link>
+        </div>
+        <EstimatedTimeProgress
+          text="Estimated Time Left"
+          totalTime={estimatedTime}
+        />
+        <ProgressBar value={progressValue} max={maxProgress} />
+        <div
+          style={{
+            marginLeft: "10px",
+          }}
+        >
+          {ds != chart_props && <ReactFC {...ds.timeseriesDs} />}
+        </div>
     </div>
   );
 }
