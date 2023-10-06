@@ -17,10 +17,11 @@ import EstimatedTimeProgress from "./EstimatedTimeProgress";
 import ProgressBar from "./ProgressBar";
 import { parseISO, intervalToDuration, set } from "date-fns";
 import { parseGitHubRepoURL } from "./githubUtils";
+import CandyTheme from 'fusioncharts/themes/fusioncharts.theme.candy';
 
 const HOST = import.meta.env.VITE_HOST;
 
-ReactFC.fcRoot(FusionCharts, TimeSeries);
+ReactFC.fcRoot(FusionCharts, TimeSeries, CandyTheme);
 const chart_props = {
   timeseriesDs: {
     type: "timeseries",
