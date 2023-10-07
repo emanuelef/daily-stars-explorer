@@ -68,6 +68,15 @@ func generateCSVData(repo string, data []repostats.StarsPerDay) (string, error) 
 	return strings.Join(csvData, "\n"), nil
 }
 
+func NewClientWithPAT(token string) *repostats.ClientGQL {
+	tokenSource := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: token},
+	)
+
+	oauthClient := oauth2.NewClient(context.Background(), tokenSource)
+	return repostats.NewClientGQL(oauthClient)
+}
+
 func main() {
 	ctx := context.Background()
 	tp, exp, err := otel_instrumentation.InitializeGlobalTracerProvider(ctx)
@@ -87,12 +96,7 @@ func main() {
 
 	onGoingStars := make(map[string]bool)
 
-	tokenSource := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: os.Getenv("PAT")},
-	)
-
-	oauthClient := oauth2.NewClient(context.Background(), tokenSource)
-	client := repostats.NewClientGQL(oauthClient)
+	client := NewClientWithPAT(os.Getenv("PAT"))
 
 	app := fiber.New()
 
