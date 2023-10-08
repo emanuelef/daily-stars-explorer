@@ -19,11 +19,12 @@ import ReactFC from "react-fusioncharts";
 import schema from "./schema";
 import EstimatedTimeProgress from "./EstimatedTimeProgress";
 import ProgressBar from "./ProgressBar";
-import { parseISO, intervalToDuration, set } from "date-fns";
+import { parseISO, intervalToDuration } from "date-fns";
 import { parseGitHubRepoURL } from "./githubUtils";
 import GammelTheme from "fusioncharts/themes/fusioncharts.theme.gammel";
 import CandyTheme from "fusioncharts/themes/fusioncharts.theme.candy";
 import ZuneTheme from "fusioncharts/themes/fusioncharts.theme.zune";
+import CopyToClipboardButton from "./CopyToClipboardButton";
 
 const HOST = import.meta.env.VITE_HOST;
 
@@ -58,6 +59,12 @@ const chart_props = {
 };
 
 function TimeSeriesChart() {
+  let defaultRepo = "helm/helm-mapkubeapis";
+  const { user, repository } = useParams();
+  if (user && repository) {
+    defaultRepo = `${user}/${repository}`;
+  }
+
   const [ds, setds] = useState(chart_props);
 
   const [estimatedTime, setEstimatedTime] = useState(0);
@@ -72,15 +79,7 @@ function TimeSeriesChart() {
 
   const navigate = useNavigate();
 
-  const { id } = useParams();
-  const decodedRepositoryId = decodeURIComponent(id);
-
-  const initialRepo =
-    decodedRepositoryId == ":id"
-      ? "helm/helm-mapkubeapis"
-      : decodedRepositoryId;
-
-  const [selectedRepo, setSelectedRepo] = useState(initialRepo);
+  const [selectedRepo, setSelectedRepo] = useState(defaultRepo);
 
   const currentSSE = useRef(null);
 
@@ -255,7 +254,7 @@ function TimeSeriesChart() {
   const handleClick = async () => {
     const repoParsed = parseGitHubRepoURL(selectedRepo);
 
-    navigate(`/starstimeline/${encodeURIComponent(repoParsed)}`, {
+    navigate(`/${repoParsed}`, {
       replace: false,
     });
 
@@ -319,6 +318,7 @@ function TimeSeriesChart() {
           }}
           label="Enter a GitHub repository"
           variant="outlined"
+          size="small"
           value={selectedRepo}
           onChange={(e) => handleInputChange(e, setSelectedRepo)}
           onKeyDown={(e) => {
@@ -349,6 +349,7 @@ function TimeSeriesChart() {
             marginLeft: "10px",
             width: "100px",
           }}
+          size="small"
           id="total-stars"
           label="Total Stars"
           value={totalStars}
@@ -363,6 +364,7 @@ function TimeSeriesChart() {
             marginLeft: "10px",
             width: "200px",
           }}
+          size="small"
           id="creation-date"
           label="Creation Date"
           value={creationDate}
@@ -377,6 +379,7 @@ function TimeSeriesChart() {
             marginLeft: "10px",
             width: "150px",
           }}
+          size="small"
           id="age"
           label="Age"
           value={age}
@@ -384,12 +387,20 @@ function TimeSeriesChart() {
             readOnly: true,
           }}
         />
+      </div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          marginTop: "10px",
+          marginLeft: "10px",
+          marginBottom: "10px",
+        }}
+      >
         <div
           style={{
             marginTop: "20px",
-            marginRight: "20px",
-            marginLeft: "10px",
-            width: "150px",
+            width: "110px",
           }}
         >
           <FormControl>
@@ -398,6 +409,7 @@ function TimeSeriesChart() {
               labelId="theme"
               id="theme"
               value={theme}
+              size="small"
               label="Theme"
               onChange={handleThemeChange}
             >
@@ -408,14 +420,6 @@ function TimeSeriesChart() {
             </Select>
           </FormControl>
         </div>
-      </div>
-      <div
-        style={{
-          marginTop: "10px",
-          marginLeft: "10px",
-          marginBottom: "10px",
-        }}
-      >
         <Link
           component="button" // Use a button style
           variant="body2" // Choose a style variant
@@ -427,6 +431,7 @@ function TimeSeriesChart() {
         <Link
           style={{
             marginTop: "2px",
+            marginLeft: "10px",
           }}
           component="button" // Use a button style
           variant="body2" // Choose a style variant
@@ -434,6 +439,7 @@ function TimeSeriesChart() {
         >
           Download Json
         </Link>
+        <CopyToClipboardButton />
       </div>
       <EstimatedTimeProgress
         text="Estimated Time Left"

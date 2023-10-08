@@ -26,8 +26,14 @@ const HOST = import.meta.env.VITE_HOST;
 console.log("HOST " + HOST);
 
 const MainPage = () => {
-  const [selectedRepo, setSelectedRepo] = useState("helm/helm-mapkubeapis");
-  const [repoInput, setRepoInput] = useState("helm/helm-mapkubeapis");
+  let defaultRepo = "helm/helm-mapkubeapis";
+  const { user, repository } = useParams();
+  if (user && repository) {
+    defaultRepo = `${user}/${repository}`;
+  }
+
+  const [selectedRepo, setSelectedRepo] = useState(defaultRepo);
+  const [repoInput, setRepoInput] = useState(defaultRepo);
   const [result, setResult] = useState({});
   const [totalRequests, setTotalRequests] = useState(60);
   const [remainingRequests, setRemainingRequests] = useState(totalRequests);
@@ -97,6 +103,7 @@ const MainPage = () => {
           marginLeft: "10px",
           width: "500px",
         }}
+        size="small"
         label="Enter a GitHub repository"
         variant="outlined"
         value={repoInput}

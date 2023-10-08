@@ -62,7 +62,8 @@ function App() {
         </Sidebar>
         <section style={{ width: "90%", height: "90%" }}>
           <Routes>
-            <Route path="/" element={<MainPage />} />
+            <Route path="/" element={<TimeSeriesChart />} />
+            <Route path="/:user/:repository" element={<TimeSeriesChart />} />
             <Route path="/table" element={<MainPage />} />
             <Route path="/starstimeline/:id" element={<TimeSeriesChart />} />
           </Routes>
