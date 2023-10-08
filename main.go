@@ -166,7 +166,7 @@ func main() {
 		}
 
 		now := time.Now()
-		nextDay := now.UTC().Truncate(24 * time.Hour).Add(24 * time.Hour)
+		nextDay := now.UTC().Truncate(24 * time.Hour).Add(3 * 24 * time.Hour)
 		durationUntilEndOfDay := nextDay.Sub(now)
 
 		cacheOverall.Set(repo, result, cache.WithExpiration(durationUntilEndOfDay))
@@ -280,7 +280,7 @@ func main() {
 		wg.Wait()
 
 		now := time.Now()
-		nextDay := now.UTC().Truncate(24 * time.Hour).Add(24 * time.Hour)
+		nextDay := now.UTC().Truncate(24 * time.Hour).Add(3 * 24 * time.Hour)
 		durationUntilEndOfDay := nextDay.Sub(now)
 
 		cacheStars.Set(repo, allStars, cache.WithExpiration(durationUntilEndOfDay))
