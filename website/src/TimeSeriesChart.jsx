@@ -49,6 +49,9 @@ const chart_props = {
       chart: {
         animation: "0",
         theme: "candy",
+        exportEnabled: "1",
+        exportMode: "client",
+        exportFormats: "PNG=Export as PNG|PDF=Export as PDF",
       },
     },
   },
@@ -151,6 +154,10 @@ function TimeSeriesChart() {
         options.timeseriesDs.dataSource.yAxis[0].plot[0].value =
           "Cumulative Stars";
         options.timeseriesDs.dataSource.chart.theme = theme;
+        options.timeseriesDs.dataSource.chart.exportFileName = `${selectedRepo.replace(
+          "/",
+          "_"
+        )}-stars-history`;
         setds(options);
       })
       .catch((e) => {
@@ -401,45 +408,45 @@ function TimeSeriesChart() {
             </Select>
           </FormControl>
         </div>
-        </div>
-        <div
-          style={{
-            marginTop: "10px",
-            marginLeft: "10px",
-            marginBottom: "10px",
-          }}
+      </div>
+      <div
+        style={{
+          marginTop: "10px",
+          marginLeft: "10px",
+          marginBottom: "10px",
+        }}
+      >
+        <Link
+          component="button" // Use a button style
+          variant="body2" // Choose a style variant
+          onClick={downloadCSV} // Call the downloadCSV function on click
         >
-          <Link
-            component="button" // Use a button style
-            variant="body2" // Choose a style variant
-            onClick={downloadCSV} // Call the downloadCSV function on click
-          >
-            Download CSV
-          </Link>
-          <br />
-          <Link
-            style={{
-              marginTop: "2px",
-            }}
-            component="button" // Use a button style
-            variant="body2" // Choose a style variant
-            onClick={downloadJSON} // Call the downloadJSON function on click
-          >
-            Download Json
-          </Link>
-        </div>
-        <EstimatedTimeProgress
-          text="Estimated Time Left"
-          totalTime={estimatedTime}
-        />
-        <ProgressBar value={progressValue} max={maxProgress} />
-        <div
+          Download CSV
+        </Link>
+        <br />
+        <Link
           style={{
-            marginLeft: "10px",
+            marginTop: "2px",
           }}
+          component="button" // Use a button style
+          variant="body2" // Choose a style variant
+          onClick={downloadJSON} // Call the downloadJSON function on click
         >
-          {ds != chart_props && <ReactFC {...ds.timeseriesDs} />}
-        </div>
+          Download Json
+        </Link>
+      </div>
+      <EstimatedTimeProgress
+        text="Estimated Time Left"
+        totalTime={estimatedTime}
+      />
+      <ProgressBar value={progressValue} max={maxProgress} />
+      <div
+        style={{
+          marginLeft: "10px",
+        }}
+      >
+        {ds != chart_props && <ReactFC {...ds.timeseriesDs} />}
+      </div>
     </div>
   );
 }
