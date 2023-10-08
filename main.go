@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand"
 	"net/url"
 	"os"
 	"runtime"
@@ -19,6 +20,7 @@ import (
 	"github.com/emanuelef/github-repo-activity-stats/repostats"
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/valyala/fasthttp"
+	"golang.org/x/exp/maps"
 	"golang.org/x/oauth2"
 
 	"github.com/gofiber/fiber/v2"
@@ -96,7 +98,10 @@ func main() {
 
 	onGoingStars := make(map[string]bool)
 
-	client := NewClientWithPAT(os.Getenv("PAT"))
+	ghStatClients := make(map[string]*repostats.ClientGQL)
+
+	ghStatClients["PAT"] = NewClientWithPAT(os.Getenv("PAT"))
+	ghStatClients["PAT2"] = NewClientWithPAT(os.Getenv("PAT2"))
 
 	app := fiber.New()
 
@@ -130,6 +135,15 @@ func main() {
 
 	app.Get("/stats", func(c *fiber.Ctx) error {
 		param := c.Query("repo")
+
+		randomIndex := rand.Intn(len(maps.Keys(ghStatClients)))
+		clientKey := c.Query("client", maps.Keys(ghStatClients)[randomIndex])
+		client, ok := ghStatClients[clientKey]
+
+		if !ok {
+			return c.Status(404).SendString("Resource not found")
+		}
+
 		repo, err := url.QueryUnescape(param)
 		if err != nil {
 			return err
@@ -169,6 +183,13 @@ func main() {
 
 	app.Get("/totalStars", func(c *fiber.Ctx) error {
 		param := c.Query("repo")
+		randomIndex := rand.Intn(len(maps.Keys(ghStatClients)))
+		clientKey := c.Query("client", maps.Keys(ghStatClients)[randomIndex])
+		client, ok := ghStatClients[clientKey]
+		if !ok {
+			return c.Status(404).SendString("Resource not found")
+		}
+
 		repo, err := url.QueryUnescape(param)
 		if err != nil {
 			return err
@@ -192,6 +213,13 @@ func main() {
 
 	app.Get("/allStars", func(c *fiber.Ctx) error {
 		param := c.Query("repo")
+		randomIndex := rand.Intn(len(maps.Keys(ghStatClients)))
+		clientKey := c.Query("client", maps.Keys(ghStatClients)[randomIndex])
+		client, ok := ghStatClients[clientKey]
+		if !ok {
+			return c.Status(404).SendString("Resource not found")
+		}
+
 		repo, err := url.QueryUnescape(param)
 		if err != nil {
 			return err
@@ -262,6 +290,12 @@ func main() {
 	})
 
 	app.Get("/limits", func(c *fiber.Ctx) error {
+		randomIndex := rand.Intn(len(maps.Keys(ghStatClients)))
+		clientKey := c.Query("client", maps.Keys(ghStatClients)[randomIndex])
+		client, ok := ghStatClients[clientKey]
+		if !ok {
+			return c.Status(404).SendString("Resource not found")
+		}
 		result, err := client.GetCurrentLimits(ctx)
 		if err != nil {
 			log.Fatalf("Error getting limits %v", err)
