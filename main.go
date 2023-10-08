@@ -290,16 +290,29 @@ func main() {
 	})
 
 	app.Get("/limits", func(c *fiber.Ctx) error {
-		randomIndex := rand.Intn(len(maps.Keys(ghStatClients)))
-		clientKey := c.Query("client", maps.Keys(ghStatClients)[randomIndex])
-		client, ok := ghStatClients[clientKey]
+		client, ok := ghStatClients["PAT"]
 		if !ok {
 			return c.Status(404).SendString("Resource not found")
 		}
 		result, err := client.GetCurrentLimits(ctx)
+
 		if err != nil {
 			log.Fatalf("Error getting limits %v", err)
 		}
+
+		client, ok = ghStatClients["PAT2"]
+		if !ok {
+			return c.Status(404).SendString("Resource not found")
+		}
+
+		tmpResult, err := client.GetCurrentLimits(ctx)
+
+		if err != nil {
+			log.Fatalf("Error getting limits %v", err)
+		}
+
+		result.Remaining += tmpResult.Remaining
+		result.Limit += tmpResult.Limit
 
 		return c.JSON(result)
 	})
