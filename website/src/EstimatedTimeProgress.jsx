@@ -5,17 +5,24 @@ const EstimatedTimeProgress = ({ text, totalTime }) => {
   const [elapsedTime, setElapsedTime] = useState(0);
 
   useEffect(() => {
+    setElapsedTime(0);
+  }, [totalTime]);
+
+  useEffect(() => {
     let interval;
+
+    console.log("elapsedTime " + elapsedTime);
+    console.log("totalTime " + totalTime);
 
     // Start a timer to update elapsed time every second
     if (elapsedTime < totalTime) {
-      interval = setInterval(() => {
+      interval = setTimeout(() => {
         setElapsedTime((prevTime) => prevTime + 1);
       }, 1000);
     }
 
     // Clear the timer when the component unmounts
-    return () => clearInterval(interval);
+    return () => clearTimeout(interval);
   }, [elapsedTime, totalTime]);
 
   const remainingTime = totalTime - elapsedTime;
