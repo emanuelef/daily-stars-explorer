@@ -14,4 +14,4 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Script
-        run: bash .github/workflows/get_repos_data.sh
+        run: bash get_repos_data.sh
