@@ -11,6 +11,7 @@ on:
       - "README.md"
       - ".github/**"
       - "get_repos_data.sh"
+      - "scripts/**"
 
 env:
   REGISTRY: ghcr.io
