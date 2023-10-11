@@ -9,4 +9,4 @@ while IFS= read -r repo; do
   echo "Response from $repo: $response"
 
   sleep 600
-done < repositories.txt
+done < preloaded-repositories.txt
