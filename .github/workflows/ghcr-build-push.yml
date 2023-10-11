@@ -7,6 +7,10 @@ on:
       - main
     paths-ignore:
       - "website/**"
+      - "preloaded-repositories.txt"
+      - "README.md"
+      - ".github/**"
+      - "get_repos_data.sh"
 
 env:
   REGISTRY: ghcr.io

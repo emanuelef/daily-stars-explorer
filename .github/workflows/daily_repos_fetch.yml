@@ -1,0 +1,17 @@
+name: Daily GET Requests
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * *" # Run every day at midnight
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check Out Code
+        uses: actions/checkout@v4
+
+      - name: Run Script
+        run: bash .github/workflows/get_repos_data.sh
