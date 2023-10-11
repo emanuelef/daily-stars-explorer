@@ -14,5 +14,5 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Script
-        working-directory: /scripts
+        working-directory: scripts
         run: bash get_repos_data.sh
