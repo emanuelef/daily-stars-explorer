@@ -41,6 +41,8 @@ var tracer trace.Tracer
 
 var currentSessions session.SessionsLock
 
+const DAY_CACHED = 3
+
 func init() {
 	tracer = otel.Tracer("github.com/emanuelef/gh-repo-stats-server")
 }
@@ -138,6 +140,8 @@ func main() {
 
 		randomIndex := rand.Intn(len(maps.Keys(ghStatClients)))
 		clientKey := c.Query("client", maps.Keys(ghStatClients)[randomIndex])
+		forceRefetch := c.Query("forceRefetch", "false") == "true"
+
 		client, ok := ghStatClients[clientKey]
 
 		if !ok {
@@ -155,6 +159,10 @@ func main() {
 		span := trace.SpanFromContext(c.UserContext())
 		span.SetAttributes(attribute.String("github.repo", repo))
 
+		if forceRefetch {
+			cacheOverall.Delete(repo)
+		}
+
 		if res, hit := cacheOverall.Get(repo); hit {
 			return c.JSON(res)
 		}
@@ -166,7 +174,7 @@ func main() {
 		}
 
 		now := time.Now()
-		nextDay := now.UTC().Truncate(24 * time.Hour).Add(3 * 24 * time.Hour)
+		nextDay := now.UTC().Truncate(24 * time.Hour).Add(DAY_CACHED * 24 * time.Hour)
 		durationUntilEndOfDay := nextDay.Sub(now)
 
 		cacheOverall.Set(repo, result, cache.WithExpiration(durationUntilEndOfDay))
@@ -215,6 +223,8 @@ func main() {
 		param := c.Query("repo")
 		randomIndex := rand.Intn(len(maps.Keys(ghStatClients)))
 		clientKey := c.Query("client", maps.Keys(ghStatClients)[randomIndex])
+		forceRefetch := c.Query("forceRefetch", "false") == "true"
+
 		client, ok := ghStatClients[clientKey]
 		if !ok {
 			return c.Status(404).SendString("Resource not found")
@@ -230,6 +240,10 @@ func main() {
 
 		span := trace.SpanFromContext(c.UserContext())
 		span.SetAttributes(attribute.String("github.repo", repo))
+
+		if forceRefetch {
+			cacheStars.Delete(repo)
+		}
 
 		if res, hit := cacheStars.Get(repo); hit {
 			return c.JSON(res)
@@ -280,7 +294,7 @@ func main() {
 		wg.Wait()
 
 		now := time.Now()
-		nextDay := now.UTC().Truncate(24 * time.Hour).Add(3 * 24 * time.Hour)
+		nextDay := now.UTC().Truncate(24 * time.Hour).Add(DAY_CACHED * 24 * time.Hour)
 		durationUntilEndOfDay := nextDay.Sub(now)
 
 		cacheStars.Set(repo, allStars, cache.WithExpiration(durationUntilEndOfDay))
@@ -295,7 +309,6 @@ func main() {
 			return c.Status(404).SendString("Resource not found")
 		}
 		result, err := client.GetCurrentLimits(ctx)
-
 		if err != nil {
 			log.Fatalf("Error getting limits %v", err)
 		}
@@ -306,7 +319,6 @@ func main() {
 		}
 
 		tmpResult, err := client.GetCurrentLimits(ctx)
-
 		if err != nil {
 			log.Fatalf("Error getting limits %v", err)
 		}
