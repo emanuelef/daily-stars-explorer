@@ -6,9 +6,13 @@ on:
       - "main"
     paths-ignore:
       - "**.md"
-      - LICENSE
       - ".github/ISSUE_TEMPLATE/*.yml"
       - ".github/dependabot.yml"
+      - "website/**"
+      - "preloaded-repositories.txt"
+      - "README.md"
+      - ".github/**"
+      - "get_repos_data.sh"
   pull_request:
     branches:
       - "*"
@@ -17,6 +21,11 @@ on:
       - LICENSE
       - ".github/ISSUE_TEMPLATE/*.yml"
       - ".github/dependabot.yml"
+      - "website/**"
+      - "preloaded-repositories.txt"
+      - "README.md"
+      - ".github/**"
+      - "get_repos_data.sh"
 
 jobs:
   golangci-lint:
