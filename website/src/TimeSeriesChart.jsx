@@ -463,7 +463,7 @@ function TimeSeriesChart() {
           Download Json
         </Button>
         <CopyToClipboardButton />
-        {showForceRefetch && (
+        {!showForceRefetch && (
           <Tooltip title={FORCE_REFETCH_TOOLTIP}>
             <FormControlLabel
               style={{
