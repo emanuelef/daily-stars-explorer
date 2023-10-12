@@ -167,7 +167,7 @@ function TimeSeriesChart() {
           if (isLastElementToday) {
             data.pop();
           } // remove last element as the current day is not complete
-          setShowForceRefetch(isLastElementToday);
+          setShowForceRefetch(!isLastElementToday);
         } else {
           console.log("Array is empty.");
         }
@@ -463,7 +463,7 @@ function TimeSeriesChart() {
           Download Json
         </Button>
         <CopyToClipboardButton />
-        {!showForceRefetch && (
+        {showForceRefetch && (
           <Tooltip title={FORCE_REFETCH_TOOLTIP}>
             <FormControlLabel
               style={{
