@@ -2,6 +2,10 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import TextField from "@mui/material/TextField";
 import FormControl from "@mui/material/FormControl";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Tooltip from "@mui/material/Tooltip";
+import Checkbox from "@mui/material/Checkbox";
+import Button from "@mui/material/Button";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
@@ -53,6 +57,19 @@ const chart_props = {
   },
 };
 
+const FORCE_REFETCH_TOOLTIP =
+  "Using cached data, force refetching the data from GitHub. This will take a while if the repo has a lot of stars.";
+
+const isToday = (dateString) => {
+  const today = new Date();
+  const [day, month, year] = dateString.split("-").map(Number);
+  return (
+    today.getDate() === day &&
+    today.getMonth() + 1 === month && // Adding 1 to month because JavaScript months are 0-indexed
+    today.getFullYear() === year
+  );
+};
+
 function TimeSeriesChart() {
   let defaultRepo = "helm/helm-mapkubeapis";
   const { user, repository } = useParams();
@@ -69,6 +86,8 @@ function TimeSeriesChart() {
   const [progressValue, setProgressValue] = useState(0);
   const [maxProgress, setMaxProgress] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [showForceRefetch, setShowForceRefetch] = useState(false);
+  const [forceRefetch, setForceRefetch] = useState(false);
 
   const [theme, setTheme] = useState("candy");
 
@@ -83,6 +102,10 @@ function TimeSeriesChart() {
     const options = { ...ds };
     options.timeseriesDs.dataSource.chart.theme = event.target.value;
     setds(options);
+  };
+
+  const handleForceRefetchChange = (event) => {
+    setForceRefetch(event.target.checked);
   };
 
   const fetchTotalStars = async (repo) => {
@@ -117,7 +140,13 @@ function TimeSeriesChart() {
 
   const fetchAllStars = (repo) => {
     console.log(repo);
-    fetch(`${HOST}/allStars?repo=${repo}`)
+    let fetchUrl = `${HOST}/allStars?repo=${repo}`;
+
+    if (forceRefetch) {
+      fetchUrl += "&forceRefetch=true";
+    }
+
+    fetch(fetchUrl)
       .then((response) => {
         // Check if the response status indicates success (e.g., 200 OK)
         if (!response.ok) {
@@ -127,13 +156,18 @@ function TimeSeriesChart() {
         return response.json();
       })
       .then((data) => {
-        console.log(data);
         setLoading(false);
 
-        // remove last element as the current day is not complete
-        if (data.length > 0) {
-          data.pop();
+        // check if last element is today
+        if (data.length > 1) {
+          const lastElement = data[data.length - 1];
+          console.log(lastElement[0]);
           console.log(data);
+          const isLastElementToday = isToday(lastElement[0]);
+          if (isLastElementToday) {
+            data.pop();
+          } // remove last element as the current day is not complete
+          setShowForceRefetch(isLastElementToday);
         } else {
           console.log("Array is empty.");
         }
@@ -394,7 +428,6 @@ function TimeSeriesChart() {
       >
         <div
           style={{
-            marginTop: "20px",
             width: "110px",
           }}
         >
@@ -415,26 +448,38 @@ function TimeSeriesChart() {
             </Select>
           </FormControl>
         </div>
-        <Link
-          component="button" // Use a button style
-          variant="body2" // Choose a style variant
-          onClick={downloadCSV} // Call the downloadCSV function on click
-        >
+        <Button size="small" variant="contained" onClick={downloadCSV}>
           Download CSV
-        </Link>
+        </Button>
         <br />
-        <Link
+        <Button
           style={{
-            marginTop: "2px",
             marginLeft: "10px",
           }}
-          component="button" // Use a button style
-          variant="body2" // Choose a style variant
-          onClick={downloadJSON} // Call the downloadJSON function on click
+          size="small"
+          variant="contained"
+          onClick={downloadJSON}
         >
           Download Json
-        </Link>
+        </Button>
         <CopyToClipboardButton />
+        {showForceRefetch && (
+          <Tooltip title={FORCE_REFETCH_TOOLTIP}>
+            <FormControlLabel
+              style={{
+                marginLeft: "10px",
+              }}
+              control={
+                <Checkbox
+                  checked={forceRefetch}
+                  onChange={handleForceRefetchChange}
+                  name="forceRefetch"
+                />
+              }
+              label="Force Refetch"
+            />
+          </Tooltip>
+        )}
       </div>
       <EstimatedTimeProgress
         text="Estimated Time Left"

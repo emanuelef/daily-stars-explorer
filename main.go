@@ -41,7 +41,7 @@ var tracer trace.Tracer
 
 var currentSessions session.SessionsLock
 
-const DAY_CACHED = 3
+const DAY_CACHED = 7
 
 func init() {
 	tracer = otel.Tracer("github.com/emanuelef/gh-repo-stats-server")
