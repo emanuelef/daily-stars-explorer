@@ -11,8 +11,8 @@ const EstimatedTimeProgress = ({ text, totalTime }) => {
   useEffect(() => {
     let interval;
 
-    console.log("elapsedTime " + elapsedTime);
-    console.log("totalTime " + totalTime);
+    //console.log("elapsedTime " + elapsedTime);
+    //console.log("totalTime " + totalTime);
 
     // Start a timer to update elapsed time every second
     if (elapsedTime < totalTime) {
