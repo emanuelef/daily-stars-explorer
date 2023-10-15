@@ -194,7 +194,8 @@ function TimeSeriesChart() {
   };
 
   const downloadCSV = () => {
-    const downloadUrl = `${HOST}/allStarsCsv?repo=${selectedRepo}`;
+    const repoParsed = parseGitHubRepoURL(selectedRepo);
+    const downloadUrl = `${HOST}/allStarsCsv?repo=${repoParsed}`;
 
     fetch(downloadUrl)
       .then((response) => response.blob())
@@ -202,7 +203,7 @@ function TimeSeriesChart() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `${selectedRepo.replace("/", "_")}-stars-history.csv`;
+        a.download = `${repoParsed.replace("/", "_")}-stars-history.csv`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
@@ -213,7 +214,8 @@ function TimeSeriesChart() {
   };
 
   const downloadJSON = () => {
-    const downloadUrl = `${HOST}/allStars?repo=${selectedRepo}`;
+    const repoParsed = parseGitHubRepoURL(selectedRepo);
+    const downloadUrl = `${HOST}/allStars?repo=${repoParsed}`;
 
     fetch(downloadUrl)
       .then((response) => response.blob())
@@ -221,7 +223,7 @@ function TimeSeriesChart() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `${selectedRepo.replace("/", "_")}-stars-history.json`;
+        a.download = `${repoParsed.replace("/", "_")}-stars-history.json`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
