@@ -59,15 +59,13 @@ const chart_props = {
 const FORCE_REFETCH_TOOLTIP =
   "Using cached data, force refetching the data from GitHub. This will take a while if the repo has a lot of stars.";
 
-const isYesterday = (dateString) => {
+const isToday = (dateString) => {
   const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(today.getDate() - 1);
   const [day, month, year] = dateString.split("-").map(Number);
   return (
-    yesterday.getDate() === day &&
-    yesterday.getMonth() + 1 === month && // Adding 1 to month because JavaScript months are 0-indexed
-    yesterday.getFullYear() === year
+    today.getDate() === day &&
+    today.getMonth() + 1 === month && // Adding 1 to month because JavaScript months are 0-indexed
+    today.getFullYear() === year
   );
 };
 
@@ -159,14 +157,15 @@ function TimeSeriesChart() {
       .then((data) => {
         setLoading(false);
 
-        // check if last element is yesterday
+        // check if last element is today
         if (data.length > 1) {
           const lastElement = data[data.length - 1];
           console.log(lastElement[0]);
           console.log(data);
-          const isLastElementYesterday = isYesterday(lastElement[0]);
-          console.log("isLastElementYesterday", isLastElementYesterday);
-          setShowForceRefetch(!isLastElementYesterday);
+          const isLastElementToday = isToday(lastElement[0]);
+          data.pop(); // remove last element as the current day is not complete
+          console.log("isLastElementToday", isLastElementToday);
+          setShowForceRefetch(!isLastElementToday);
           setForceRefetch(false);
         } else {
           console.log("Array is empty.");

@@ -4,7 +4,7 @@ go 1.21.1
 
 require (
 	github.com/Code-Hex/go-generics-cache v1.3.1
-	github.com/emanuelef/github-repo-activity-stats v0.0.2
+	github.com/emanuelef/github-repo-activity-stats v0.0.3
 	github.com/gofiber/contrib/otelfiber v1.0.10
 	github.com/gofiber/fiber/v2 v2.49.2
 	github.com/joho/godotenv v1.5.1
@@ -20,13 +20,13 @@ require (
 )
 
 require (
-	github.com/andybalholm/brotli v1.0.5 // indirect
+	github.com/andybalholm/brotli v1.0.6 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/felixge/httpsnoop v1.0.3 // indirect
 	github.com/go-logr/logr v1.2.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
-	github.com/go-resty/resty/v2 v2.9.1 // indirect
+	github.com/go-resty/resty/v2 v2.10.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/uuid v1.3.1 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.18.0 // indirect
