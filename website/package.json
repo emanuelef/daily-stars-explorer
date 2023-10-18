@@ -13,9 +13,9 @@
   "dependencies": {
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
-    "@mui/icons-material": "^5.14.13",
-    "@mui/lab": "^5.0.0-alpha.148",
-    "@mui/material": "^5.14.13",
+    "@mui/icons-material": "^5.14.14",
+    "@mui/lab": "^5.0.0-alpha.149",
+    "@mui/material": "^5.14.14",
     "@mui/x-data-grid": "^6.16.2",
     "@nivo/bar": "^0.83.0",
     "@nivo/treemap": "^0.83.0",
@@ -27,19 +27,19 @@
     "react-dom": "^18.2.0",
     "react-fusioncharts": "^4.0.0",
     "react-pro-sidebar": "^1.1.0-alpha.1",
-    "react-router-dom": "^6.16.0",
+    "react-router-dom": "^6.17.0",
     "react18-json-view": "^0.2.6"
   },
   "devDependencies": {
-    "@types/react": "^18.2.28",
+    "@types/react": "^18.2.29",
     "@types/react-dom": "^18.2.13",
-    "@typescript-eslint/eslint-plugin": "^6.7.5",
-    "@typescript-eslint/parser": "^6.7.5",
+    "@typescript-eslint/eslint-plugin": "^6.8.0",
+    "@typescript-eslint/parser": "^6.8.0",
     "@vitejs/plugin-react": "^4.1.0",
     "eslint": "^8.51.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.3",
     "typescript": "^5.2.2",
-    "vite": "^4.4.11"
+    "vite": "^4.5.0"
   }
 }
