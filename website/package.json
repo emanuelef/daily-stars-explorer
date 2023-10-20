@@ -16,7 +16,7 @@
     "@mui/icons-material": "^5.14.14",
     "@mui/lab": "^5.0.0-alpha.149",
     "@mui/material": "^5.14.14",
-    "@mui/x-data-grid": "^6.16.2",
+    "@mui/x-data-grid": "^6.16.3",
     "@nivo/bar": "^0.83.0",
     "@nivo/treemap": "^0.83.0",
     "date-fns": "^2.30.0",
@@ -31,7 +31,7 @@
     "react18-json-view": "^0.2.6"
   },
   "devDependencies": {
-    "@types/react": "^18.2.30",
+    "@types/react": "^18.2.31",
     "@types/react-dom": "^18.2.14",
     "@typescript-eslint/eslint-plugin": "^6.8.0",
     "@typescript-eslint/parser": "^6.8.0",
