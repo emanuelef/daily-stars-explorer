@@ -321,7 +321,7 @@ function TimeSeriesChart() {
     }
 
     if (!status.cached) {
-      let timeEstimate = res.stars / 339;
+      let timeEstimate = res.stars / 610;
       timeEstimate = Math.max(1, Math.ceil(timeEstimate));
       setEstimatedTime(timeEstimate);
     }

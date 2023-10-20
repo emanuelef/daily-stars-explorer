@@ -256,12 +256,6 @@ func main() {
 
 		onGoingStars[repo] = true
 
-		_, createdAt, err := client.GetTotalStars(ctx, repo)
-		if err != nil {
-			log.Printf("Error getting all stats %v", err)
-			return c.Status(404).SendString("Custom 404 Error: Resource not found")
-		}
-
 		updateChannel := make(chan int)
 		var allStars []repostats.StarsPerDay
 		var wg sync.WaitGroup
@@ -270,7 +264,7 @@ func main() {
 
 		go func() {
 			defer wg.Done()
-			allStars, _ = client.GetAllStarsHistory(ctx, repo, createdAt, updateChannel)
+			allStars, _ = client.GetAllStarsHistoryTwoWays(ctx, repo, updateChannel)
 		}()
 
 		for progress := range updateChannel {
