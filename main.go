@@ -22,6 +22,7 @@ import (
 	"github.com/valyala/fasthttp"
 	"golang.org/x/exp/maps"
 	"golang.org/x/oauth2"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/compress"
@@ -258,14 +259,16 @@ func main() {
 
 		updateChannel := make(chan int)
 		var allStars []repostats.StarsPerDay
-		var wg sync.WaitGroup
 
-		wg.Add(1) // Increment the WaitGroup counter
+		eg, ctx := errgroup.WithContext(ctx)
 
-		go func() {
-			defer wg.Done()
-			allStars, _ = client.GetAllStarsHistoryTwoWays(ctx, repo, updateChannel)
-		}()
+		eg.Go(func() error {
+			allStars, err = client.GetAllStarsHistoryTwoWays(ctx, repo, updateChannel)
+			if err != nil {
+				return err
+			}
+			return nil
+		})
 
 		for progress := range updateChannel {
 			fmt.Printf("Progress: %d\n", progress)
@@ -282,10 +285,11 @@ func main() {
 				}(s)
 			}
 			wg.Wait()
-
 		}
 
-		wg.Wait()
+		if err := eg.Wait(); err != nil {
+			return err
+		}
 
 		now := time.Now()
 		nextDay := now.UTC().Truncate(24 * time.Hour).Add(DAY_CACHED * 24 * time.Hour)
