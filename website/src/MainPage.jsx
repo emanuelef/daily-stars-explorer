@@ -17,7 +17,7 @@ import TableViewRounded from "@mui/icons-material/TableViewRounded";
 import TimelineRoundedIcon from "@mui/icons-material/TimelineRounded";
 
 import JsonView from "react18-json-view";
-import "react18-json-view/src/dark.css";
+import "react18-json-view/src/style.css";
 
 import { parseGitHubRepoURL } from "./githubUtils";
 
