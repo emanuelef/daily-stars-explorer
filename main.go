@@ -288,6 +288,7 @@ func main() {
 		}
 
 		if err := eg.Wait(); err != nil {
+			delete(onGoingStars, repo)
 			return err
 		}
 
