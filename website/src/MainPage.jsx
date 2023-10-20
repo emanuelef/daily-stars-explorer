@@ -138,7 +138,7 @@ const MainPage = () => {
         text="API Limits reset"
         totalTime={resetLimitsTime}
       />
-      <div>{result && <JsonView src={result} collapsed={1} />}</div>
+      <div>{result && <JsonView src={result} collapsed={1} dark={true} />}</div>
     </div>
   );
 };
