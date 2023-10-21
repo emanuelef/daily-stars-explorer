@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import TextField from "@mui/material/TextField";
 import FormControl from "@mui/material/FormControl";
 import Typography from "@mui/material/Typography";
+import Autocomplete from "@mui/material/Autocomplete";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
@@ -75,6 +76,7 @@ function CompareChart() {
 
   const [selectedRepo, setSelectedRepo] = useState(defaultRepo);
   const [selectedRepo2, setSelectedRepo2] = useState(defaultRepo2);
+  const [starsRepos, setStarsRepos] = useState([]);
 
   const handleThemeChange = (event) => {
     setTheme(event.target.value);
@@ -118,6 +120,20 @@ function CompareChart() {
     setds(options);
   };
 
+  const fetchAllStarsKeys = async () => {
+    try {
+      const response = await fetch(`${HOST}/allStarsKeys`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error(`An error occurred: ${error}`);
+    }
+  };
+
   const fetchAllStars = (repo, repo2) => {
     setLoading(false);
     const fetchUrl = `${HOST}/allStars?repo=${repo}`;
@@ -150,6 +166,13 @@ function CompareChart() {
   };
 
   useEffect(() => {
+    const fetchRepos = async () => {
+      const repos = await fetchAllStarsKeys();
+      console.log(repos);
+      setStarsRepos(repos);
+    };
+
+    fetchRepos();
     handleClick();
   }, []);
 
@@ -175,47 +198,64 @@ function CompareChart() {
         style={{
           marginTop: "10px",
           marginLeft: "20px",
-          width: "500px",
+          width: "700px",
         }}
         variant="body2"
       >
-        Now, it only works when the history of both repositories has been fetched previously.
+        Now, it only works when the history of both repositories has been
+        fetched previously.
       </Typography>
       <div style={{ display: "flex", alignItems: "center" }}>
-        <TextField
-          style={{
-            marginTop: "20px",
-            marginRight: "20px",
-            marginLeft: "10px",
-            width: "500px",
-          }}
-          label="Enter a GitHub repository"
-          variant="outlined"
+        <Autocomplete
+          disablePortal
+          id="combo-box-repo"
           size="small"
-          value={selectedRepo}
-          onChange={(e) => handleInputChange(e, setSelectedRepo)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              handleClick();
-            }
+          options={starsRepos.map((el) => {
+            return { label: el };
+          })}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              style={{
+                marginTop: "20px",
+                marginRight: "20px",
+                marginLeft: "10px",
+                width: "500px",
+              }}
+              label="Enter a GitHub repository"
+              variant="outlined"
+              size="small"
+            />
+          )}
+          onChange={(e, v) => {
+            console.log(v?.label);
+            setSelectedRepo(v?.label);
           }}
         />
-        <TextField
-          style={{
-            marginTop: "20px",
-            marginRight: "20px",
-            marginLeft: "10px",
-            width: "500px",
-          }}
-          label="Enter a GitHub repository"
-          variant="outlined"
+        <Autocomplete
+          disablePortal
+          id="combo-box-repo2"
           size="small"
-          value={selectedRepo2}
-          onChange={(e) => handleInputChange(e, setSelectedRepo2)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              handleClick();
-            }
+          options={starsRepos.map((el) => {
+            return { label: el };
+          })}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              style={{
+                marginTop: "20px",
+                marginRight: "20px",
+                marginLeft: "10px",
+                width: "500px",
+              }}
+              label="Enter a GitHub repository"
+              variant="outlined"
+              size="small"
+            />
+          )}
+          onChange={(e, v) => {
+            console.log(v?.label);
+            setSelectedRepo2(v?.label);
           }}
         />
         <LoadingButton
