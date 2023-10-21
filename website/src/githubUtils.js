@@ -1,5 +1,5 @@
 const parseGitHubRepoURL = (url) => {
-  url = url.replace(" ", "");
+  url = url.replaceAll(" ", "");
   url = url.toLowerCase();
   // Define the regular expression pattern to match GitHub repository URLs
   const repoURLPattern =
