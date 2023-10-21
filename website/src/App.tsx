@@ -11,6 +11,7 @@ import { Routes, Route, Link } from "react-router-dom";
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import TableViewRounded from "@mui/icons-material/TableViewRounded";
 import TimelineRoundedIcon from "@mui/icons-material/TimelineRounded";
+import CompareIcon from "@mui/icons-material/Compare";
 
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -61,7 +62,7 @@ function App() {
             </MenuItem>
             <MenuItem
               component={<Link to="/compare/:id" className="link" />}
-              icon={<TimelineRoundedIcon />}
+              icon={<CompareIcon />}
             >
               Compare
             </MenuItem>
