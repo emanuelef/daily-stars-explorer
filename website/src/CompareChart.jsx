@@ -93,17 +93,6 @@ function CompareChart() {
   };
 
   const handleCombinedData = (combinedData) => {
-    if (combinedData.length > 1) {
-      const lastElement = combinedData[combinedData.length - 1];
-      console.log(lastElement[0]);
-      console.log(combinedData);
-      const isLastElementToday = isToday(lastElement[0]);
-      combinedData.pop(); // remove last element as the current day is not complete
-      console.log("isLastElementToday", isLastElementToday);
-    } else {
-      console.log("Array is empty.");
-    }
-
     const fusionTable = new FusionCharts.DataStore().createDataTable(
       combinedData,
       schema
@@ -134,6 +123,18 @@ function CompareChart() {
     }
   };
 
+  const removeUncompleteDay = (data) => {
+    if (data.length > 1) {
+      const lastElement = data[data.length - 1];
+      console.log(lastElement[0]);
+      const isLastElementToday = isToday(lastElement[0]);
+      data.pop(); // remove last element as the current day is not complete
+      console.log("isLastElementToday", isLastElementToday);
+    } else {
+      console.log("Array is empty.");
+    }
+  };
+
   const fetchAllStars = (repo, repo2) => {
     setLoading(false);
     const fetchUrl = `${HOST}/allStars?repo=${repo}`;
@@ -155,6 +156,9 @@ function CompareChart() {
         data2.forEach((subarray) => {
           subarray.push(repo2);
         });
+
+        removeUncompleteDay(data1);
+        removeUncompleteDay(data2);
 
         handleCombinedData(data1.concat(data2));
         setLoading(false);
