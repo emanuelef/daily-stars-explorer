@@ -179,7 +179,7 @@ function CompareChart() {
         }}
         variant="body2"
       >
-        Now only works when both repos' history has been already fetched
+        Now, it only works when the history of both repositories has been fetched previously.
       </Typography>
       <div style={{ display: "flex", alignItems: "center" }}>
         <TextField
