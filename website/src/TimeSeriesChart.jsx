@@ -359,7 +359,7 @@ function TimeSeriesChart() {
         />
         <LoadingButton
           style={{
-            marginTop: "30px",
+            marginTop: "20px",
             marginRight: "20px",
             marginLeft: "10px",
           }}

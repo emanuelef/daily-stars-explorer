@@ -3,6 +3,7 @@ import "./App.css";
 
 import MainPage from "./MainPage";
 import TimeSeriesChart from "./TimeSeriesChart";
+import CompareChart from "./CompareChart";
 
 import { Sidebar, Menu, MenuItem } from "react-pro-sidebar";
 import { Routes, Route, Link } from "react-router-dom";
@@ -58,6 +59,12 @@ function App() {
             >
               StarsTimeline
             </MenuItem>
+            <MenuItem
+              component={<Link to="/compare/:id" className="link" />}
+              icon={<TimelineRoundedIcon />}
+            >
+              Compare
+            </MenuItem>
           </Menu>
         </Sidebar>
         <section style={{ width: "90%", height: "90%" }}>
@@ -66,6 +73,7 @@ function App() {
             <Route path="/:user/:repository" element={<TimeSeriesChart />} />
             <Route path="/table" element={<MainPage />} />
             <Route path="/starstimeline/:id" element={<TimeSeriesChart />} />
+            <Route path="/compare/:id" element={<CompareChart />} />
           </Routes>
         </section>
       </div>

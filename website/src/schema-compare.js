@@ -12,6 +12,10 @@ const schema = [
     name: "Total Stars",
     type: "number",
   },
+  {
+    name: "Repo",
+    type: "string",
+  },
 ];
 
 export default schema;
