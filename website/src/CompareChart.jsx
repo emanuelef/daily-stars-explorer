@@ -173,7 +173,7 @@ function CompareChart() {
     const fetchRepos = async () => {
       const repos = await fetchAllStarsKeys();
       console.log(repos);
-      setStarsRepos(repos);
+      setStarsRepos(repos.sort());
     };
 
     fetchRepos();
