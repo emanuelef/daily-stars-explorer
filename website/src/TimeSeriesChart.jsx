@@ -23,6 +23,7 @@ import GammelTheme from "fusioncharts/themes/fusioncharts.theme.gammel";
 import CandyTheme from "fusioncharts/themes/fusioncharts.theme.candy";
 import ZuneTheme from "fusioncharts/themes/fusioncharts.theme.zune";
 import CopyToClipboardButton from "./CopyToClipboardButton";
+import GitHubButton from "react-github-btn";
 
 const HOST = import.meta.env.VITE_HOST;
 
@@ -417,6 +418,24 @@ function TimeSeriesChart() {
             readOnly: true,
           }}
         />
+        <div
+          style={{
+            marginTop: "20px",
+            marginRight: "20px",
+            marginLeft: "10px",
+            width: "150px",
+          }}
+        >
+          <GitHubButton
+            href="https://github.com/emanuelef/gh-repo-stats-server"
+            data-icon="octicon-star"
+            data-size="large"
+            data-show-count="true"
+            aria-label="Star emanuelef/gh-repo-stats-server on GitHub"
+          >
+            Star
+          </GitHubButton>
+        </div>
       </div>
       <div
         style={{
@@ -499,3 +518,5 @@ function TimeSeriesChart() {
 }
 
 export default TimeSeriesChart;
+
+// https://img.shields.io/github/stars/emanuelef/gh-repo-stats-server
