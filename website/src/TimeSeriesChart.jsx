@@ -418,21 +418,6 @@ function TimeSeriesChart() {
             readOnly: true,
           }}
         />
-        <div
-          style={{
-            marginTop: "25px",
-          }}
-        >
-          <GitHubButton
-            href="https://github.com/emanuelef/gh-repo-stats-server"
-            data-color-scheme="no-preference: dark; light: dark_dimmed; dark: dark_high_contrast;"
-            data-size="large"
-            data-show-count="true"
-            aria-label="Star emanuelef/gh-repo-stats-server on GitHub"
-          >
-            Star
-          </GitHubButton>
-        </div>
       </div>
       <div
         style={{
@@ -497,6 +482,21 @@ function TimeSeriesChart() {
             />
           </Tooltip>
         )}
+        <div
+          style={{
+            marginTop: "5px",
+          }}
+        >
+          <GitHubButton
+            href="https://github.com/emanuelef/gh-repo-stats-server"
+            data-color-scheme="no-preference: dark; light: dark_dimmed; dark: dark_high_contrast;"
+            data-size="large"
+            data-show-count="true"
+            aria-label="Star emanuelef/gh-repo-stats-server on GitHub"
+          >
+            Star
+          </GitHubButton>
+        </div>
       </div>
       <EstimatedTimeProgress
         text="Estimated Time Left"
