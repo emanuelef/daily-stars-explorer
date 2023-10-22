@@ -61,7 +61,7 @@ function App() {
               StarsTimeline
             </MenuItem>
             <MenuItem
-              component={<Link to="/compare/:id" className="link" />}
+              component={<Link to="/compare" className="link" />}
               icon={<CompareIcon />}
             >
               Compare
@@ -74,7 +74,7 @@ function App() {
             <Route path="/:user/:repository" element={<TimeSeriesChart />} />
             <Route path="/table" element={<MainPage />} />
             <Route path="/starstimeline/:id" element={<TimeSeriesChart />} />
-            <Route path="/compare/:id" element={<CompareChart />} />
+            <Route path="/compare" element={<CompareChart />} />
           </Routes>
         </section>
       </div>

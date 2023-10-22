@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
 import TextField from "@mui/material/TextField";
 import FormControl from "@mui/material/FormControl";
 import Typography from "@mui/material/Typography";
@@ -64,10 +63,6 @@ const isToday = (dateString) => {
 function CompareChart() {
   let defaultRepo = "helm/helm-mapkubeapis";
   let defaultRepo2 = "pipe-cd/pipecd";
-  const { user, repository } = useParams();
-  if (user && repository) {
-    defaultRepo = `${user}/${repository}`;
-  }
 
   const [ds, setds] = useState(chart_props);
   const [loading, setLoading] = useState(false);
