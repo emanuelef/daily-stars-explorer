@@ -15,3 +15,8 @@ https://emanuelef.github.io/gh-repo-stats-server/#/compare
 ## Run in Docker
 
 docker run --restart=always --env-file .env -d -p 8080:8080 ghcr.io/emanuelef/gh-repo-stats-server:latest
+
+## Links
+
+https://medium.com/@emafuma/how-to-get-full-history-of-github-stars-f03cc93183a7
+https://www.reddit.com/r/github/comments/17e31ab/introducing_my_github_stars_history_project/
