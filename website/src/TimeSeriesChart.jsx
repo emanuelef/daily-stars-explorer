@@ -420,15 +420,12 @@ function TimeSeriesChart() {
         />
         <div
           style={{
-            marginTop: "20px",
-            marginRight: "20px",
-            marginLeft: "10px",
-            width: "150px",
+            marginTop: "25px",
           }}
         >
           <GitHubButton
             href="https://github.com/emanuelef/gh-repo-stats-server"
-            data-icon="octicon-star"
+            data-color-scheme="no-preference: dark; light: dark_dimmed; dark: dark_high_contrast;"
             data-size="large"
             data-show-count="true"
             aria-label="Star emanuelef/gh-repo-stats-server on GitHub"
