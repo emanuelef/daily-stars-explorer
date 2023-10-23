@@ -485,6 +485,7 @@ function TimeSeriesChart() {
         <div
           style={{
             marginTop: "5px",
+            marginLeft: "10px",
           }}
         >
           <GitHubButton
