@@ -5,7 +5,6 @@
 - [Introduction](#introduction)
 - [Features](#features)
 - [Project Limitations](#project-limitations)
-- [Get Started](#get-started)
 - [Contributing](#contributing)
 
 ## Introduction
@@ -75,3 +74,6 @@ Currently, my project has limited error handling. I plan to improve this aspect,
 
 I'm aware that the user interface and code quality have room for improvement. Your feedback and suggestions are welcome as I continue to refine these aspects.
 
+## Contributing
+
+Contributions are welcome! Feel free to open an issue or create a pull request.
