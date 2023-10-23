@@ -1,5 +1,13 @@
 # gh-repo-stats-server
 
+## Table of Contents
+
+- [Introduction](#introduction)
+- [Features](#features)
+- [Project Limitations](#project-limitations)
+- [Get Started](#get-started)
+- [Contributing](#contributing)
+
 ## Introduction
 
 Do you ever wonder about the complete history of stars for GitHub repositories? GitHub's REST APIs come with certain limitations, allowing you to retrieve only up to 40,000 stars per repository. For those tracking a repository with more stars, this limitation can be quite frustrating.
@@ -26,16 +34,6 @@ docker run --restart=always --env-file .env -d -p 8080:8080 ghcr.io/emanuelef/gh
 
 https://medium.com/@emafuma/how-to-get-full-history-of-github-stars-f03cc93183a7
 https://www.reddit.com/r/github/comments/17e31ab/introducing_my_github_stars_history_project/
-
-# GitHub Stars History
-
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Features](#features)
-- [Project Limitations](#project-limitations)
-- [Get Started](#get-started)
-- [Contributing](#contributing)
 
 ## Features
 
@@ -76,9 +74,4 @@ Currently, my project has limited error handling. I plan to improve this aspect,
 ### UI and Code Quality
 
 I'm aware that the user interface and code quality have room for improvement. Your feedback and suggestions are welcome as I continue to refine these aspects.
-
-## Contributing
-
-Contributions are welcome! Feel free to open an issue or create a pull request.
-
 
