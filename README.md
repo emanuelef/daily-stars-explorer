@@ -1,5 +1,11 @@
 # gh-repo-stats-server
 
+## Introduction
+
+Do you ever wonder about the complete history of stars for GitHub repositories? GitHub's REST APIs come with certain limitations, allowing you to retrieve only up to 40,000 stars per repository. For those tracking a repository with more stars, this limitation can be quite frustrating.
+
+While stars are a popular way to gauge a repository's popularity, they're not the sole indicator of a project's quality. Often, hidden gems with incredible potential may not have a high star count. That's where this project comes in. It's designed to offer you a deeper understanding of the GitHub repositories you care about.
+
 ## Single repo
 
 https://github.com/emanuelef/gh-repo-stats-server/assets/48717/f5e96d63-3807-43fb-9838-3de56355124e
@@ -30,19 +36,6 @@ https://www.reddit.com/r/github/comments/17e31ab/introducing_my_github_stars_his
 - [Project Limitations](#project-limitations)
 - [Get Started](#get-started)
 - [Contributing](#contributing)
-- [License](#license)
-
----
-
-## Introduction
-
-Do you ever wonder about the complete history of stars for GitHub repositories? GitHub's REST APIs come with certain limitations, allowing you to retrieve only up to 40,000 stars per repository. For those tracking a repository with more stars, this limitation can be quite frustrating.
-
-While stars are a popular way to gauge a repository's popularity, they're not the sole indicator of a project's quality. Often, hidden gems with incredible potential may not have a high star count. That's where this project comes in. It's designed to offer you a deeper understanding of the GitHub repositories you care about.
-
-![Stars Graph](link-to-your-graph-image)
-
----
 
 ## Features
 
@@ -84,13 +77,8 @@ Currently, my project has limited error handling. I plan to improve this aspect,
 
 I'm aware that the user interface and code quality have room for improvement. Your feedback and suggestions are welcome as I continue to refine these aspects.
 
----
+## Contributing
 
-## Get Started
+Contributions are welcome! Feel free to open an issue or create a pull request.
 
-To get started with the project, follow these steps:
 
-1. **Clone the Repository:**
-
-   ```bash
-   git clone https://github.com/your-username/your-repo.git
