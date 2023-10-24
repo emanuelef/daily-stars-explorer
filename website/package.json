@@ -13,9 +13,9 @@
   "dependencies": {
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
-    "@mui/icons-material": "^5.14.14",
-    "@mui/lab": "^5.0.0-alpha.149",
-    "@mui/material": "^5.14.14",
+    "@mui/icons-material": "^5.14.15",
+    "@mui/lab": "^5.0.0-alpha.150",
+    "@mui/material": "^5.14.15",
     "@mui/x-data-grid": "^6.16.3",
     "@nivo/bar": "^0.83.0",
     "@nivo/treemap": "^0.83.0",
