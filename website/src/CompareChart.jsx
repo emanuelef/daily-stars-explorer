@@ -173,7 +173,7 @@ function CompareChart() {
 
     fetchRepos();
     handleClick();
-  }, []);
+  }, [selectedRepo, selectedRepo2]);
 
   const handleClick = async () => {
     const repoParsed = parseGitHubRepoURL(selectedRepo);
