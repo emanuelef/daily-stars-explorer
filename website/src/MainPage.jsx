@@ -15,6 +15,7 @@ import { Routes, Route, Link, useParams } from "react-router-dom";
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import TableViewRounded from "@mui/icons-material/TableViewRounded";
 import TimelineRoundedIcon from "@mui/icons-material/TimelineRounded";
+import GitHubCorners from "@uiw/react-github-corners";
 
 import JsonView from "react18-json-view";
 import "react18-json-view/src/style.css";
@@ -97,6 +98,10 @@ const MainPage = () => {
 
   return (
     <div className="chart-container">
+      <GitHubCorners
+        position="right"
+        href="https://github.com/emanuelef/gh-repo-stats-server"
+      />
       <TextField
         style={{
           marginTop: "20px",
