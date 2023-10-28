@@ -27,7 +27,9 @@ https://emanuelef.github.io/gh-repo-stats-server/#/compare
 
 ## Run in Docker
 
+```bash
 docker run --restart=always --env-file .env -d -p 8080:8080 ghcr.io/emanuelef/gh-repo-stats-server:latest
+```
 
 ## Links
 
