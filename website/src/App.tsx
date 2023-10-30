@@ -4,6 +4,7 @@ import "./App.css";
 import MainPage from "./MainPage";
 import TimeSeriesChart from "./TimeSeriesChart";
 import CompareChart from "./CompareChart";
+import CalendarChart from "./CalendarChart";
 
 import { Sidebar, Menu, MenuItem } from "react-pro-sidebar";
 import { Routes, Route, Link } from "react-router-dom";
@@ -12,6 +13,7 @@ import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import TableViewRounded from "@mui/icons-material/TableViewRounded";
 import TimelineRoundedIcon from "@mui/icons-material/TimelineRounded";
 import CompareIcon from "@mui/icons-material/Compare";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -66,6 +68,12 @@ function App() {
             >
               Compare
             </MenuItem>
+            <MenuItem
+              component={<Link to="/calendar" className="link" />}
+              icon={<CalendarMonthIcon />}
+            >
+              Compare
+            </MenuItem>
           </Menu>
         </Sidebar>
         <section style={{ width: "90%", height: "90%" }}>
@@ -75,6 +83,7 @@ function App() {
             <Route path="/table" element={<MainPage />} />
             <Route path="/starstimeline/:id" element={<TimeSeriesChart />} />
             <Route path="/compare" element={<CompareChart />} />
+            <Route path="/calendar" element={<CalendarChart />} />
           </Routes>
         </section>
       </div>

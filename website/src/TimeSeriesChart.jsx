@@ -24,8 +24,6 @@ import CandyTheme from "fusioncharts/themes/fusioncharts.theme.candy";
 import ZuneTheme from "fusioncharts/themes/fusioncharts.theme.zune";
 import CopyToClipboardButton from "./CopyToClipboardButton";
 import GitHubButton from "react-github-btn";
-import GitHubCorners from "@uiw/react-github-corners";
-import { ResponsiveCalendar } from "@nivo/calendar";
 
 const HOST = import.meta.env.VITE_HOST;
 
@@ -72,51 +70,6 @@ const isToday = (dateString) => {
   );
 };
 
-const calculateMedian = (arr) => {
-  // Sort the array in ascending order
-  arr.sort(function (a, b) {
-    return a - b;
-  });
-
-  const middle = Math.floor(arr.length / 2);
-
-  if (arr.length % 2 === 0) {
-    // If the array has an even number of elements, calculate the average of the two middle elements
-    return (arr[middle - 1] + arr[middle]) / 2;
-  } else {
-    // If the array has an odd number of elements, the median is the middle element
-    return arr[middle];
-  }
-};
-
-const calculatePercentile = (arr, percentile) => {
-  // Sort the array in ascending order
-  arr.sort(function (a, b) {
-    return a - b;
-  });
-
-  const n = arr.length;
-
-  if (n === 0 || percentile < 0 || percentile > 1) {
-    return undefined; // Invalid input
-  }
-
-  const index = (n - 1) * percentile;
-
-  if (Number.isInteger(index)) {
-    // If the index is an integer, return the element at that index
-    return arr[index];
-  } else {
-    // If the index is a fraction, interpolate between the elements
-    const lowerIndex = Math.floor(index);
-    const upperIndex = Math.ceil(index);
-    const lowerValue = arr[lowerIndex];
-    const upperValue = arr[upperIndex];
-    const fraction = index - lowerIndex;
-    return lowerValue + fraction * (upperValue - lowerValue);
-  }
-};
-
 function TimeSeriesChart() {
   let defaultRepo = "helm/helm-mapkubeapis";
   const { user, repository } = useParams();
@@ -141,8 +94,6 @@ function TimeSeriesChart() {
   const navigate = useNavigate();
 
   const [selectedRepo, setSelectedRepo] = useState(defaultRepo);
-
-  const [dataCalendar, setDataCalendar] = useState([]);
 
   const currentSSE = useRef(null);
 
@@ -238,16 +189,6 @@ function TimeSeriesChart() {
         setds(options);
 
         console.log(data);
-
-        let testCalendarData = data.map((el) => {
-          let parts = el[0].split("-");
-          return {
-            value: el[1],
-            day: parts[2] + "-" + parts[1] + "-" + parts[0],
-          };
-        });
-
-        setDataCalendar(testCalendarData);
       })
       .catch((e) => {
         console.error(`An error occurred: ${e}`);
@@ -400,10 +341,6 @@ function TimeSeriesChart() {
 
   return (
     <div>
-      <GitHubCorners
-        position="right"
-        href="https://github.com/emanuelef/gh-repo-stats-server"
-      />
       <div style={{ display: "flex", alignItems: "center" }}>
         <TextField
           style={{
@@ -575,64 +512,6 @@ function TimeSeriesChart() {
         }}
       >
         {ds != chart_props && <ReactFC {...ds.timeseriesDs} />}
-      </div>
-      <div style={{ display: "flex", height: "200vh" }}>
-        <ResponsiveCalendar
-          theme={{
-            background: "#ffffff",
-            text: {
-              fontSize: 18,
-              fill: "#333333",
-              outlineWidth: 0,
-              outlineColor: "transparent",
-            },
-            tooltip: {
-              container: {
-                background: "#000000",
-                fontSize: 12,
-              },
-              basic: {
-                // Set the text color to black for the tooltip
-                fontSize: 12,
-                fill: "#ff0000",
-              },
-              chip: {},
-              table: {},
-              tableCell: {},
-              tableCellValue: {},
-            },
-          }}
-          data={dataCalendar}
-          from={dataCalendar.length ? dataCalendar[0].day : ""}
-          to={
-            dataCalendar.length ? dataCalendar[dataCalendar.length - 1].day : ""
-          }
-          emptyColor="#dddddd"
-          colors={["#61cdbb", "#97e3d5", "#e8c1a0", "#f47560"]}
-          minValue={0}
-          maxValue={calculatePercentile(
-            dataCalendar.map((el) => el.value),
-            0.95
-          )}
-          margin={{ top: 40, right: 40, bottom: 40, left: 40 }}
-          yearSpacing={40}
-          monthBorderColor="#000000"
-          dayBorderWidth={2}
-          dayBorderColor="#ffffff"
-          legends={[
-            {
-              anchor: "bottom-right",
-              direction: "row",
-              translateY: 36,
-              itemCount: 4,
-              itemWidth: 42,
-              itemHeight: 36,
-              itemsSpacing: 14,
-              itemDirection: "right-to-left",
-            },
-          ]}
-          style={{ flex: 1 }}
-        />
       </div>
     </div>
   );
