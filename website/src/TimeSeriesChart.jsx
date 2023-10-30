@@ -24,7 +24,6 @@ import CandyTheme from "fusioncharts/themes/fusioncharts.theme.candy";
 import ZuneTheme from "fusioncharts/themes/fusioncharts.theme.zune";
 import CopyToClipboardButton from "./CopyToClipboardButton";
 import GitHubButton from "react-github-btn";
-import GitHubCorners from "@uiw/react-github-corners";
 
 const HOST = import.meta.env.VITE_HOST;
 
@@ -188,6 +187,8 @@ function TimeSeriesChart() {
           "_"
         )}-stars-history`;
         setds(options);
+
+        console.log(data);
       })
       .catch((e) => {
         console.error(`An error occurred: ${e}`);
@@ -340,10 +341,6 @@ function TimeSeriesChart() {
 
   return (
     <div>
-      <GitHubCorners
-        position="right"
-        href="https://github.com/emanuelef/gh-repo-stats-server"
-      />
       <div style={{ display: "flex", alignItems: "center" }}>
         <TextField
           style={{

@@ -16,8 +16,9 @@
     "@mui/icons-material": "^5.14.15",
     "@mui/lab": "^5.0.0-alpha.150",
     "@mui/material": "^5.14.15",
-    "@mui/x-data-grid": "^6.16.3",
+    "@mui/x-data-grid": "^6.17.0",
     "@nivo/bar": "^0.83.0",
+    "@nivo/calendar": "^0.83.0",
     "@nivo/treemap": "^0.83.0",
     "@uiw/react-github-corners": "^1.5.16",
     "date-fns": "^2.30.0",
@@ -35,12 +36,12 @@
   "devDependencies": {
     "@types/react": "^18.2.33",
     "@types/react-dom": "^18.2.14",
-    "@typescript-eslint/eslint-plugin": "^6.9.0",
-    "@typescript-eslint/parser": "^6.9.0",
+    "@typescript-eslint/eslint-plugin": "^6.9.1",
+    "@typescript-eslint/parser": "^6.9.1",
     "@vitejs/plugin-react": "^4.1.0",
     "eslint": "^8.52.0",
     "eslint-plugin-react-hooks": "^4.6.0",
-    "eslint-plugin-react-refresh": "^0.4.3",
+    "eslint-plugin-react-refresh": "^0.4.4",
     "typescript": "^5.2.2",
     "vite": "^4.5.0"
   }

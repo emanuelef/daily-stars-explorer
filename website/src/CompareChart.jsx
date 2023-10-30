@@ -16,7 +16,6 @@ import { parseGitHubRepoURL } from "./githubUtils";
 import GammelTheme from "fusioncharts/themes/fusioncharts.theme.gammel";
 import CandyTheme from "fusioncharts/themes/fusioncharts.theme.candy";
 import ZuneTheme from "fusioncharts/themes/fusioncharts.theme.zune";
-import GitHubCorners from "@uiw/react-github-corners";
 
 const HOST = import.meta.env.VITE_HOST;
 
@@ -194,10 +193,6 @@ function CompareChart() {
 
   return (
     <div>
-      <GitHubCorners
-        position="right"
-        href="https://github.com/emanuelef/gh-repo-stats-server"
-      />
       <Typography
         style={{
           marginTop: "10px",
