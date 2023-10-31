@@ -175,7 +175,7 @@ function CalendarChart() {
           }}
         ></div>
       </div>
-      <div style={{ display: "flex", height: "200vh" }}>
+      <div style={{ height: 1780, width: "100%", backgroundColor: "azure" }}>
         <ResponsiveCalendar
           theme={{
             background: "#ffffff",
@@ -207,7 +207,7 @@ function CalendarChart() {
             dataCalendar.length ? dataCalendar[dataCalendar.length - 1].day : ""
           }
           emptyColor="#dddddd"
-          colors={["#61cdbb", "#97e3d5", "#e8c1a0", "#f47560"]}
+          colors={["#61cdbb", "#97e3d5", "#e8c1a0", "#f47560", "#ff0000"]}
           minValue={0}
           maxValue={calculatePercentile(
             dataCalendar.map((el) => el.value),
@@ -230,7 +230,7 @@ function CalendarChart() {
               itemDirection: "right-to-left",
             },
           ]}
-          style={{ flex: 1 }}
+          style={{ width: "100%", height: "100%" }}
         />
       </div>
     </div>

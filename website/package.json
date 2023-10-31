@@ -13,9 +13,9 @@
   "dependencies": {
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
-    "@mui/icons-material": "^5.14.15",
-    "@mui/lab": "^5.0.0-alpha.150",
-    "@mui/material": "^5.14.15",
+    "@mui/icons-material": "^5.14.16",
+    "@mui/lab": "^5.0.0-alpha.151",
+    "@mui/material": "^5.14.16",
     "@mui/x-data-grid": "^6.17.0",
     "@nivo/bar": "^0.83.0",
     "@nivo/calendar": "^0.83.0",
@@ -30,7 +30,7 @@
     "react-fusioncharts": "^4.0.0",
     "react-github-btn": "^1.4.0",
     "react-pro-sidebar": "^1.1.0-alpha.1",
-    "react-router-dom": "^6.17.0",
+    "react-router-dom": "^6.18.0",
     "react18-json-view": "^0.2.6"
   },
   "devDependencies": {
