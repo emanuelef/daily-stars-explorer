@@ -238,6 +238,7 @@ func main() {
 
 		// needed because c.Query cannot be used as a map key
 		repo = fmt.Sprintf("%s", repo)
+		repo = strings.ToLower(repo)
 
 		span := trace.SpanFromContext(c.UserContext())
 		span.SetAttributes(attribute.String("github.repo", repo))
