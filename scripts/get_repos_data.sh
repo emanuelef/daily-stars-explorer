@@ -15,5 +15,5 @@ while IFS= read -r repo; do
     echo "Failed to fetch data for $repo"
   fi
 
-  sleep 300
+  sleep 60
 done <preloaded-repositories.txt
