@@ -8,7 +8,7 @@ influxdb/influxdb
 jquery/jquery
 hibiken/asynq
 opentofu/opentofu
-meshery/meshery
+ziglang/zig
 achannarasappa/ticker
 facebook/react
 stangirard/quivr
@@ -17,7 +17,7 @@ grpc/grpc
 istio/istio
 k3s-io/k3s
 project-copacetic/copacetic
-meshery/meshery
+carbon-language/carbon-lang
 Significant-Gravitas/AutoGPT
 drone/drone
 cubefs/cubefs
@@ -241,9 +241,10 @@ obsproject/obs-studio
 syncthing/syncthing
 significant-gravitas/autogpt
 junegunn/fzf
-temporalio/samples-go
+temporalio/temporal
 antonputra/tutorials
 langchain-ai/langchain
 observablehq/plot
 istio/istio
 envoyproxy/envoy
+ramda/ramda
