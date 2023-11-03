@@ -248,3 +248,7 @@ observablehq/plot
 istio/istio
 envoyproxy/envoy
 ramda/ramda
+uber-go/dig
+google/wire
+samber/do
+uber-go/fx
