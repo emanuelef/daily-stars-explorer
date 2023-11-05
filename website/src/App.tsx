@@ -72,7 +72,7 @@ function App() {
               component={<Link to="/calendar" className="link" />}
               icon={<CalendarMonthIcon />}
             >
-              Compare
+              Calendar
             </MenuItem>
           </Menu>
         </Sidebar>
