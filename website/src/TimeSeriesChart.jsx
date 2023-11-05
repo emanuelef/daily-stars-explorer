@@ -497,7 +497,7 @@ function TimeSeriesChart() {
             data-show-count="true"
             aria-label="Star emanuelef/gh-repo-stats-server on GitHub"
           >
-            Star
+            Star Me
           </GitHubButton>
         </div>
       </div>
