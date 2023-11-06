@@ -18,6 +18,7 @@ import (
 	"github.com/emanuelef/gh-repo-stats-server/otel_instrumentation"
 	"github.com/emanuelef/gh-repo-stats-server/session"
 	"github.com/emanuelef/github-repo-activity-stats/repostats"
+	"github.com/emanuelef/github-repo-activity-stats/stats"
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/valyala/fasthttp"
 	"golang.org/x/exp/maps"
@@ -33,20 +34,13 @@ import (
 
 	"github.com/gofiber/contrib/otelfiber"
 
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
 
-var tracer trace.Tracer
-
 var currentSessions session.SessionsLock
 
 const DAY_CACHED = 7
-
-func init() {
-	tracer = otel.Tracer("github.com/emanuelef/gh-repo-stats-server")
-}
 
 func getEnv(key, fallback string) string {
 	value, exists := os.LookupEnv(key)
@@ -60,7 +54,7 @@ func bToMb(b uint64) uint64 {
 	return b / 1024 / 1024
 }
 
-func generateCSVData(repo string, data []repostats.StarsPerDay) (string, error) {
+func generateCSVData(repo string, data []stats.StarsPerDay) (string, error) {
 	csvData := []string{"date,day-stars,total-stars"}
 
 	for _, entry := range data {
@@ -96,8 +90,8 @@ func main() {
 		log.Fatalf("failed to initialize OpenTelemetry: %e", err)
 	}
 
-	cacheOverall := cache.New[string, *repostats.RepoStats]()
-	cacheStars := cache.New[string, []repostats.StarsPerDay]()
+	cacheOverall := cache.New[string, *stats.RepoStats]()
+	cacheStars := cache.New[string, []stats.StarsPerDay]()
 
 	onGoingStars := make(map[string]bool)
 
@@ -259,7 +253,7 @@ func main() {
 		onGoingStars[repo] = true
 
 		updateChannel := make(chan int)
-		var allStars []repostats.StarsPerDay
+		var allStars []stats.StarsPerDay
 
 		eg, ctx := errgroup.WithContext(ctx)
 
