@@ -1,6 +1,10 @@
+const stripTrailingSlash = (str) =>
+  str.charAt(str.length - 1) == "/" ? str.substr(0, str.length - 1) : str;
+
 const parseGitHubRepoURL = (url) => {
   url = url.replaceAll(" ", "");
   url = url.toLowerCase();
+  url = stripTrailingSlash(url);
   // Define the regular expression pattern to match GitHub repository URLs
   const repoURLPattern =
     /^(?:https?:\/\/github.com\/)?(?:\/)?([^/]+)\/([^/]+)$/;
