@@ -51,12 +51,6 @@ function App() {
               <h2>Repo Stats</h2>
             </MenuItem>
             <MenuItem
-              component={<Link to="/table" className="link" />}
-              icon={<TableViewRounded />}
-            >
-              Table
-            </MenuItem>
-            <MenuItem
               component={<Link to="/starstimeline/:id" className="link" />}
               icon={<TimelineRoundedIcon />}
             >
@@ -67,6 +61,12 @@ function App() {
               icon={<CompareIcon />}
             >
               Compare
+            </MenuItem>
+            <MenuItem
+              component={<Link to="/table" className="link" />}
+              icon={<TableViewRounded />}
+            >
+              Table
             </MenuItem>
             <MenuItem
               component={<Link to="/calendar" className="link" />}
