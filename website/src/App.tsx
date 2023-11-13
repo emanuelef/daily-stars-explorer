@@ -83,6 +83,10 @@ function App() {
             <Route path="/table" element={<MainPage />} />
             <Route path="/starstimeline/:id" element={<TimeSeriesChart />} />
             <Route path="/compare" element={<CompareChart />} />
+            <Route
+              path="/compare/:user/:repository/:secondUser/:secondRepository"
+              element={<CompareChart />}
+            />
             <Route path="/calendar" element={<CalendarChart />} />
           </Routes>
         </section>
