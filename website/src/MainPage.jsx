@@ -5,16 +5,10 @@ import TextField from "@mui/material/TextField";
 import LoadingButton from "@mui/lab/LoadingButton";
 import SendIcon from "@mui/icons-material/Send";
 
-import TimeSeriesChart from "./TimeSeriesChart";
 import RequestsProgressBar from "./RequestsProgressBar";
 import EstimatedTimeProgress from "./EstimatedTimeProgress";
 
-import { Sidebar, Menu, MenuItem } from "react-pro-sidebar";
-import { Routes, Route, Link, useParams } from "react-router-dom";
-
-import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
-import TableViewRounded from "@mui/icons-material/TableViewRounded";
-import TimelineRoundedIcon from "@mui/icons-material/TimelineRounded";
+import { useParams } from "react-router-dom";
 
 import JsonView from "react18-json-view";
 import "react18-json-view/src/style.css";

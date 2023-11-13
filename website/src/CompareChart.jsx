@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import TextField from "@mui/material/TextField";
 import FormControl from "@mui/material/FormControl";
 import Typography from "@mui/material/Typography";
@@ -16,6 +17,7 @@ import { parseGitHubRepoURL } from "./githubUtils";
 import GammelTheme from "fusioncharts/themes/fusioncharts.theme.gammel";
 import CandyTheme from "fusioncharts/themes/fusioncharts.theme.candy";
 import ZuneTheme from "fusioncharts/themes/fusioncharts.theme.zune";
+import CopyToClipboardButton from "./CopyToClipboardButton";
 
 const HOST = import.meta.env.VITE_HOST;
 
@@ -61,8 +63,14 @@ const isToday = (dateString) => {
 };
 
 function CompareChart() {
-  let defaultRepo = "helm/helm-mapkubeapis";
-  let defaultRepo2 = "pipe-cd/pipecd";
+  const { user, repository, secondUser, secondRepository } = useParams();
+
+  let defaultRepo =
+    user && repository ? `${user}/${repository}` : "helm/helm-mapkubeapis";
+  let defaultRepo2 =
+    secondUser && secondRepository
+      ? `${secondUser}/${secondRepository}`
+      : "pipe-cd/pipecd";
 
   const [ds, setds] = useState(chart_props);
   const [loading, setLoading] = useState(false);
@@ -72,6 +80,8 @@ function CompareChart() {
   const [selectedRepo, setSelectedRepo] = useState(defaultRepo);
   const [selectedRepo2, setSelectedRepo2] = useState(defaultRepo2);
   const [starsRepos, setStarsRepos] = useState([]);
+
+  const navigate = useNavigate();
 
   const handleThemeChange = (event) => {
     setTheme(event.target.value);
@@ -183,12 +193,11 @@ function CompareChart() {
       return;
     }
 
-    fetchAllStars(repoParsed, repoParsed2);
-  };
+    navigate(`/compare/${repoParsed}/${repoParsed2}`, {
+      replace: false,
+    });
 
-  const handleInputChange = async (event, setStateFunction) => {
-    const inputText = event.target.value;
-    setStateFunction(inputText);
+    fetchAllStars(repoParsed, repoParsed2);
   };
 
   return (
@@ -226,6 +235,7 @@ function CompareChart() {
               size="small"
             />
           )}
+          value={selectedRepo}
           onChange={(e, v) => {
             console.log(v?.label);
             setSelectedRepo(v?.label);
@@ -252,26 +262,19 @@ function CompareChart() {
               size="small"
             />
           )}
+          value={selectedRepo2}
           onChange={(e, v) => {
             console.log(v?.label);
             setSelectedRepo2(v?.label);
           }}
         />
-        <LoadingButton
+        <div
           style={{
             marginTop: "20px",
-            marginRight: "20px",
-            marginLeft: "10px",
           }}
-          size="small"
-          onClick={handleClick}
-          endIcon={<SendIcon />}
-          loading={loading}
-          loadingPosition="end"
-          variant="contained"
         >
-          <span>Compare</span>
-        </LoadingButton>
+          <CopyToClipboardButton />
+        </div>
       </div>
       <div
         style={{
