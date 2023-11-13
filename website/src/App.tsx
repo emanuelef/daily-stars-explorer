@@ -36,7 +36,17 @@ function App() {
           collapsed={collapsed}
           backgroundColor="rgb(51, 117, 117)"
         >
-          <Menu>
+          <Menu
+            menuItemStyles={{
+              button: ({ level, active, disabled }) => {
+                if (level >= 0)
+                  return {
+                    color: disabled ? "#f5d9ff" : "#07100d",
+                    backgroundColor: active ? "#00cef9" : "undefined",
+                  };
+              },
+            }}
+          >
             <MenuItem
               component={<Link to="/" className="link" />}
               className="menu1"
@@ -48,7 +58,7 @@ function App() {
                 />
               }
             >
-              <h2>Repo Stats</h2>
+              <h2 style={{ color: "black" }}>Repo Stats</h2>
             </MenuItem>
             <MenuItem
               component={<Link to="/starstimeline/:id" className="link" />}
