@@ -1,8 +1,23 @@
 version: 2
 updates:
-  - package-ecosystem: gomod
+  - package-ecosystem: "gomod"
     directory: "/"
     schedule:
       interval: daily
     labels:
       - "🤖 Dependencies"
+      
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: weekly
+      
+  - package-ecosystem: "npm"
+    directory: "/website"
+    schedule:
+      interval: weekly
+      
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: weekly
