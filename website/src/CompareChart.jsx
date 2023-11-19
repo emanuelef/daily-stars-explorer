@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import TextField from "@mui/material/TextField";
 import FormControl from "@mui/material/FormControl";
@@ -20,35 +20,6 @@ import CopyToClipboardButton from "./CopyToClipboardButton";
 const HOST = import.meta.env.VITE_HOST;
 
 ReactFC.fcRoot(FusionCharts, TimeSeries, GammelTheme, CandyTheme, ZuneTheme);
-const chart_props = {
-  timeseriesDs: {
-    type: "timeseries",
-    width: "100%",
-    height: "80%",
-    dataEmptyMessage: "Fetching data...",
-    dataSource: {
-      caption: { text: "Stars" },
-      data: null,
-      series: "Repo",
-      yAxis: [
-        {
-          plot: [
-            {
-              value: "New Stars",
-            },
-          ],
-        },
-      ],
-      chart: {
-        animation: "0",
-        theme: "candy",
-        exportEnabled: "1",
-        exportMode: "client",
-        exportFormats: "PNG=Export as PNG|PDF=Export as PDF",
-      },
-    },
-  },
-};
 
 const isToday = (dateString) => {
   const today = new Date();
@@ -61,6 +32,52 @@ const isToday = (dateString) => {
 };
 
 function CompareChart() {
+  const chart_props = {
+    timeseriesDs: {
+      type: "timeseries",
+      width: "100%",
+      height: "80%",
+      dataEmptyMessage: "Fetching data...",
+      dataSource: {
+        caption: { text: "Stars" },
+        data: null,
+        series: "Repo",
+        yAxis: [
+          {
+            plot: [
+              {
+                value: "New Stars f",
+              },
+            ],
+          },
+        ],
+        chart: {
+          animation: "0",
+          theme: "candy",
+          exportEnabled: "1",
+          exportMode: "client",
+          exportFormats: "PNG=Export as PNG|PDF=Export as PDF",
+        },
+      },
+      events: {
+        selectionChange: function (ev) {
+          console.log(ev.data.start, ev.data.end);
+        },
+        rendered: function (e, chart) {
+          setChartInstance(e.sender);
+          /*
+          setTimeout(() => {
+            e.sender.setTimeSelection({
+              start: 1526982400000,
+              end: 1600006400000,
+            });
+          }, 1000);
+          */
+        },
+      },
+    },
+  };
+
   const { user, repository, secondUser, secondRepository } = useParams();
 
   let defaultRepo =
@@ -78,6 +95,8 @@ function CompareChart() {
   const [selectedRepo, setSelectedRepo] = useState(defaultRepo);
   const [selectedRepo2, setSelectedRepo2] = useState(defaultRepo2);
   const [starsRepos, setStarsRepos] = useState([]);
+
+  const chartRef = useRef(null);
 
   const navigate = useNavigate();
 
@@ -104,11 +123,21 @@ function CompareChart() {
     options.timeseriesDs.dataSource.caption = { text: `Stars` };
     options.timeseriesDs.dataSource.data = fusionTable;
     options.timeseriesDs.dataSource.yAxis[0].plot[0].value = "Cumulative Stars";
+
+    /*
+    // Didn't work
+    options.timeseriesDs.dataSource.xAxis.initialinterval = {
+      from: "2022-01-01 12:00:00",
+      to: "2023-01-31 12:00:00",
+    };
+    */
+
     options.timeseriesDs.dataSource.chart.theme = theme;
     options.timeseriesDs.dataSource.chart.exportFileName = `${selectedRepo.replace(
       "/",
       "_"
     )}-stars-history`;
+
     setds(options);
   };
 
