@@ -21,6 +21,58 @@ const HOST = import.meta.env.VITE_HOST;
 
 ReactFC.fcRoot(FusionCharts, TimeSeries, GammelTheme, CandyTheme, ZuneTheme);
 
+const chart_props = {
+  timeseriesDs: {
+    type: "timeseries",
+    width: "100%",
+    height: "80%",
+    dataEmptyMessage: "Fetching data...",
+    dataSource: {
+      caption: { text: "Stars" },
+      data: null,
+      series: "Repo",
+      yAxis: [
+        {
+          plot: [
+            {
+              value: "New Stars f",
+            },
+          ],
+        },
+      ],
+      chart: {
+        animation: "0",
+        theme: "candy",
+        exportEnabled: "1",
+        exportMode: "client",
+        exportFormats: "PNG=Export as PNG|PDF=Export as PDF",
+      },
+    },
+    events: {
+      selectionChange: function (ev) {
+        if (ev && ev.data) {
+          // console.log(ev.data.start, ev.data.end);
+          /*
+          setSelectedTimeRange({
+            start: ev.data.start,
+            end: ev.data.end,
+          });
+          */
+        }
+      },
+      rendered: function (e, chart) {
+        //setChartInstance(e.sender);
+        setTimeout(() => {
+          e.sender.setTimeSelection({
+            start: 1526982400000,
+            end: 1600006400000,
+          });
+        }, 1000);
+      },
+    },
+  },
+};
+
 const isToday = (dateString) => {
   const today = new Date();
   const [day, month, year] = dateString.split("-").map(Number);
@@ -32,58 +84,6 @@ const isToday = (dateString) => {
 };
 
 function CompareChart() {
-  const chart_props = {
-    timeseriesDs: {
-      type: "timeseries",
-      width: "100%",
-      height: "80%",
-      dataEmptyMessage: "Fetching data...",
-      dataSource: {
-        caption: { text: "Stars" },
-        data: null,
-        series: "Repo",
-        yAxis: [
-          {
-            plot: [
-              {
-                value: "New Stars f",
-              },
-            ],
-          },
-        ],
-        chart: {
-          animation: "0",
-          theme: "candy",
-          exportEnabled: "1",
-          exportMode: "client",
-          exportFormats: "PNG=Export as PNG|PDF=Export as PDF",
-        },
-      },
-      events: {
-        selectionChange: function (ev) {
-          if (ev && ev.data) {
-            // console.log(ev.data.start, ev.data.end);
-            setSelectedTimeRange({
-              start: ev.data.start,
-              end: ev.data.end,
-            });
-          }
-        },
-        rendered: function (e, chart) {
-          //setChartInstance(e.sender);
-          /*
-          setTimeout(() => {
-            e.sender.setTimeSelection({
-              start: 1526982400000,
-              end: 1600006400000,
-            });
-          }, 1000);
-          */
-        },
-      },
-    },
-  };
-
   const { user, repository, secondUser, secondRepository } = useParams();
 
   let defaultRepo =
