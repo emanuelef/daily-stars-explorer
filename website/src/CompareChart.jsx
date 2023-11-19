@@ -61,10 +61,16 @@ function CompareChart() {
       },
       events: {
         selectionChange: function (ev) {
-          console.log(ev.data.start, ev.data.end);
+          if (ev && ev.data) {
+            // console.log(ev.data.start, ev.data.end);
+            setSelectedTimeRange({
+              start: ev.data.start,
+              end: ev.data.end,
+            });
+          }
         },
         rendered: function (e, chart) {
-          setChartInstance(e.sender);
+          //setChartInstance(e.sender);
           /*
           setTimeout(() => {
             e.sender.setTimeSelection({
@@ -97,6 +103,8 @@ function CompareChart() {
   const [starsRepos, setStarsRepos] = useState([]);
 
   const chartRef = useRef(null);
+
+  const [selectedTimeRange, setSelectedTimeRange] = useState(null);
 
   const navigate = useNavigate();
 
