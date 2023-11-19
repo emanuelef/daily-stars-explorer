@@ -5,7 +5,7 @@ import * as React from "react";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
 
-function CopyToClipboardButton() {
+function CopyToClipboardButton({ dateRange }) {
   const [open, setOpen] = useState(false);
 
   const handleClose = (event, reason) => {
@@ -18,7 +18,11 @@ function CopyToClipboardButton() {
 
   const handleCopyToClipboard = () => {
     // Get the current URL from the browser's location
-    const currentUrl = window.location.href;
+    let currentUrl = window.location.href;
+
+    if (dateRange && dateRange.start && dateRange.end) {
+      currentUrl += `?start=${dateRange.start}&end=${dateRange.end}`;
+    }
 
     // Try to copy the URL to the clipboard
     navigator.clipboard
