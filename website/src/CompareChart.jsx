@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import TextField from "@mui/material/TextField";
 import FormControl from "@mui/material/FormControl";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Checkbox from "@mui/material/Checkbox";
 import Typography from "@mui/material/Typography";
 import Autocomplete from "@mui/material/Autocomplete";
 import InputLabel from "@mui/material/InputLabel";
@@ -51,6 +53,8 @@ function CompareChart() {
   const [selectedRepo, setSelectedRepo] = useState(defaultRepo);
   const [selectedRepo2, setSelectedRepo2] = useState(defaultRepo2);
   const [starsRepos, setStarsRepos] = useState([]);
+
+  const [checkedDateRange, setCheckedDateRange] = useState(false);
 
   //const chartRef = useRef(null);
 
@@ -104,6 +108,10 @@ function CompareChart() {
         },
       },
     },
+  };
+
+  const handleDateRangeCheckChange = (event) => {
+    setCheckedDateRange(event.target.checked);
   };
 
   const handleThemeChange = (event) => {
@@ -314,11 +322,19 @@ function CompareChart() {
           }}
         />
         <div
-          style={{
-            marginTop: "20px",
-          }}
+          style={{ marginTop: "20px", display: "flex", alignItems: "center" }}
         >
-          <CopyToClipboardButton dateRange={selectedTimeRange} />
+          <CopyToClipboardButton
+            dateRange={checkedDateRange ? selectedTimeRange : null}
+          />
+          {
+            <Checkbox
+              checked={checkedDateRange}
+              onChange={handleDateRangeCheckChange}
+              inputProps={{ "aria-label": "controlled" }}
+            />
+          }
+          <Typography variant="body2">With Date Range</Typography>
         </div>
       </div>
       <div
