@@ -20,8 +20,6 @@ function CopyToClipboardButton({ dateRange }) {
     // Get the current URL from the browser's location
     let currentUrl = window.location.href;
 
-    console.log(dateRange);
-
     if (dateRange && dateRange.start && dateRange.end) {
       currentUrl += `?start=${dateRange.start}&end=${dateRange.end}`;
     }

@@ -36,9 +36,6 @@ function CompareChart() {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
 
-  console.log("start", queryParams.get("start"));
-  console.log("end", queryParams.get("end"));
-
   let defaultRepo =
     user && repository ? `${user}/${repository}` : "helm/helm-mapkubeapis";
   let defaultRepo2 =
@@ -94,7 +91,6 @@ function CompareChart() {
       events: {
         selectionChange: function (ev) {
           if (ev && ev.data) {
-            // console.log(ev.data.start, ev.data.end);
             setSelectedTimeRange({
               start: ev.data.start,
               end: ev.data.end,
@@ -102,8 +98,6 @@ function CompareChart() {
           }
         },
         rendered: function (e) {
-          //setChartInstance(e.sender);
-          console.log(selectedTimeRange);
           setTimeout(() => {
             e.sender.setTimeSelection(selectedTimeRange);
           }, 1000);
