@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import TextField from "@mui/material/TextField";
 import FormControl from "@mui/material/FormControl";
 import Typography from "@mui/material/Typography";
@@ -20,35 +20,6 @@ import CopyToClipboardButton from "./CopyToClipboardButton";
 const HOST = import.meta.env.VITE_HOST;
 
 ReactFC.fcRoot(FusionCharts, TimeSeries, GammelTheme, CandyTheme, ZuneTheme);
-const chart_props = {
-  timeseriesDs: {
-    type: "timeseries",
-    width: "100%",
-    height: "80%",
-    dataEmptyMessage: "Fetching data...",
-    dataSource: {
-      caption: { text: "Stars" },
-      data: null,
-      series: "Repo",
-      yAxis: [
-        {
-          plot: [
-            {
-              value: "New Stars",
-            },
-          ],
-        },
-      ],
-      chart: {
-        animation: "0",
-        theme: "candy",
-        exportEnabled: "1",
-        exportMode: "client",
-        exportFormats: "PNG=Export as PNG|PDF=Export as PDF",
-      },
-    },
-  },
-};
 
 const isToday = (dateString) => {
   const today = new Date();
@@ -62,6 +33,11 @@ const isToday = (dateString) => {
 
 function CompareChart() {
   const { user, repository, secondUser, secondRepository } = useParams();
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+
+  console.log("start", queryParams.get("start"));
+  console.log("end", queryParams.get("end"));
 
   let defaultRepo =
     user && repository ? `${user}/${repository}` : "helm/helm-mapkubeapis";
@@ -70,7 +46,7 @@ function CompareChart() {
       ? `${secondUser}/${secondRepository}`
       : "pipe-cd/pipecd";
 
-  const [ds, setds] = useState(chart_props);
+  const [ds, setds] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const [theme, setTheme] = useState("candy");
@@ -79,13 +55,80 @@ function CompareChart() {
   const [selectedRepo2, setSelectedRepo2] = useState(defaultRepo2);
   const [starsRepos, setStarsRepos] = useState([]);
 
+  //const chartRef = useRef(null);
+
+  const [selectedTimeRange, setSelectedTimeRange] = useState({
+    start: queryParams.get("start"),
+    end: queryParams.get("end"),
+  });
+
   const navigate = useNavigate();
+
+  const chart_props = {
+    timeseriesDs: {
+      type: "timeseries",
+      width: "100%",
+      height: "80%",
+      dataEmptyMessage: "Fetching data...",
+      dataSource: {
+        caption: { text: "Stars" },
+        data: null,
+        series: "Repo",
+        yAxis: [
+          {
+            plot: [
+              {
+                value: "New Stars f",
+              },
+            ],
+          },
+        ],
+        chart: {
+          animation: "0",
+          theme: "candy",
+          exportEnabled: "1",
+          exportMode: "client",
+          exportFormats: "PNG=Export as PNG|PDF=Export as PDF",
+        },
+      },
+      events: {
+        selectionChange: function (ev) {
+          if (ev && ev.data) {
+            // console.log(ev.data.start, ev.data.end);
+            setSelectedTimeRange({
+              start: ev.data.start,
+              end: ev.data.end,
+            });
+          }
+        },
+        rendered: function (e) {
+          //setChartInstance(e.sender);
+          console.log(selectedTimeRange);
+          setTimeout(() => {
+            e.sender.setTimeSelection(selectedTimeRange);
+          }, 1000);
+        },
+      },
+    },
+  };
 
   const handleThemeChange = (event) => {
     setTheme(event.target.value);
     const options = { ...ds };
     options.timeseriesDs.dataSource.chart.theme = event.target.value;
     setds(options);
+
+    const repoParsed = parseGitHubRepoURL(selectedRepo);
+    const repoParsed2 = parseGitHubRepoURL(selectedRepo2);
+    navigate(
+      `/compare/${repoParsed}/${repoParsed2}?start=${selectedTimeRange.start}&end=${selectedTimeRange.end}`,
+      {
+        replace: false,
+      }
+    );
+
+    // http://localhost:5173/gh-repo-stats-server/#/compare/helm/helm-mapkubeapis/pipe-cd/pipecd?start=1585872000000&end=1700265600000
+    // http://localhost:5173/gh-repo-stats-server/#/compare/helm/helm-mapkubeapis/pipe-cd/pipecd?start=1627131263936&end=1645079357900
   };
 
   const handleFetchResponse = (response) => {
@@ -100,15 +143,25 @@ function CompareChart() {
       combinedData,
       schema
     );
-    const options = { ...ds };
+    const options = { ...chart_props };
     options.timeseriesDs.dataSource.caption = { text: `Stars` };
     options.timeseriesDs.dataSource.data = fusionTable;
     options.timeseriesDs.dataSource.yAxis[0].plot[0].value = "Cumulative Stars";
+
+    /*
+    // Didn't work
+    options.timeseriesDs.dataSource.xAxis.initialinterval = {
+      from: "2022-01-01 12:00:00",
+      to: "2023-01-31 12:00:00",
+    };
+    */
+
     options.timeseriesDs.dataSource.chart.theme = theme;
     options.timeseriesDs.dataSource.chart.exportFileName = `${selectedRepo.replace(
       "/",
       "_"
     )}-stars-history`;
+
     setds(options);
   };
 
@@ -271,7 +324,7 @@ function CompareChart() {
             marginTop: "20px",
           }}
         >
-          <CopyToClipboardButton />
+          <CopyToClipboardButton dateRange={selectedTimeRange} />
         </div>
       </div>
       <div
@@ -311,7 +364,7 @@ function CompareChart() {
           marginLeft: "10px",
         }}
       >
-        {ds != chart_props && <ReactFC {...ds.timeseriesDs} />}
+        {ds != null && <ReactFC {...ds.timeseriesDs} />}
       </div>
     </div>
   );
