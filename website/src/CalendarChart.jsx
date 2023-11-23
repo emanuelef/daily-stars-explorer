@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import Autocomplete from "@mui/material/Autocomplete";
-import SendIcon from "@mui/icons-material/Send";
 import { parseGitHubRepoURL } from "./githubUtils";
 import { ResponsiveCalendar } from "@nivo/calendar";
 
@@ -54,7 +53,7 @@ const calculatePercentile = (arr, percentile) => {
 };
 
 function CalendarChart() {
-  let defaultRepo = "helm/helm-mapkubeapis";
+  let defaultRepo = "kubernetes/kubernetes";
 
   const [selectedRepo, setSelectedRepo] = useState(defaultRepo);
   const [loading, setLoading] = useState(false);

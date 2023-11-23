@@ -21,7 +21,7 @@ const HOST = import.meta.env.VITE_HOST;
 console.log("HOST " + HOST);
 
 const MainPage = () => {
-  let defaultRepo = "helm/helm-mapkubeapis";
+  let defaultRepo = "kubernetes/kubernetes";
   const { user, repository } = useParams();
   if (user && repository) {
     defaultRepo = `${user}/${repository}`;
@@ -39,7 +39,13 @@ const MainPage = () => {
     console.log(repo);
     setLoading(true);
     fetch(`${HOST}/stats?repo=${repo}`)
-      .then((response) => response.json())
+      .then((response) => {
+        if (!response.ok) {
+          console.log(response.status);
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+      })
       .then((stats) => {
         console.log(stats);
         setResult(stats);

@@ -71,7 +71,7 @@ const isToday = (dateString) => {
 };
 
 function TimeSeriesChart() {
-  let defaultRepo = "helm/helm-mapkubeapis";
+  let defaultRepo = "kubernetes/kubernetes";
   const { user, repository } = useParams();
   if (user && repository) {
     defaultRepo = `${user}/${repository}`;

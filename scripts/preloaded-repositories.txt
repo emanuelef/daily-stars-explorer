@@ -226,7 +226,6 @@ rev1si0n/lamda
 psf/black
 python-poetry/poetry
 zhile-io/pandora
-helm/helm-mapkubeapis
 prometheus/prometheus
 shadowsocks/shadowsocks-windows
 python/cpython
