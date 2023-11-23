@@ -305,18 +305,20 @@ function TimeSeriesChart() {
     const res = await fetchTotalStars(repoParsed);
     console.log(res);
 
-    setTotalStars(res.stars);
-    setCreationDate(res.createdAt);
+    if (res) {
+      setTotalStars(res.stars);
+      setCreationDate(res.createdAt);
 
-    const { years, months, days } = intervalToDuration({
-      start: parseISO(res.createdAt),
-      end: Date.now(),
-    });
-    setAge(
-      `${years !== 0 ? `${years}y ` : ""}${
-        months !== 0 ? `${months}m ` : ""
-      }${days}d`
-    );
+      const { years, months, days } = intervalToDuration({
+        start: parseISO(res.createdAt),
+        end: Date.now(),
+      });
+      setAge(
+        `${years !== 0 ? `${years}y ` : ""}${
+          months !== 0 ? `${months}m ` : ""
+        }${days}d`
+      );
+    }
 
     const status = await fetchStatus(repoParsed);
     console.log(status);
@@ -329,7 +331,7 @@ function TimeSeriesChart() {
     }
 
     if (!status.cached) {
-      let timeEstimate = res.stars / 610;
+      let timeEstimate = res ? res.stars / 610 : 0;
       timeEstimate = Math.max(1, Math.ceil(timeEstimate));
       setEstimatedTime(timeEstimate);
     }
