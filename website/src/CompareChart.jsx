@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import TextField from "@mui/material/TextField";
 import FormControl from "@mui/material/FormControl";
-import FormControlLabel from "@mui/material/FormControlLabel";
 import Checkbox from "@mui/material/Checkbox";
 import Typography from "@mui/material/Typography";
 import Autocomplete from "@mui/material/Autocomplete";
@@ -39,11 +38,11 @@ function CompareChart() {
   const queryParams = new URLSearchParams(location.search);
 
   let defaultRepo =
-    user && repository ? `${user}/${repository}` : "helm/helm-mapkubeapis";
+    user && repository ? `${user}/${repository}` : "kubernetes/kubernetes";
   let defaultRepo2 =
     secondUser && secondRepository
       ? `${secondUser}/${secondRepository}`
-      : "pipe-cd/pipecd";
+      : "helm/helm";
 
   const [ds, setds] = useState(null);
   const [loading, setLoading] = useState(false);
