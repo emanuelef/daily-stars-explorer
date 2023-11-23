@@ -8,6 +8,9 @@ import SendIcon from "@mui/icons-material/Send";
 import RequestsProgressBar from "./RequestsProgressBar";
 import EstimatedTimeProgress from "./EstimatedTimeProgress";
 
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
 import { useParams } from "react-router-dom";
 
 import JsonView from "react18-json-view";
@@ -42,6 +45,9 @@ const MainPage = () => {
       .then((response) => {
         if (!response.ok) {
           console.log(response.status);
+          toast.error("Internal Server Error. Please try again later.", {
+            position: toast.POSITION.BOTTOM_CENTER,
+          });
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
         return response.json();
@@ -54,6 +60,11 @@ const MainPage = () => {
       .catch((e) => {
         console.error(`An error occurred: ${e}`);
         setLoading(false);
+        if (e.message.includes("500")) {
+          toast.error("Internal Server Error. Please try again later.", {
+            position: toast.POSITION.BOTTOM_CENTER,
+          });
+        }
       });
   };
 
@@ -97,6 +108,18 @@ const MainPage = () => {
 
   return (
     <div className="chart-container">
+      <ToastContainer
+        position="top-center"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+      />
       <TextField
         style={{
           marginTop: "20px",
