@@ -24,6 +24,8 @@ import CandyTheme from "fusioncharts/themes/fusioncharts.theme.candy";
 import ZuneTheme from "fusioncharts/themes/fusioncharts.theme.zune";
 import CopyToClipboardButton from "./CopyToClipboardButton";
 import GitHubButton from "react-github-btn";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const HOST = import.meta.env.VITE_HOST;
 
@@ -114,6 +116,9 @@ function TimeSeriesChart() {
 
       if (!response.ok) {
         setLoading(false);
+        toast.error("Internal Server Error. Please try again later.", {
+          position: toast.POSITION.BOTTOM_CENTER,
+        });
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
       const data = await response.json();
@@ -341,6 +346,18 @@ function TimeSeriesChart() {
 
   return (
     <div>
+      <ToastContainer
+        position="top-center"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+      />
       <div style={{ display: "flex", alignItems: "center" }}>
         <TextField
           style={{
