@@ -314,9 +314,9 @@ function TimeSeriesChart() {
         end: Date.now(),
       });
       setAge(
-        `${years !== 0 ? `${years}y ` : ""}${
-          months !== 0 ? `${months}m ` : ""
-        }${days}d`
+        `${years && years !== 0 ? `${years}y ` : ""}${
+          months && months !== 0 ? `${months}m ` : ""
+        }${days && days !== 0 ? `${days}d ` : ""}`
       );
     }
 
