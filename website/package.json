@@ -21,7 +21,7 @@
     "@nivo/calendar": "^0.84.0",
     "@nivo/treemap": "^0.84.0",
     "@uiw/react-github-corners": "^1.5.16",
-    "date-fns": "^3.0.6",
+    "date-fns": "^3.1.0",
     "fusioncharts": "3.21.1",
     "highcharts-react-official": "^3.2.1",
     "papaparse": "^5.4.1",
