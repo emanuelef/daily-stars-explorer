@@ -38,7 +38,7 @@ function CompareChart() {
   const queryParams = new URLSearchParams(location.search);
 
   let defaultRepo =
-    user && repository ? `${user}/${repository}` : "kubernetes/kubernetes";
+    user && repository ? `${user}/${repository}` : "fluent/fluentd";
   let defaultRepo2 =
     secondUser && secondRepository
       ? `${secondUser}/${secondRepository}`

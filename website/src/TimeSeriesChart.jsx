@@ -349,7 +349,7 @@ function TimeSeriesChart() {
 
   return (
     <div>
-      <Alert severity="warning">As of 18/1/24 GitHub APIs are returning some errors</Alert>
+      <Alert severity="warning">Notice: GitHub APIs are currently slow, timing out, and occasionally returning errors as of January 24, 2023, affecting the functionality of this website.</Alert>
       <ToastContainer
         position="top-center"
         autoClose={5000}
