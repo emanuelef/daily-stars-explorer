@@ -1,6 +1,6 @@
 module github.com/emanuelef/gh-repo-stats-server
 
-go 1.21.1
+go 1.21.6
 
 require (
 	github.com/Code-Hex/go-generics-cache v1.3.1
