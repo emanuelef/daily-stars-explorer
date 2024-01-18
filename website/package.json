@@ -30,7 +30,7 @@
     "react-fusioncharts": "^4.0.0",
     "react-github-btn": "^1.4.0",
     "react-pro-sidebar": "^1.1.0-alpha.1",
-    "react-router-dom": "^6.21.2",
+    "react-router-dom": "^6.21.3",
     "react-toastify": "^10.0.3",
     "react18-json-view": "^0.2.7"
   },

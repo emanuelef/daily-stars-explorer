@@ -25,6 +25,7 @@ import ZuneTheme from "fusioncharts/themes/fusioncharts.theme.zune";
 import CopyToClipboardButton from "./CopyToClipboardButton";
 import GitHubButton from "react-github-btn";
 import { ToastContainer, toast } from "react-toastify";
+import Alert from "@mui/material/Alert";
 import "react-toastify/dist/ReactToastify.css";
 
 const HOST = import.meta.env.VITE_HOST;
@@ -73,7 +74,7 @@ const isToday = (dateString) => {
 };
 
 function TimeSeriesChart() {
-  let defaultRepo = "kubernetes/kubernetes";
+  let defaultRepo = "helm/helm";
   const { user, repository } = useParams();
   if (user && repository) {
     defaultRepo = `${user}/${repository}`;
@@ -348,6 +349,7 @@ function TimeSeriesChart() {
 
   return (
     <div>
+      <Alert severity="warning">As of 18/1/24 GitHub APIs are returning some errors</Alert>
       <ToastContainer
         position="top-center"
         autoClose={5000}

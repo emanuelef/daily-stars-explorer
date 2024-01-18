@@ -53,7 +53,7 @@ const calculatePercentile = (arr, percentile) => {
 };
 
 function CalendarChart() {
-  let defaultRepo = "kubernetes/kubernetes";
+  let defaultRepo = "helm/helm";
 
   const [selectedRepo, setSelectedRepo] = useState(defaultRepo);
   const [loading, setLoading] = useState(false);

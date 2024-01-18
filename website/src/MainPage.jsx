@@ -24,7 +24,7 @@ const HOST = import.meta.env.VITE_HOST;
 console.log("HOST " + HOST);
 
 const MainPage = () => {
-  let defaultRepo = "kubernetes/kubernetes";
+  let defaultRepo = "helm/helm";
   const { user, repository } = useParams();
   if (user && repository) {
     defaultRepo = `${user}/${repository}`;
