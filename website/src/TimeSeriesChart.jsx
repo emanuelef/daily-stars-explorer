@@ -25,7 +25,6 @@ import ZuneTheme from "fusioncharts/themes/fusioncharts.theme.zune";
 import CopyToClipboardButton from "./CopyToClipboardButton";
 import GitHubButton from "react-github-btn";
 import { ToastContainer, toast } from "react-toastify";
-import Alert from "@mui/material/Alert";
 import "react-toastify/dist/ReactToastify.css";
 
 const HOST = import.meta.env.VITE_HOST;
@@ -349,7 +348,6 @@ function TimeSeriesChart() {
 
   return (
     <div>
-      <Alert severity="warning">Notice: GitHub APIs are currently slow, timing out, and occasionally returning errors as of January 18, 2024, affecting the functionality of this website.</Alert>
       <ToastContainer
         position="top-center"
         autoClose={5000}
