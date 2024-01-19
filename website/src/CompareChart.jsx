@@ -38,11 +38,11 @@ function CompareChart() {
   const queryParams = new URLSearchParams(location.search);
 
   let defaultRepo =
-    user && repository ? `${user}/${repository}` : "fluent/fluentd";
+    user && repository ? `${user}/${repository}` : "facebook/react";
   let defaultRepo2 =
     secondUser && secondRepository
       ? `${secondUser}/${secondRepository}`
-      : "helm/helm";
+      : "vuejs/vue";
 
   const [ds, setds] = useState(null);
   const [loading, setLoading] = useState(false);
