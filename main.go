@@ -234,6 +234,10 @@ func main() {
 		repo = fmt.Sprintf("%s", repo)
 		repo = strings.ToLower(repo)
 
+		ip := c.IP()
+		userAgent := c.Get("User-Agent")
+		log.Printf("Request from IP: %s, Repo: %s User-Agent: %s\n", ip, repo, userAgent)
+
 		span := trace.SpanFromContext(c.UserContext())
 		span.SetAttributes(attribute.String("github.repo", repo))
 
@@ -266,7 +270,7 @@ func main() {
 		})
 
 		for progress := range updateChannel {
-			fmt.Printf("Progress: %d\n", progress)
+			// fmt.Printf("Progress: %d\n", progress)
 
 			wg := &sync.WaitGroup{}
 
