@@ -238,6 +238,10 @@ func main() {
 		userAgent := c.Get("User-Agent")
 		log.Printf("Request from IP: %s, Repo: %s User-Agent: %s\n", ip, repo, userAgent)
 
+		if ip == "10.0.0.101" {
+			return c.Status(404).SendString("Custom 404 Error: Resource not found")
+		}
+
 		span := trace.SpanFromContext(c.UserContext())
 		span.SetAttributes(attribute.String("github.repo", repo))
 
