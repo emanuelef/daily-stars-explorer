@@ -338,7 +338,7 @@ function TimeSeriesChart() {
       setEstimatedTime(timeEstimate);
     }
 
-    const callsNeeded = Math.floor(res.stars / 100) + 1;
+    const callsNeeded = Math.floor(res.stars / 100);
     setMaxProgress(callsNeeded);
     startSSEUpates(repoParsed, callsNeeded, status.onGoing);
   };
