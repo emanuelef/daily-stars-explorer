@@ -272,13 +272,15 @@ function TimeSeriesChart() {
       const currentValue = parsedData.data;
       setProgressValue(currentValue);
 
+      // console.log("currentValue", currentValue, callsNeeded);
+
       if (currentValue === callsNeeded) {
         console.log("CLOSE SSE");
         closeSSE();
         //if (onGoing) {
         setTimeout(() => {
           fetchAllStars(repo);
-        }, 1200);
+        }, 1600);
         //}
         setLoading(false);
       }
@@ -336,7 +338,7 @@ function TimeSeriesChart() {
       setEstimatedTime(timeEstimate);
     }
 
-    const callsNeeded = Math.floor(res.stars / 100);
+    const callsNeeded = Math.floor(res.stars / 100) + 1;
     setMaxProgress(callsNeeded);
     startSSEUpates(repoParsed, callsNeeded, status.onGoing);
   };
