@@ -246,6 +246,7 @@ func main() {
 		span.SetAttributes(attribute.String("github.repo", repo))
 
 		if forceRefetch {
+			log.Printf("Deleting cache for %s\n", repo)
 			cacheStars.Delete(repo)
 		}
 
@@ -274,7 +275,7 @@ func main() {
 		})
 
 		for progress := range updateChannel {
-			// fmt.Printf("Progress: %d\n", progress)
+			fmt.Printf("Progress: %d\n", progress)
 
 			wg := &sync.WaitGroup{}
 
@@ -298,6 +299,8 @@ func main() {
 		now := time.Now()
 		nextDay := now.UTC().Truncate(24 * time.Hour).Add(DAY_CACHED * 24 * time.Hour)
 		durationUntilEndOfDay := nextDay.Sub(now)
+
+		log.Printf("Setting cache for %s\n", repo)
 
 		cacheStars.Set(repo, allStars, cache.WithExpiration(durationUntilEndOfDay))
 		delete(onGoingStars, repo)
