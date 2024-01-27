@@ -3,14 +3,11 @@
 while IFS= read -r repo; do
   url="http://143.47.226.125:8080/allStars?repo=$repo"
 
-  response=$(curl -s "$url")  # Fetch the full response
-  status_code=$(echo "$response" | head -n 1 | grep -i "HTTP" | cut -d ' ' -f 2)
+  response=$(curl -s -w "%{http_code}" "$url") # Fetch the full response and include the status code
+  status_code=$(echo "$response" | tail -c 4)  # Extract the last 3 characters (status code)
 
   if [ -n "$status_code" ]; then
-    json_lines=$(echo "$response" | jq -c '.[]' | wc -l)
-    echo "Repo: $repo"
-    echo "Status Code: $status_code"
-    echo "Number of Lines in JSON Array: $json_lines"
+    echo "Repo: $repo Status Code: $status_code"
   else
     echo "Failed to fetch data for $repo"
   fi
