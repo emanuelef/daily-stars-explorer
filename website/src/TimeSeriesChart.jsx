@@ -143,11 +143,11 @@ function TimeSeriesChart() {
     }
   };
 
-  const fetchAllStars = (repo) => {
+  const fetchAllStars = (repo, ignoreForceRefetch = false) => {
     console.log(repo);
     let fetchUrl = `${HOST}/allStars?repo=${repo}`;
 
-    if (forceRefetch) {
+    if (forceRefetch && !ignoreForceRefetch) {
       fetchUrl += "&forceRefetch=true";
     }
 
@@ -279,7 +279,7 @@ function TimeSeriesChart() {
         closeSSE();
         //if (onGoing) {
         setTimeout(() => {
-          fetchAllStars(repo);
+          fetchAllStars(repo, true);
         }, 1600);
         //}
         setLoading(false);
