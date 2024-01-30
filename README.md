@@ -15,20 +15,20 @@ While stars are a popular way to gauge a repository's popularity, they're not th
 
 ## Single repo
 
-https://github.com/emanuelef/gh-repo-stats-server/assets/48717/f5e96d63-3807-43fb-9838-3de56355124e
+https://github.com/emanuelef/daily-stars-explorer/assets/48717/f5e96d63-3807-43fb-9838-3de56355124e
 
-https://emanuelef.github.io/gh-repo-stats-server/#/kubernetes/kubernetes
+https://emanuelef.github.io/daily-stars-explorer/#/kubernetes/kubernetes
 
 ## Compare
 
-https://github.com/emanuelef/gh-repo-stats-server/assets/48717/9b14f989-ffc2-4b54-a17c-03284f0327f5
+https://github.com/emanuelef/daily-stars-explorer/assets/48717/9b14f989-ffc2-4b54-a17c-03284f0327f5
 
-https://emanuelef.github.io/gh-repo-stats-server/#/compare
+https://emanuelef.github.io/daily-stars-explorer/#/compare
 
 ## Run in Docker
 
 ```bash
-docker run --restart=always --env-file .env -d -p 8080:8080 ghcr.io/emanuelef/gh-repo-stats-server:latest
+docker run --restart=always --env-file .env -d -p 8080:8080 ghcr.io/emanuelef/daily-stars-explorer:latest
 ```
 
 ## Links
