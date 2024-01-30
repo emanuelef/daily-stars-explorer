@@ -1,4 +1,4 @@
-# gh-repo-stats-server
+# daily-stars-explorer
 
 ## Table of Contents
 
