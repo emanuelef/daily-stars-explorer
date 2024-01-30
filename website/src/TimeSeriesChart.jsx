@@ -512,11 +512,11 @@ function TimeSeriesChart() {
           }}
         >
           <GitHubButton
-            href="https://github.com/emanuelef/gh-repo-stats-server"
+            href="https://github.com/emanuelef/daily-stars-explorer"
             data-color-scheme="no-preference: dark; light: dark_dimmed; dark: dark_high_contrast;"
             data-size="large"
             data-show-count="true"
-            aria-label="Star emanuelef/gh-repo-stats-server on GitHub"
+            aria-label="Star emanuelef/daily-stars-explorer on GitHub"
           >
             Star Me
           </GitHubButton>
@@ -540,4 +540,4 @@ function TimeSeriesChart() {
 
 export default TimeSeriesChart;
 
-// https://img.shields.io/github/stars/emanuelef/gh-repo-stats-server
+// https://img.shields.io/github/stars/emanuelef/daily-stars-explorer
