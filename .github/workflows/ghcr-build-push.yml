@@ -12,6 +12,7 @@ on:
       - ".github/**"
       - "get_repos_data.sh"
       - "scripts/**"
+      - "LICENSE"
 
 env:
   REGISTRY: ghcr.io
