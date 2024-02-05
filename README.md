@@ -31,10 +31,11 @@ https://emanuelef.github.io/daily-stars-explorer/#/compare
 docker run --restart=always --env-file .env -d -p 8080:8080 ghcr.io/emanuelef/daily-stars-explorer:latest
 ```
 
-## Links
+## Articles
 
-https://medium.com/@emafuma/how-to-get-full-history-of-github-stars-f03cc93183a7
-https://www.reddit.com/r/github/comments/17e31ab/introducing_my_github_stars_history_project/
+- [How to get full history of GitHub stars](https://medium.com/@emafuma/how-to-get-full-history-of-github-stars-f03cc93183a7)
+- [Building a Cost-Free, Always-On Personal Project Stack](https://medium.com/@emafuma/building-a-cost-free-always-on-personal-project-stack-3eaa02ac16b6)
+- [Introducing My GitHub Stars History Project: Unlocking the Full Star Story Beyond 40K and Daily Trends](https://www.reddit.com/r/github/comments/17e31ab/introducing_my_github_stars_history_project/)
 
 ## Features
 
