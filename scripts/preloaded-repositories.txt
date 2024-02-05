@@ -5,7 +5,7 @@ etcd-io/etcd
 helm/helm
 bitnami/charts
 influxdb/influxdb
-jquery/jquery
+cue-lang/cue
 hibiken/asynq
 opentofu/opentofu
 ziglang/zig
