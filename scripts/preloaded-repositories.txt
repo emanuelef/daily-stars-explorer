@@ -8,13 +8,10 @@ ziglang/zig
 facebook/react
 istio/istio
 k3s-io/k3s
-Significant-Gravitas/AutoGPT
 vuejs/vue
 nodejs/node
 flutter/flutter
-kamranahmedse/developer-roadmap
 rust-lang/rust
-angular/angular
 microsoft/vscode
 vercel/next.js
 pytorch/pytorch
@@ -29,7 +26,6 @@ ansible/ansible
 jetbrains/kotlin
 apple/swift
 traefik/traefik
-rails/rails
 hashicorp/terraform
 vercel/hyper
 pandas-dev/pandas
