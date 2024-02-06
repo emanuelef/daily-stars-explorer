@@ -11,7 +11,7 @@ root.render(
       <HashRouter>
         <GitHubCorners
           position="right"
-          href="https://github.com/emanuelef/gh-repo-stats-server"
+          href="https://github.com/emanuelef/daily-stars-explorer"
         />
         <App />
       </HashRouter>

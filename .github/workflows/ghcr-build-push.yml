@@ -16,7 +16,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: emanuelef/gh-repo-stats-server
+  IMAGE_NAME: emanuelef/daily-stars-explorer
   VERSION_NUMBER: latest
 
 jobs:
