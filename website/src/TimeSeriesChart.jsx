@@ -162,14 +162,15 @@ function TimeSeriesChart() {
       })
       .then((data) => {
         setLoading(false);
+        const starHistory = data.stars
 
         // check if last element is today
-        if (data.length > 1) {
-          const lastElement = data[data.length - 1];
+        if (starHistory.length > 1) {
+          const lastElement = starHistory[starHistory.length - 1];
           console.log(lastElement[0]);
-          console.log(data);
+          console.log(starHistory);
           const isLastElementToday = isToday(lastElement[0]);
-          data.pop(); // remove last element as the current day is not complete
+          starHistory.pop(); // remove last element as the current day is not complete
           console.log("isLastElementToday", isLastElementToday);
           setShowForceRefetch(!isLastElementToday);
           setForceRefetch(false);
@@ -178,7 +179,7 @@ function TimeSeriesChart() {
         }
 
         const fusionTable = new FusionCharts.DataStore().createDataTable(
-          data,
+          starHistory,
           schema
         );
         const options = { ...ds };
@@ -192,8 +193,6 @@ function TimeSeriesChart() {
           "_"
         )}-stars-history`;
         setds(options);
-
-        console.log(data);
       })
       .catch((e) => {
         console.error(`An error occurred: ${e}`);

@@ -42,6 +42,12 @@ var currentSessions session.SessionsLock
 
 const DAY_CACHED = 7
 
+type StarsWithStatsResponse struct {
+	Stars         []stats.StarsPerDay   `json:"stars"`
+	NewLast10Days int                   `json:"newLast10Days"`
+	MaxPeriods    []repostats.MaxPeriod `json:"maxPeriods"`
+}
+
 func getEnv(key, fallback string) string {
 	value, exists := os.LookupEnv(key)
 	if !exists {
@@ -91,7 +97,7 @@ func main() {
 	}
 
 	cacheOverall := cache.New[string, *stats.RepoStats]()
-	cacheStars := cache.New[string, []stats.StarsPerDay]()
+	cacheStars := cache.New[string, StarsWithStatsResponse]()
 
 	onGoingStars := make(map[string]bool)
 
@@ -295,14 +301,28 @@ func main() {
 			return err
 		}
 
+		maxPeriods, err := repostats.FindMaxConsecutivePeriods(allStars, 10)
+
+		if err != nil {
+			return err
+		}
+
+		newLastNDays := repostats.NewStarsLastDays(allStars, 10)
+
+		res := StarsWithStatsResponse{
+			Stars:         allStars,
+			NewLast10Days: newLastNDays,
+			MaxPeriods:    maxPeriods,
+		}
+
 		now := time.Now()
 		nextDay := now.UTC().Truncate(24 * time.Hour).Add(DAY_CACHED * 24 * time.Hour)
 		durationUntilEndOfDay := nextDay.Sub(now)
 
-		cacheStars.Set(repo, allStars, cache.WithExpiration(durationUntilEndOfDay))
+		cacheStars.Set(repo, res, cache.WithExpiration(durationUntilEndOfDay))
 		delete(onGoingStars, repo)
 
-		return c.JSON(allStars)
+		return c.JSON(res)
 	})
 
 	app.Get("/limits", func(c *fiber.Ctx) error {
@@ -377,7 +397,7 @@ func main() {
 		// Check if the data is cached
 		if res, hit := cacheStars.Get(repo); hit {
 			// Generate CSV data from the cached data
-			csvData, err := generateCSVData(repo, res)
+			csvData, err := generateCSVData(repo, res.Stars)
 			if err != nil {
 				log.Printf("Error generating CSV data: %v", err)
 				return c.Status(500).SendString("Internal Server Error")
