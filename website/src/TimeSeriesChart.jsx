@@ -162,7 +162,7 @@ function TimeSeriesChart() {
       })
       .then((data) => {
         setLoading(false);
-        const starHistory = data.stars
+        const starHistory = data.stars;
 
         // check if last element is today
         if (starHistory.length > 1) {
@@ -225,8 +225,10 @@ function TimeSeriesChart() {
     const downloadUrl = `${HOST}/allStars?repo=${repoParsed}`;
 
     fetch(downloadUrl)
-      .then((response) => response.blob())
-      .then((blob) => {
+      .then((response) => response.json())
+      .then((data) => {
+        const starsContent = JSON.stringify(data.stars);
+        const blob = new Blob([starsContent], { type: "application/json" });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
