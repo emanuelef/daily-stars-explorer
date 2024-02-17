@@ -206,18 +206,18 @@ function CompareChart() {
       .then((results) => {
         const [data1, data2] = results;
 
-        data1.forEach((subarray) => {
+        data1.stars.forEach((subarray) => {
           subarray.push(repo);
         });
 
-        data2.forEach((subarray) => {
+        data2.stars.forEach((subarray) => {
           subarray.push(repo2);
         });
 
-        removeUncompleteDay(data1);
-        removeUncompleteDay(data2);
+        removeUncompleteDay(data1.stars);
+        removeUncompleteDay(data2.stars);
 
-        handleCombinedData(data1.concat(data2));
+        handleCombinedData(data1.stars.concat(data2.stars));
         setLoading(false);
       })
       .catch((error) => {

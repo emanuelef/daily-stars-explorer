@@ -48,6 +48,10 @@ const chart_props = {
           ],
         },
       ],
+      xAxis: {
+        plot: "Time",
+        timemarker: [],
+      },
       chart: {
         animation: "0",
         theme: "candy",
@@ -162,14 +166,16 @@ function TimeSeriesChart() {
       })
       .then((data) => {
         setLoading(false);
+        console.log(data);
+        const starHistory = data.stars;
 
         // check if last element is today
-        if (data.length > 1) {
-          const lastElement = data[data.length - 1];
+        if (starHistory.length > 1) {
+          const lastElement = starHistory[starHistory.length - 1];
           console.log(lastElement[0]);
-          console.log(data);
+          console.log(starHistory);
           const isLastElementToday = isToday(lastElement[0]);
-          data.pop(); // remove last element as the current day is not complete
+          starHistory.pop(); // remove last element as the current day is not complete
           console.log("isLastElementToday", isLastElementToday);
           setShowForceRefetch(!isLastElementToday);
           setForceRefetch(false);
@@ -178,7 +184,7 @@ function TimeSeriesChart() {
         }
 
         const fusionTable = new FusionCharts.DataStore().createDataTable(
-          data,
+          starHistory,
           schema
         );
         const options = { ...ds };
@@ -186,14 +192,35 @@ function TimeSeriesChart() {
         options.timeseriesDs.dataSource.data = fusionTable;
         options.timeseriesDs.dataSource.yAxis[0].plot[0].value =
           "Cumulative Stars";
-        options.timeseriesDs.dataSource.chart.theme = theme;
+
+        const maxPeriods = data.maxPeriods.map((period) => ({
+          start: period.StartDay,
+          end: period.EndDay,
+          label: `${period.TotalStars} is the highest number of new stars in a 10 day period`,
+          timeformat: "%d-%m-%Y",
+          type: "full",
+        }));
+
+        const maxPeaks = data.maxPeaks.map((peak) => ({
+          start: peak.Day,
+          timeformat: "%d-%m-%Y",
+          label: `${peak.Stars} is the maximum number of new stars in one day`,
+          style: {
+            marker: {
+              fill: "#30EE47",
+            },
+          },
+        }));
+
+        const timemarkers = maxPeriods.concat(maxPeaks);
+
+        (options.timeseriesDs.dataSource.xAxis.timemarker = timemarkers),
+          (options.timeseriesDs.dataSource.chart.theme = theme);
         options.timeseriesDs.dataSource.chart.exportFileName = `${selectedRepo.replace(
           "/",
           "_"
         )}-stars-history`;
         setds(options);
-
-        console.log(data);
       })
       .catch((e) => {
         console.error(`An error occurred: ${e}`);
@@ -226,8 +253,10 @@ function TimeSeriesChart() {
     const downloadUrl = `${HOST}/allStars?repo=${repoParsed}`;
 
     fetch(downloadUrl)
-      .then((response) => response.blob())
-      .then((blob) => {
+      .then((response) => response.json())
+      .then((data) => {
+        const starsContent = JSON.stringify(data.stars);
+        const blob = new Blob([starsContent], { type: "application/json" });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
