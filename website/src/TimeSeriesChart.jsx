@@ -48,6 +48,10 @@ const chart_props = {
           ],
         },
       ],
+      xAxis: {
+        plot: "Time",
+        timemarker: [],
+      },
       chart: {
         animation: "0",
         theme: "candy",
@@ -162,6 +166,7 @@ function TimeSeriesChart() {
       })
       .then((data) => {
         setLoading(false);
+        console.log(data);
         const starHistory = data.stars;
 
         // check if last element is today
@@ -187,7 +192,30 @@ function TimeSeriesChart() {
         options.timeseriesDs.dataSource.data = fusionTable;
         options.timeseriesDs.dataSource.yAxis[0].plot[0].value =
           "Cumulative Stars";
-        options.timeseriesDs.dataSource.chart.theme = theme;
+
+        const maxPeriods = data.maxPeriods.map((period) => ({
+          start: period.StartDay,
+          end: period.EndDay,
+          label: `${period.TotalStars} is the highest number of new stars in a 10 day period`,
+          timeformat: "%d-%m-%Y",
+          type: "full",
+        }));
+
+        const maxPeaks = data.maxPeaks.map((peak) => ({
+          start: peak.Day,
+          timeformat: "%d-%m-%Y",
+          label: `${peak.Stars} is the maximum number of new stars in one day`,
+          style: {
+            marker: {
+              fill: "#30EE47",
+            },
+          },
+        }));
+
+        const timemarkers = maxPeriods.concat(maxPeaks);
+
+        (options.timeseriesDs.dataSource.xAxis.timemarker = timemarkers),
+          (options.timeseriesDs.dataSource.chart.theme = theme);
         options.timeseriesDs.dataSource.chart.exportFileName = `${selectedRepo.replace(
           "/",
           "_"

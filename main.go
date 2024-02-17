@@ -46,6 +46,7 @@ type StarsWithStatsResponse struct {
 	Stars         []stats.StarsPerDay   `json:"stars"`
 	NewLast10Days int                   `json:"newLast10Days"`
 	MaxPeriods    []repostats.MaxPeriod `json:"maxPeriods"`
+	MaxPeaks      []repostats.PeakDay   `json:"maxPeaks"`
 }
 
 func getEnv(key, fallback string) string {
@@ -301,7 +302,7 @@ func main() {
 			return err
 		}
 
-		maxPeriods, err := repostats.FindMaxConsecutivePeriods(allStars, 10)
+		maxPeriods, maxPeaks, err := repostats.FindMaxConsecutivePeriods(allStars, 10)
 
 		if err != nil {
 			return err
@@ -313,6 +314,7 @@ func main() {
 			Stars:         allStars,
 			NewLast10Days: newLastNDays,
 			MaxPeriods:    maxPeriods,
+			MaxPeaks:      maxPeaks,
 		}
 
 		now := time.Now()
