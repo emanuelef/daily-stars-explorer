@@ -11,8 +11,10 @@
 
 Do you ever wonder about the complete history of stars for GitHub repositories? GitHub's REST APIs come with certain limitations, allowing you to retrieve only up to 40,000 stars per repository. For those tracking a repository with more stars, this limitation can be quite frustrating.
 
-While stars are a popular way to gauge a repository's popularity, they're not the sole indicator of a project's quality.   Often, hidden gems with incredible potential may not have a high star count. At the same time is also possible to buy stars, what is interesting is the trend (so the daily stars). There can be repo that reached a high number of real stars but are no longer the ones you woud use now.  In my experience I've found some libraries with a small number of stars that were doing exactly what I needed and others very popular with a high number of stars that were bloated or in decline.
-A growing or stable star count, rather than just a total high number, suggests sustainable interest and community engagement.
+Don't be blinded by stars! While they show popularity, they don't guarantee quality.  
+Underdog libraries with amazing potential often have low counts.  
+Remember, even high-starred repos can fizzle out - stars can decline, too!  
+In my quest for code, I've found hidden gems with few stars that were perfect, while some popular choices were bloated or on the way down. Look beyond the initial shine: a growing or stable star count suggests real interest and a healthy community, not just a passing fad.
 
 
 ## Single repo
