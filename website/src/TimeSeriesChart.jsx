@@ -48,6 +48,7 @@ const chart_props = {
           ],
         },
       ],
+      datamarker: [],
       xAxis: {
         plot: "Time",
         timemarker: [],
@@ -190,8 +191,6 @@ function TimeSeriesChart() {
         const options = { ...ds };
         options.timeseriesDs.dataSource.caption = { text: `Stars ${repo}` };
         options.timeseriesDs.dataSource.data = fusionTable;
-        options.timeseriesDs.dataSource.yAxis[0].plot[0].value =
-          "Cumulative Stars";
 
         const maxPeriods = data.maxPeriods.map((period) => ({
           start: period.StartDay,
@@ -202,20 +201,16 @@ function TimeSeriesChart() {
         }));
 
         const maxPeaks = data.maxPeaks.map((peak) => ({
-          start: peak.Day,
+          value: "Daily Stars",
+          time: peak.Day,
+          identifier: "M",
           timeformat: "%d-%m-%Y",
-          label: `${peak.Stars} is the maximum number of new stars in one day`,
-          style: {
-            marker: {
-              fill: "#30EE47",
-            },
-          },
+          tooltext: `${peak.Stars} is the maximum number of new stars in one day`,
         }));
 
-        const timemarkers = maxPeriods.concat(maxPeaks);
-
-        (options.timeseriesDs.dataSource.xAxis.timemarker = timemarkers),
-          (options.timeseriesDs.dataSource.chart.theme = theme);
+        options.timeseriesDs.dataSource.datamarker = maxPeaks;
+        options.timeseriesDs.dataSource.xAxis.timemarker = maxPeriods;
+        options.timeseriesDs.dataSource.chart.theme = theme;
         options.timeseriesDs.dataSource.chart.exportFileName = `${selectedRepo.replace(
           "/",
           "_"
