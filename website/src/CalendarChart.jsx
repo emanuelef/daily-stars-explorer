@@ -82,7 +82,7 @@ function CalendarChart() {
       throw new Error(`HTTP error! Status: ${response.status}`);
     }
     const data = await response.json();
-    return data;
+    return data.stars;
   };
 
   useEffect(() => {
@@ -153,6 +153,7 @@ function CalendarChart() {
               size="small"
             />
           )}
+          value={selectedRepo}
           onChange={(e, v) => {
             console.log(v?.label);
             setSelectedRepo(v?.label);
