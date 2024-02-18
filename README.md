@@ -14,7 +14,8 @@ Do you ever wonder about the complete history of stars for GitHub repositories? 
 Don't be blinded by stars! While they show popularity, they don't guarantee quality.  
 Underdog libraries with amazing potential often have low counts.  
 Remember, even high-starred repos can fizzle out - stars can decline, too!  
-In my quest for code, I've found hidden gems with few stars that were perfect, while some popular choices were bloated or on the way down. Look beyond the initial shine: a growing or stable star count suggests real interest and a healthy community, not just a passing fad.
+In my quest for code, I've found hidden gems with few stars that were perfect, while some popular choices were bloated or on the way down.  
+A growing or stable star count, rather than just a total high number, suggests sustainable interest and community engagement.
 
 
 ## Single repo
