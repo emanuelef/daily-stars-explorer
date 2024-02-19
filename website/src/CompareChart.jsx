@@ -78,7 +78,7 @@ function CompareChart() {
           {
             plot: [
               {
-                value: "New Stars f",
+                value: "New Stars",
               },
             ],
           },

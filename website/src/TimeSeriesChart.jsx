@@ -26,6 +26,7 @@ import CopyToClipboardButton from "./CopyToClipboardButton";
 import GitHubButton from "react-github-btn";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { addRunningAverage } from "./utils";
 
 const HOST = import.meta.env.VITE_HOST;
 
@@ -167,13 +168,12 @@ function TimeSeriesChart() {
       .then((data) => {
         setLoading(false);
         console.log(data);
-        const starHistory = data.stars;
+        let starHistory = data.stars;
 
         // check if last element is today
         if (starHistory.length > 1) {
           const lastElement = starHistory[starHistory.length - 1];
           console.log(lastElement[0]);
-          console.log(starHistory);
           const isLastElementToday = isToday(lastElement[0]);
           starHistory.pop(); // remove last element as the current day is not complete
           console.log("isLastElementToday", isLastElementToday);
@@ -183,8 +183,12 @@ function TimeSeriesChart() {
           console.log("Array is empty.");
         }
 
+        const resultArray = addRunningAverage(starHistory, 30);
+
+        console.log(resultArray);
+
         const fusionTable = new FusionCharts.DataStore().createDataTable(
-          starHistory,
+          resultArray,
           schema
         );
         const options = { ...ds };
