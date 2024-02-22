@@ -1,3 +1,5 @@
+import * as d3 from "d3-regression";
+
 const addRunningMedian = (starsArray, windowSize) => {
   const result = [];
 
@@ -57,4 +59,48 @@ const addRunningAverage = (starsArray, windowSize) => {
   return result;
 };
 
-export { addRunningMedian, addRunningAverage };
+function addLOESS(starsArray, bandwidth) {
+  const result = [];
+
+  let loessData = [];
+  for (let i = 0; i < starsArray.length; i++) {
+    loessData.push([i, starsArray[i][1]]);
+  }
+
+  const loess = d3.regressionLoess().bandwidth(bandwidth)(loessData);
+
+  for (let i = 0; i < starsArray.length; i++) {
+    result.push([
+      starsArray[i][0],
+      starsArray[i][1],
+      starsArray[i][2],
+      loess[i][1],
+    ]);
+  }
+
+  return result;
+}
+
+function addPolynomial(starsArray, order) {
+  const result = [];
+
+  let loessData = [];
+  for (let i = 0; i < starsArray.length; i++) {
+    loessData.push([i, starsArray[i][1]]);
+  }
+
+  const poly = d3.regressionPoly().order(order)(loessData);
+
+  for (let i = 0; i < starsArray.length; i++) {
+    result.push([
+      starsArray[i][0],
+      starsArray[i][1],
+      starsArray[i][2],
+      poly[i][1],
+    ]);
+  }
+
+  return result;
+}
+
+export { addRunningMedian, addRunningAverage, addLOESS, addPolynomial };

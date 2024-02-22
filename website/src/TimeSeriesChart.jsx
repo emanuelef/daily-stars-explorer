@@ -26,7 +26,12 @@ import CopyToClipboardButton from "./CopyToClipboardButton";
 import GitHubButton from "react-github-btn";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { addRunningAverage } from "./utils";
+import {
+  addRunningMedian,
+  addRunningAverage,
+  addLOESS,
+  addPolynomial,
+} from "./utils";
 
 const HOST = import.meta.env.VITE_HOST;
 
@@ -183,9 +188,7 @@ function TimeSeriesChart() {
           console.log("Array is empty.");
         }
 
-        const resultArray = addRunningAverage(starHistory, 30);
-
-        console.log(resultArray);
+        const resultArray = addLOESS(starHistory, 0.2);
 
         const fusionTable = new FusionCharts.DataStore().createDataTable(
           resultArray,
