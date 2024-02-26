@@ -303,7 +303,6 @@ func main() {
 		}
 
 		maxPeriods, maxPeaks, err := repostats.FindMaxConsecutivePeriods(allStars, 10)
-
 		if err != nil {
 			return err
 		}

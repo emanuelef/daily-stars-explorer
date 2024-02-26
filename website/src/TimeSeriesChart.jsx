@@ -188,7 +188,7 @@ function TimeSeriesChart() {
           console.log("Array is empty.");
         }
 
-        const resultArray = addLOESS(starHistory, 0.2);
+        const resultArray = addLOESS(starHistory, 0.06);
 
         const fusionTable = new FusionCharts.DataStore().createDataTable(
           resultArray,
