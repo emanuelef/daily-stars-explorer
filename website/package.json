@@ -16,7 +16,7 @@
     "@mui/icons-material": "^5.15.10",
     "@mui/lab": "^5.0.0-alpha.165",
     "@mui/material": "^5.15.10",
-    "@mui/x-data-grid": "^6.19.4",
+    "@mui/x-data-grid": "^6.19.5",
     "@nivo/bar": "^0.84.0",
     "@nivo/calendar": "^0.84.0",
     "@nivo/treemap": "^0.84.0",
