@@ -11,7 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@emotion/react": "^11.11.3",
+    "@emotion/react": "^11.11.4",
     "@emotion/styled": "^11.11.0",
     "@mui/icons-material": "^5.15.11",
     "@mui/lab": "^5.0.0-alpha.166",
@@ -30,12 +30,12 @@
     "react-fusioncharts": "^4.0.0",
     "react-github-btn": "^1.4.0",
     "react-pro-sidebar": "^1.1.0",
-    "react-router-dom": "^6.22.1",
+    "react-router-dom": "^6.22.2",
     "react-toastify": "^10.0.4",
     "react18-json-view": "^0.2.7"
   },
   "devDependencies": {
-    "@types/react": "^18.2.59",
+    "@types/react": "^18.2.60",
     "@types/react-dom": "^18.2.19",
     "@typescript-eslint/eslint-plugin": "^7.1.0",
     "@typescript-eslint/parser": "^7.1.0",
