@@ -89,6 +89,7 @@ function TimeSeriesChart() {
   const [totalStars, setTotalStars] = useState(0);
   const [creationDate, setCreationDate] = useState("2021-01-01");
   const [age, setAge] = useState("");
+  const [starsLast10d, setStarsLast10d] = useState("");
   const [progressValue, setProgressValue] = useState(0);
   const [maxProgress, setMaxProgress] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -168,6 +169,8 @@ function TimeSeriesChart() {
         setLoading(false);
         console.log(data);
         const starHistory = data.stars;
+
+        setStarsLast10d(data.newLast10Days);
 
         // check if last element is today
         if (starHistory.length > 1) {
@@ -428,9 +431,9 @@ function TimeSeriesChart() {
         <TextField
           style={{
             marginTop: "20px",
-            marginRight: "20px",
+            marginRight: "10px",
             marginLeft: "10px",
-            width: "100px",
+            width: "90px",
           }}
           size="small"
           id="total-stars"
@@ -443,7 +446,7 @@ function TimeSeriesChart() {
         <TextField
           style={{
             marginTop: "20px",
-            marginRight: "20px",
+            marginRight: "10px",
             marginLeft: "10px",
             width: "200px",
           }}
@@ -458,14 +461,29 @@ function TimeSeriesChart() {
         <TextField
           style={{
             marginTop: "20px",
-            marginRight: "20px",
+            marginRight: "10px",
             marginLeft: "10px",
-            width: "150px",
+            width: "120px",
           }}
           size="small"
           id="age"
           label="Age"
           value={age}
+          InputProps={{
+            readOnly: true,
+          }}
+        />
+        <TextField
+          style={{
+            marginTop: "20px",
+            marginRight: "20px",
+            marginLeft: "10px",
+            width: "120px",
+          }}
+          size="small"
+          id="age"
+          label="Last 10 days"
+          value={starsLast10d}
           InputProps={{
             readOnly: true,
           }}
