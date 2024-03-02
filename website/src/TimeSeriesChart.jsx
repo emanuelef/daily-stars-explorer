@@ -437,7 +437,7 @@ function TimeSeriesChart() {
           }}
           size="small"
           id="total-stars"
-          label="Total Stars"
+          label="⭐ Total"
           value={totalStars}
           InputProps={{
             readOnly: true,
@@ -482,7 +482,7 @@ function TimeSeriesChart() {
           }}
           size="small"
           id="age"
-          label="Last 10 days"
+          label="⭐ Last 10 d"
           value={starsLast10d}
           InputProps={{
             readOnly: true,
