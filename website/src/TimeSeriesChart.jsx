@@ -273,6 +273,11 @@ function TimeSeriesChart() {
       });
   };
 
+  const openCurrentRepoPage = () => {
+    const repoParsed = parseGitHubRepoURL(selectedRepo);
+    window.open("https://github.com/" + repoParsed, "_blank");
+  };
+
   const closeSSE = () => {
     if (currentSSE.current) {
       console.log("STOP SSE");
@@ -527,6 +532,7 @@ function TimeSeriesChart() {
         <Button
           style={{
             marginLeft: "10px",
+            marginRight: "10px",
           }}
           size="small"
           variant="contained"
@@ -534,7 +540,22 @@ function TimeSeriesChart() {
         >
           Download Json
         </Button>
-        <CopyToClipboardButton />
+        <CopyToClipboardButton
+          style={{
+            marginLeft: "10px",
+            marginRight: "30px",
+          }}
+        />
+        <Button
+          style={{
+            marginLeft: "10px",
+          }}
+          size="small"
+          variant="contained"
+          onClick={openCurrentRepoPage}
+        >
+          Open GH repo
+        </Button>
         {showForceRefetch && (
           <Tooltip title={FORCE_REFETCH_TOOLTIP}>
             <FormControlLabel
