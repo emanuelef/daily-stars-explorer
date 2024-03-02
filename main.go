@@ -241,7 +241,13 @@ func main() {
 		repo = fmt.Sprintf("%s", repo)
 		repo = strings.ToLower(repo)
 
-		ip := c.IP()
+		ip := c.Get("X-Forwarded-For")
+
+		// If X-Forwarded-For is empty, fallback to RemoteIP
+		if ip == "" {
+			ip = c.IP()
+		}
+
 		userAgent := c.Get("User-Agent")
 		log.Printf("Request from IP: %s, Repo: %s User-Agent: %s\n", ip, repo, userAgent)
 
@@ -251,6 +257,7 @@ func main() {
 
 		span := trace.SpanFromContext(c.UserContext())
 		span.SetAttributes(attribute.String("github.repo", repo))
+		span.SetAttributes(attribute.String("caller.ip", ip))
 
 		if forceRefetch {
 			cacheStars.Delete(repo)
