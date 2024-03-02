@@ -10,6 +10,7 @@ import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import LoadingButton from "@mui/lab/LoadingButton";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import SendIcon from "@mui/icons-material/Send";
 import FusionCharts from "fusioncharts";
 import TimeSeries from "fusioncharts/fusioncharts.timeseries";
@@ -65,6 +66,9 @@ const chart_props = {
 
 const FORCE_REFETCH_TOOLTIP =
   "Using cached data, force refetching the data from GitHub. This will take a while if the repo has a lot of stars.";
+
+const INFO_TOOLTIP =
+  "Stars are fetched until UTC midnight of the previous day. You can zoom inside the graph by scrolling up and down or dragging the selectors in the underline graph";
 
 const isToday = (dateString) => {
   const today = new Date();
@@ -433,6 +437,11 @@ function TimeSeriesChart() {
         >
           <span>Fetch</span>
         </LoadingButton>
+        <Tooltip title={INFO_TOOLTIP}>
+          <InfoOutlinedIcon
+            style={{ marginTop: "20px", marginRight: "10px", color: "grey" }}
+          />
+        </Tooltip>
         <TextField
           style={{
             marginTop: "20px",
