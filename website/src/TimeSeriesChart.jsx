@@ -156,6 +156,9 @@ function TimeSeriesChart() {
 
   const fetchAllStars = (repo, ignoreForceRefetch = false) => {
     console.log(repo);
+
+    setStarsLast10d("");
+
     let fetchUrl = `${HOST}/allStars?repo=${repo}`;
 
     if (forceRefetch && !ignoreForceRefetch) {
