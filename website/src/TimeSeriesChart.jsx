@@ -462,6 +462,21 @@ function TimeSeriesChart() {
         <TextField
           style={{
             marginTop: "20px",
+            marginRight: "20px",
+            marginLeft: "10px",
+            width: "100px",
+          }}
+          size="small"
+          id="age"
+          label="⭐ Last 10 d"
+          value={starsLast10d}
+          InputProps={{
+            readOnly: true,
+          }}
+        />
+        <TextField
+          style={{
+            marginTop: "20px",
             marginRight: "10px",
             marginLeft: "10px",
             width: "200px",
@@ -485,21 +500,6 @@ function TimeSeriesChart() {
           id="age"
           label="Age"
           value={age}
-          InputProps={{
-            readOnly: true,
-          }}
-        />
-        <TextField
-          style={{
-            marginTop: "20px",
-            marginRight: "20px",
-            marginLeft: "10px",
-            width: "120px",
-          }}
-          size="small"
-          id="age"
-          label="⭐ Last 10 d"
-          value={starsLast10d}
           InputProps={{
             readOnly: true,
           }}
