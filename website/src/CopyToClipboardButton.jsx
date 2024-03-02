@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Button from "@mui/material/Button";
 import Snackbar from "@mui/material/Snackbar";
+import Tooltip from "@mui/material/Tooltip";
 import * as React from "react";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
@@ -57,9 +58,18 @@ function CopyToClipboardButton({ dateRange }) {
         marginLeft: "10px",
       }}
     >
-      <Button variant="contained" size="small" onClick={handleCopyToClipboard}>
-        Copy URL
-      </Button>
+      <Tooltip
+        enterDelay={1500}
+        title={"Copy the url to the clipboard to share this repo stars history"}
+      >
+        <Button
+          variant="contained"
+          size="small"
+          onClick={handleCopyToClipboard}
+        >
+          Share History URL
+        </Button>
+      </Tooltip>
       <Snackbar
         open={open}
         autoHideDuration={3000}
