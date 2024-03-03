@@ -4,6 +4,7 @@ import Typography from "@mui/material/Typography";
 import Autocomplete from "@mui/material/Autocomplete";
 import { parseGitHubRepoURL } from "./githubUtils";
 import { ResponsiveCalendar } from "@nivo/calendar";
+import { calculatePercentile } from "./utils";
 
 const HOST = import.meta.env.VITE_HOST;
 
@@ -21,34 +22,6 @@ const calculateMedian = (arr) => {
   } else {
     // If the array has an odd number of elements, the median is the middle element
     return arr[middle];
-  }
-};
-
-const calculatePercentile = (arr, percentile) => {
-  // Sort the array in ascending order
-  arr.sort(function (a, b) {
-    return a - b;
-  });
-
-  const n = arr.length;
-
-  if (n === 0 || percentile < 0 || percentile > 1) {
-    return undefined; // Invalid input
-  }
-
-  const index = (n - 1) * percentile;
-
-  if (Number.isInteger(index)) {
-    // If the index is an integer, return the element at that index
-    return arr[index];
-  } else {
-    // If the index is a fraction, interpolate between the elements
-    const lowerIndex = Math.floor(index);
-    const upperIndex = Math.ceil(index);
-    const lowerValue = arr[lowerIndex];
-    const upperValue = arr[upperIndex];
-    const fraction = index - lowerIndex;
-    return lowerValue + fraction * (upperValue - lowerValue);
   }
 };
 
