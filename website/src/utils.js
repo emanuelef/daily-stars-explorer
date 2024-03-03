@@ -103,4 +103,32 @@ function addPolynomial(starsArray, order) {
   return result;
 }
 
-export { addRunningMedian, addRunningAverage, addLOESS, addPolynomial };
+const calculatePercentile = (arr, percentile) => {
+  // Sort the array in ascending order
+  arr.sort(function (a, b) {
+    return a - b;
+  });
+
+  const n = arr.length;
+
+  if (n === 0 || percentile < 0 || percentile > 1) {
+    return undefined; // Invalid input
+  }
+
+  const index = (n - 1) * percentile;
+
+  if (Number.isInteger(index)) {
+    // If the index is an integer, return the element at that index
+    return arr[index];
+  } else {
+    // If the index is a fraction, interpolate between the elements
+    const lowerIndex = Math.floor(index);
+    const upperIndex = Math.ceil(index);
+    const lowerValue = arr[lowerIndex];
+    const upperValue = arr[upperIndex];
+    const fraction = index - lowerIndex;
+    return lowerValue + fraction * (upperValue - lowerValue);
+  }
+};
+
+export { addRunningMedian, addRunningAverage, addLOESS, addPolynomial, calculatePercentile };
