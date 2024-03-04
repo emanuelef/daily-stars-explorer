@@ -189,7 +189,7 @@ function TimeSeriesChart() {
         }
 
         // const resultArray = addLOESS(starHistory, 0.08);
-        const resultArray = addRunningAverage(starHistory, 100);
+        const resultArray = addRunningAverage(starHistory, 120);
 
         const fusionTable = new FusionCharts.DataStore().createDataTable(
           resultArray,

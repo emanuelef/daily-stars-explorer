@@ -48,12 +48,7 @@ const addRunningAverage = (starsArray, windowSize) => {
     const average =
       starWindow.reduce((sum, value) => sum + value, 0) / starWindow.length;
 
-    result.push([
-      starsArray[i][0],
-      starsArray[i][1],
-      starsArray[i][2],
-      average,
-    ]);
+    result.push([starsArray[i][0], average, starsArray[i][2]]);
   }
 
   return result;
@@ -131,4 +126,10 @@ const calculatePercentile = (arr, percentile) => {
   }
 };
 
-export { addRunningMedian, addRunningAverage, addLOESS, addPolynomial, calculatePercentile };
+export {
+  addRunningMedian,
+  addRunningAverage,
+  addLOESS,
+  addPolynomial,
+  calculatePercentile,
+};
