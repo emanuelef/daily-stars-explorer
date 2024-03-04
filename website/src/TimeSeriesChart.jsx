@@ -127,6 +127,13 @@ function TimeSeriesChart() {
     setds(options);
   };
 
+  const handleTransformationChange = (event) => {
+    setTransformation(event.target.value);
+    const options = { ...ds };
+    options.timeseriesDs.dataSource.chart.theme = event.target.value;
+    setds(options);
+  };
+
   const handleForceRefetchChange = (event) => {
     setForceRefetch(event.target.checked);
   };
@@ -555,23 +562,23 @@ function TimeSeriesChart() {
 
         <FormControl
           style={{
-            width: "150px",
+            width: "180px",
             marginRight: "20px",
           }}
         >
-          <InputLabel id="trnasformation-select-drop">Transform</InputLabel>
+          <InputLabel id="transformation-select-drop">Transform</InputLabel>
           <Select
-            labelId="theme"
-            id="theme"
-            value={theme}
+            labelId="transformation"
+            id="transformation"
+            value={transformation}
             size="small"
-            label="Theme"
-            onChange={handleThemeChange}
+            label="Transformation"
+            onChange={handleTransformationChange}
           >
+            <MenuItem value={"none"}>None</MenuItem>
             <MenuItem value={"loess"}>LOESS</MenuItem>
             <MenuItem value={"runningAverage"}>Running Average</MenuItem>
-            <MenuItem value={"gammel"}>Gammel</MenuItem>
-            <MenuItem value={"zune"}>Zune</MenuItem>
+            <MenuItem value={"runningMedian"}>Running Median</MenuItem>
           </Select>
         </FormControl>
 
