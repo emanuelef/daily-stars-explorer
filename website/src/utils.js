@@ -48,12 +48,7 @@ const addRunningAverage = (starsArray, windowSize) => {
     const average =
       starWindow.reduce((sum, value) => sum + value, 0) / starWindow.length;
 
-    result.push([
-      starsArray[i][0],
-      starsArray[i][1],
-      starsArray[i][2],
-      average,
-    ]);
+    result.push([starsArray[i][0], average, starsArray[i][2]]);
   }
 
   return result;
@@ -131,4 +126,56 @@ const calculatePercentile = (arr, percentile) => {
   }
 };
 
-export { addRunningMedian, addRunningAverage, addLOESS, addPolynomial, calculatePercentile };
+const calculateFirstDerivative = (starsArray) => {
+  const result = [];
+
+  // Iterate through stars array, skipping the first element (no previous data point)
+  for (let i = 1; i < starsArray.length; i++) {
+    // Extract current and previous star values
+    const currentStar = starsArray[i][1];
+    const previousStar = starsArray[i - 1][1];
+
+    // Calculate derivative using difference between current and previous values
+    const derivative = currentStar - previousStar;
+
+    // Include original timestamp and (optional) additional data
+    result.push([starsArray[i][0], derivative, ...starsArray[i].slice(2)]); // Include data from index 2 onwards
+  }
+
+  return result;
+};
+
+const calculateSecondDerivative = (starsArray) => {
+  const result = [];
+
+  // Skip the first two elements (no second-order derivative for first two points)
+  for (let i = 2; i < starsArray.length; i++) {
+    // Extract current, previous, and second-previous star values
+    const currentStar = starsArray[i][1];
+    const previousStar = starsArray[i - 1][1];
+    const secondPreviousStar = starsArray[i - 2][1];
+
+    // Calculate second-order derivative (acceleration)
+    const secondDerivative =
+      currentStar - 2 * previousStar + secondPreviousStar;
+
+    // Include original timestamp and (optional) additional data
+    result.push([
+      starsArray[i][0],
+      secondDerivative,
+      ...starsArray[i].slice(2),
+    ]); // Include data from index 2 onwards
+  }
+
+  return result;
+};
+
+export {
+  addRunningMedian,
+  addRunningAverage,
+  addLOESS,
+  addPolynomial,
+  calculatePercentile,
+  calculateFirstDerivative,
+  calculateSecondDerivative,
+};

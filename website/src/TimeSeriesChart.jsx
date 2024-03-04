@@ -27,6 +27,14 @@ import CopyToClipboardButton from "./CopyToClipboardButton";
 import GitHubButton from "react-github-btn";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import {
+  addRunningMedian,
+  addRunningAverage,
+  addLOESS,
+  addPolynomial,
+  calculateFirstDerivative,
+  calculateSecondDerivative,
+} from "./utils";
 
 const HOST = import.meta.env.VITE_HOST;
 
@@ -103,6 +111,8 @@ function TimeSeriesChart() {
   const [forceRefetch, setForceRefetch] = useState(false);
 
   const [theme, setTheme] = useState("candy");
+
+  const [transformation, setTransformation] = useState("None");
 
   const navigate = useNavigate();
 
@@ -195,15 +205,18 @@ function TimeSeriesChart() {
           console.log("Array is empty.");
         }
 
+        const appliedTransformationResult = addRunningAverage(starHistory, 120);
+        //const resultArray = calculateFirstDerivative(starHistory);
+
+        schema[1].name = "Running Average";
+
         const fusionTable = new FusionCharts.DataStore().createDataTable(
-          starHistory,
+          appliedTransformationResult,
           schema
         );
         const options = { ...ds };
         options.timeseriesDs.dataSource.caption = { text: `Stars ${repo}` };
         options.timeseriesDs.dataSource.data = fusionTable;
-        options.timeseriesDs.dataSource.yAxis[0].plot[0].value =
-          "Cumulative Stars";
 
         const maxPeriods = data.maxPeriods.map((period) => ({
           start: period.StartDay,
@@ -523,7 +536,7 @@ function TimeSeriesChart() {
           }}
         >
           <FormControl>
-            <InputLabel id="demo-simple-select-label">Theme</InputLabel>
+            <InputLabel id="style-select-drop">Theme</InputLabel>
             <Select
               labelId="theme"
               id="theme"
@@ -539,6 +552,29 @@ function TimeSeriesChart() {
             </Select>
           </FormControl>
         </div>
+
+        <FormControl
+          style={{
+            width: "150px",
+            marginRight: "20px",
+          }}
+        >
+          <InputLabel id="trnasformation-select-drop">Transform</InputLabel>
+          <Select
+            labelId="theme"
+            id="theme"
+            value={theme}
+            size="small"
+            label="Theme"
+            onChange={handleThemeChange}
+          >
+            <MenuItem value={"loess"}>LOESS</MenuItem>
+            <MenuItem value={"runningAverage"}>Running Average</MenuItem>
+            <MenuItem value={"gammel"}>Gammel</MenuItem>
+            <MenuItem value={"zune"}>Zune</MenuItem>
+          </Select>
+        </FormControl>
+
         <Button size="small" variant="contained" onClick={downloadCSV}>
           Download CSV
         </Button>
