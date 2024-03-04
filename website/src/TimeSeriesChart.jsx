@@ -31,6 +31,8 @@ import {
   addRunningAverage,
   addLOESS,
   addPolynomial,
+  calculateFirstDerivative,
+  calculateSecondDerivative,
 } from "./utils";
 
 const HOST = import.meta.env.VITE_HOST;
@@ -190,6 +192,10 @@ function TimeSeriesChart() {
 
         // const resultArray = addLOESS(starHistory, 0.08);
         const resultArray = addRunningAverage(starHistory, 120);
+        //const resultArray = calculateFirstDerivative(starHistory);
+
+
+        schema[1].name = "Ciao"
 
         const fusionTable = new FusionCharts.DataStore().createDataTable(
           resultArray,
@@ -198,8 +204,6 @@ function TimeSeriesChart() {
         const options = { ...ds };
         options.timeseriesDs.dataSource.caption = { text: `Stars ${repo}` };
         options.timeseriesDs.dataSource.data = fusionTable;
-        options.timeseriesDs.dataSource.yAxis[0].plot[0].value =
-          "Cumulative Stars";
 
         const maxPeriods = data.maxPeriods.map((period) => ({
           start: period.StartDay,
