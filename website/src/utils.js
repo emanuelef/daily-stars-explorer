@@ -23,7 +23,7 @@ const addRunningMedian = (starsArray, windowSize) => {
       median = starWindow[middle];
     }
 
-    result.push([starsArray[i][0], starsArray[i][1], starsArray[i][2], median]);
+    result.push([starsArray[i][0], median, starsArray[i][2]]);
   }
 
   return result;
@@ -65,12 +65,7 @@ function addLOESS(starsArray, bandwidth) {
   const loess = d3.regressionLoess().bandwidth(bandwidth)(loessData);
 
   for (let i = 0; i < starsArray.length; i++) {
-    result.push([
-      starsArray[i][0],
-      starsArray[i][1],
-      starsArray[i][2],
-      loess[i][1],
-    ]);
+    result.push([starsArray[i][0], loess[i][1], starsArray[i][2]]);
   }
 
   return result;
