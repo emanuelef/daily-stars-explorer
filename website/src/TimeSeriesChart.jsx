@@ -27,6 +27,14 @@ import CopyToClipboardButton from "./CopyToClipboardButton";
 import GitHubButton from "react-github-btn";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import {
+  addRunningMedian,
+  addRunningAverage,
+  addLOESS,
+  addPolynomial,
+  calculateFirstDerivative,
+  calculateSecondDerivative,
+} from "./utils";
 
 const HOST = import.meta.env.VITE_HOST;
 
@@ -104,6 +112,8 @@ function TimeSeriesChart() {
 
   const [theme, setTheme] = useState("candy");
 
+  const [transformation, setTransformation] = useState("none");
+
   const navigate = useNavigate();
 
   const [selectedRepo, setSelectedRepo] = useState(defaultRepo);
@@ -116,6 +126,17 @@ function TimeSeriesChart() {
     options.timeseriesDs.dataSource.chart.theme = event.target.value;
     setds(options);
   };
+
+  const handleTransformationChange = (event) => {
+    console.log(event.target.value);
+    setTransformation(event.target.value, () =>
+      fetchAllStars(selectedRepo, true)
+    );
+  };
+
+  useEffect(() => {
+    fetchAllStars(selectedRepo, true);
+  }, [transformation]);
 
   const handleForceRefetchChange = (event) => {
     setForceRefetch(event.target.checked);
@@ -195,15 +216,48 @@ function TimeSeriesChart() {
           console.log("Array is empty.");
         }
 
+        let appliedTransformationResult = starHistory;
+
+        //const resultArray = calculateFirstDerivative(starHistory);
+
+        switch (transformation) {
+          case "none":
+            schema[1].name = "Daily Stars";
+            break;
+          case "loess":
+            schema[1].name = "LOESS";
+            appliedTransformationResult = addLOESS(starHistory, 0.08);
+            break;
+          case "runningAverage":
+            schema[1].name = "Running Average";
+            appliedTransformationResult = addRunningAverage(starHistory, 120);
+            break;
+          case "runningMedian":
+            schema[1].name = "Running Median";
+            appliedTransformationResult = addRunningMedian(starHistory, 120);
+            break;
+          case "firstOrderDerivative":
+            schema[1].name = "Derivative";
+            appliedTransformationResult = calculateFirstDerivative(starHistory);
+            break;
+          case "secondOrderDerivative":
+            schema[1].name = "Second Derivative";
+            appliedTransformationResult =
+              calculateSecondDerivative(starHistory);
+            break;
+          default:
+            break;
+        }
+
+        console.log(appliedTransformationResult[20]);
+
         const fusionTable = new FusionCharts.DataStore().createDataTable(
-          starHistory,
+          appliedTransformationResult,
           schema
         );
         const options = { ...ds };
         options.timeseriesDs.dataSource.caption = { text: `Stars ${repo}` };
         options.timeseriesDs.dataSource.data = fusionTable;
-        options.timeseriesDs.dataSource.yAxis[0].plot[0].value =
-          "Cumulative Stars";
 
         const maxPeriods = data.maxPeriods.map((period) => ({
           start: period.StartDay,
@@ -523,7 +577,7 @@ function TimeSeriesChart() {
           }}
         >
           <FormControl>
-            <InputLabel id="demo-simple-select-label">Theme</InputLabel>
+            <InputLabel id="style-select-drop">Theme</InputLabel>
             <Select
               labelId="theme"
               id="theme"
@@ -539,6 +593,33 @@ function TimeSeriesChart() {
             </Select>
           </FormControl>
         </div>
+
+        <FormControl
+          style={{
+            width: "180px",
+            marginRight: "20px",
+          }}
+        >
+          <InputLabel id="transformation-select-drop">Transform</InputLabel>
+          <Select
+            labelId="transformation"
+            id="transformation"
+            value={transformation}
+            size="small"
+            label="Transform"
+            onChange={handleTransformationChange}
+          >
+            <MenuItem value={"none"}>None</MenuItem>
+            <MenuItem value={"loess"}>LOESS</MenuItem>
+            <MenuItem value={"runningAverage"}>Running Average</MenuItem>
+            <MenuItem value={"runningMedian"}>Running Median</MenuItem>
+            <MenuItem value={"firstOrderDerivative"}>Derivative</MenuItem>
+            <MenuItem value={"secondOrderDerivative"}>
+              Second Derivative
+            </MenuItem>
+          </Select>
+        </FormControl>
+
         <Button size="small" variant="contained" onClick={downloadCSV}>
           Download CSV
         </Button>
