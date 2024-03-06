@@ -31,12 +31,41 @@ import {
   addRunningMedian,
   addRunningAverage,
   addLOESS,
-  addPolynomial,
   calculateFirstDerivative,
   calculateSecondDerivative,
 } from "./utils";
 
 const HOST = import.meta.env.VITE_HOST;
+
+const YEARLY_BINNING = {
+  year: [1],
+  month: [],
+  day: [],
+  week: [],
+  hour: [],
+  minute: [],
+  second: [],
+};
+
+const MONTHLY_BINNING = {
+  year: [],
+  month: [1],
+  day: [],
+  week: [],
+  hour: [],
+  minute: [],
+  second: [],
+};
+
+const WEEKLY_BINNING = {
+  year: [],
+  month: [],
+  day: [],
+  week: [1],
+  hour: [],
+  minute: [],
+  second: [],
+};
 
 ReactFC.fcRoot(FusionCharts, TimeSeries, GammelTheme, CandyTheme, ZuneTheme);
 const chart_props = {
@@ -46,6 +75,17 @@ const chart_props = {
     height: "80%",
     dataEmptyMessage: "Fetching data...",
     dataSource: {
+      tooltip: {
+        style: {
+          container: {
+            "border-color": "#000000",
+            "background-color": "#75748D",
+          },
+          text: {
+            color: "#FFFFFF",
+          },
+        },
+      },
       caption: { text: "Stars" },
       data: null,
       yAxis: [
@@ -53,6 +93,7 @@ const chart_props = {
           plot: [
             {
               value: "New Stars",
+              //aggregation: "sum", // doesn't work
             },
           ],
         },
@@ -60,6 +101,7 @@ const chart_props = {
       xAxis: {
         plot: "Time",
         timemarker: [],
+        binning: {},
       },
       chart: {
         animation: "0",
@@ -218,11 +260,23 @@ function TimeSeriesChart() {
 
         let appliedTransformationResult = starHistory;
 
-        //const resultArray = calculateFirstDerivative(starHistory);
+        let binning = {};
 
         switch (transformation) {
           case "none":
             schema[1].name = "Daily Stars";
+            break;
+          case "yearlyBinning":
+            schema[1].name = "Yearly Average";
+            binning = YEARLY_BINNING;
+            break;
+          case "monthlyBinning":
+            schema[1].name = "Monthly Average";
+            binning = MONTHLY_BINNING;
+            break;
+          case "weeklyBinning":
+            schema[1].name = "Weekly Average";
+            binning = WEEKLY_BINNING;
             break;
           case "loess":
             schema[1].name = "LOESS";
@@ -280,8 +334,9 @@ function TimeSeriesChart() {
 
         const timemarkers = maxPeriods.concat(maxPeaks);
 
-        (options.timeseriesDs.dataSource.xAxis.timemarker = timemarkers),
-          (options.timeseriesDs.dataSource.chart.theme = theme);
+        options.timeseriesDs.dataSource.xAxis.timemarker = timemarkers;
+        options.timeseriesDs.dataSource.xAxis.binning = binning;
+        options.timeseriesDs.dataSource.chart.theme = theme;
         options.timeseriesDs.dataSource.chart.exportFileName = `${selectedRepo.replace(
           "/",
           "_"
@@ -610,6 +665,9 @@ function TimeSeriesChart() {
             onChange={handleTransformationChange}
           >
             <MenuItem value={"none"}>None</MenuItem>
+            <MenuItem value={"yearlyBinning"}>Yearly Binning</MenuItem>
+            <MenuItem value={"monthlyBinning"}>Monthly Binning</MenuItem>
+            <MenuItem value={"weeklyBinning"}>Weekly Binning</MenuItem>
             <MenuItem value={"loess"}>LOESS</MenuItem>
             <MenuItem value={"runningAverage"}>Running Average</MenuItem>
             <MenuItem value={"runningMedian"}>Running Median</MenuItem>
