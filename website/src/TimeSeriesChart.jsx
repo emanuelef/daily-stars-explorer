@@ -170,7 +170,6 @@ function TimeSeriesChart() {
   };
 
   const handleAggregationChange = (event) => {
-    console.log(event.target.value);
     setAggregation(event.target.value);
   };
 
@@ -299,8 +298,6 @@ function TimeSeriesChart() {
           default:
             break;
         }
-
-        console.log(appliedAggregationResult[20]);
 
         const fusionTable = new FusionCharts.DataStore().createDataTable(
           appliedAggregationResult,

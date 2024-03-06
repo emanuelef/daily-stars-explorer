@@ -20,6 +20,36 @@ import CopyToClipboardButton from "./CopyToClipboardButton";
 
 const HOST = import.meta.env.VITE_HOST;
 
+const YEARLY_BINNING = {
+  year: [1],
+  month: [],
+  day: [],
+  week: [],
+  hour: [],
+  minute: [],
+  second: [],
+};
+
+const MONTHLY_BINNING = {
+  year: [],
+  month: [1],
+  day: [],
+  week: [],
+  hour: [],
+  minute: [],
+  second: [],
+};
+
+const WEEKLY_BINNING = {
+  year: [],
+  month: [],
+  day: [],
+  week: [1],
+  hour: [],
+  minute: [],
+  second: [],
+};
+
 ReactFC.fcRoot(FusionCharts, TimeSeries, GammelTheme, CandyTheme, ZuneTheme);
 
 const isToday = (dateString) => {
@@ -48,6 +78,8 @@ function CompareChart() {
   const [loading, setLoading] = useState(false);
 
   const [theme, setTheme] = useState("candy");
+
+  const [aggregation, setAggregation] = useState("none");
 
   const [selectedRepo, setSelectedRepo] = useState(defaultRepo);
   const [selectedRepo2, setSelectedRepo2] = useState(defaultRepo2);
@@ -83,6 +115,9 @@ function CompareChart() {
             ],
           },
         ],
+        xAxis: {
+          binning: {},
+        },
         chart: {
           animation: "0",
           theme: "candy",
@@ -132,6 +167,14 @@ function CompareChart() {
     // http://localhost:5173/gh-repo-stats-server/#/compare/helm/helm-mapkubeapis/pipe-cd/pipecd?start=1627131263936&end=1645079357900
   };
 
+  const handleAggregationChange = (event) => {
+    setAggregation(event.target.value);
+  };
+
+  useEffect(() => {
+    fetchAllStars(selectedRepo, selectedRepo2);
+  }, [aggregation]);
+
   const handleFetchResponse = (response) => {
     if (!response.ok) {
       throw new Error(`HTTP error! Status: ${response.status}`);
@@ -140,6 +183,28 @@ function CompareChart() {
   };
 
   const handleCombinedData = (combinedData) => {
+    let binning = {};
+
+    switch (aggregation) {
+      case "none":
+        schema[1].name = "Daily Stars";
+        break;
+      case "yearlyBinning":
+        schema[1].name = "Yearly Average";
+        binning = YEARLY_BINNING;
+        break;
+      case "monthlyBinning":
+        schema[1].name = "Monthly Average";
+        binning = MONTHLY_BINNING;
+        break;
+      case "weeklyBinning":
+        schema[1].name = "Weekly Average";
+        binning = WEEKLY_BINNING;
+        break;
+      default:
+        break;
+    }
+
     const fusionTable = new FusionCharts.DataStore().createDataTable(
       combinedData,
       schema
@@ -147,6 +212,7 @@ function CompareChart() {
     const options = { ...chart_props };
     options.timeseriesDs.dataSource.caption = { text: `Stars` };
     options.timeseriesDs.dataSource.data = fusionTable;
+    options.timeseriesDs.dataSource.xAxis.binning = binning;
     options.timeseriesDs.dataSource.yAxis[0].plot[0].value = "Cumulative Stars";
 
     /*
@@ -367,6 +433,27 @@ function CompareChart() {
             </Select>
           </FormControl>
         </div>
+        <FormControl
+          style={{
+            width: "180px",
+            marginRight: "20px",
+          }}
+        >
+          <InputLabel id="aggregation-select-drop">Aggregate</InputLabel>
+          <Select
+            labelId="aggregation"
+            id="aggregation"
+            value={aggregation}
+            size="small"
+            label="Aggregate"
+            onChange={handleAggregationChange}
+          >
+            <MenuItem value={"none"}>None</MenuItem>
+            <MenuItem value={"yearlyBinning"}>Yearly Binning</MenuItem>
+            <MenuItem value={"monthlyBinning"}>Monthly Binning</MenuItem>
+            <MenuItem value={"weeklyBinning"}>Weekly Binning</MenuItem>
+          </Select>
+        </FormControl>
       </div>
       <div
         style={{
