@@ -154,7 +154,7 @@ function TimeSeriesChart() {
 
   const [theme, setTheme] = useState("candy");
 
-  const [transformation, setTransformation] = useState("none");
+  const [aggregation, setAggregation] = useState("none");
 
   const navigate = useNavigate();
 
@@ -169,16 +169,16 @@ function TimeSeriesChart() {
     setds(options);
   };
 
-  const handleTransformationChange = (event) => {
+  const handleAggregationChange = (event) => {
     console.log(event.target.value);
-    setTransformation(event.target.value, () =>
+    setAggregation(event.target.value, () =>
       fetchAllStars(selectedRepo, true)
     );
   };
 
   useEffect(() => {
     fetchAllStars(selectedRepo, true);
-  }, [transformation]);
+  }, [aggregation]);
 
   const handleForceRefetchChange = (event) => {
     setForceRefetch(event.target.checked);
@@ -258,11 +258,11 @@ function TimeSeriesChart() {
           console.log("Array is empty.");
         }
 
-        let appliedTransformationResult = starHistory;
+        let appliedAggregationResult = starHistory;
 
         let binning = {};
 
-        switch (transformation) {
+        switch (aggregation) {
           case "none":
             schema[1].name = "Daily Stars";
             break;
@@ -280,33 +280,33 @@ function TimeSeriesChart() {
             break;
           case "loess":
             schema[1].name = "LOESS";
-            appliedTransformationResult = addLOESS(starHistory, 0.08);
+            appliedAggregationResult = addLOESS(starHistory, 0.08);
             break;
           case "runningAverage":
             schema[1].name = "Running Average";
-            appliedTransformationResult = addRunningAverage(starHistory, 120);
+            appliedAggregationResult = addRunningAverage(starHistory, 120);
             break;
           case "runningMedian":
             schema[1].name = "Running Median";
-            appliedTransformationResult = addRunningMedian(starHistory, 120);
+            appliedAggregationResult = addRunningMedian(starHistory, 120);
             break;
           case "firstOrderDerivative":
             schema[1].name = "Derivative";
-            appliedTransformationResult = calculateFirstDerivative(starHistory);
+            appliedAggregationResult = calculateFirstDerivative(starHistory);
             break;
           case "secondOrderDerivative":
             schema[1].name = "Second Derivative";
-            appliedTransformationResult =
+            appliedAggregationResult =
               calculateSecondDerivative(starHistory);
             break;
           default:
             break;
         }
 
-        console.log(appliedTransformationResult[20]);
+        console.log(appliedAggregationResult[20]);
 
         const fusionTable = new FusionCharts.DataStore().createDataTable(
-          appliedTransformationResult,
+          appliedAggregationResult,
           schema
         );
         const options = { ...ds };
@@ -655,14 +655,14 @@ function TimeSeriesChart() {
             marginRight: "20px",
           }}
         >
-          <InputLabel id="transformation-select-drop">Transform</InputLabel>
+          <InputLabel id="aggregation-select-drop">Aggregate</InputLabel>
           <Select
-            labelId="transformation"
-            id="transformation"
-            value={transformation}
+            labelId="aggregation"
+            id="aggregation"
+            value={aggregation}
             size="small"
-            label="Transform"
-            onChange={handleTransformationChange}
+            label="Aggregate"
+            onChange={handleAggregationChange}
           >
             <MenuItem value={"none"}>None</MenuItem>
             <MenuItem value={"yearlyBinning"}>Yearly Binning</MenuItem>
