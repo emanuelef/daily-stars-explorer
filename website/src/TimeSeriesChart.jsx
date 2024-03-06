@@ -171,9 +171,7 @@ function TimeSeriesChart() {
 
   const handleAggregationChange = (event) => {
     console.log(event.target.value);
-    setAggregation(event.target.value, () =>
-      fetchAllStars(selectedRepo, true)
-    );
+    setAggregation(event.target.value);
   };
 
   useEffect(() => {
@@ -296,8 +294,7 @@ function TimeSeriesChart() {
             break;
           case "secondOrderDerivative":
             schema[1].name = "Second Derivative";
-            appliedAggregationResult =
-              calculateSecondDerivative(starHistory);
+            appliedAggregationResult = calculateSecondDerivative(starHistory);
             break;
           default:
             break;
