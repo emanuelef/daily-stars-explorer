@@ -575,6 +575,23 @@ function TimeSeriesChart() {
         >
           <span>Fetch</span>
         </LoadingButton>
+        {showForceRefetch && (
+          <Tooltip title={FORCE_REFETCH_TOOLTIP}>
+            <FormControlLabel
+              style={{
+                marginTop: "20px",
+              }}
+              control={
+                <Checkbox
+                  checked={forceRefetch}
+                  onChange={handleForceRefetchChange}
+                  name="forceRefetch"
+                />
+              }
+              label="Force Refetch"
+            />
+          </Tooltip>
+        )}
         <Tooltip title={INFO_TOOLTIP}>
           <InfoOutlinedIcon
             style={{ marginTop: "20px", marginRight: "10px", color: "grey" }}
@@ -742,23 +759,6 @@ function TimeSeriesChart() {
         >
           Open GH repo
         </Button>
-        {showForceRefetch && (
-          <Tooltip title={FORCE_REFETCH_TOOLTIP}>
-            <FormControlLabel
-              style={{
-                marginLeft: "10px",
-              }}
-              control={
-                <Checkbox
-                  checked={forceRefetch}
-                  onChange={handleForceRefetchChange}
-                  name="forceRefetch"
-                />
-              }
-              label="Force Refetch"
-            />
-          </Tooltip>
-        )}
         <div
           style={{
             marginTop: "5px",
