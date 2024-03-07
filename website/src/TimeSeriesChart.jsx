@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import TextField from "@mui/material/TextField";
 import FormControl from "@mui/material/FormControl";
 import FormControlLabel from "@mui/material/FormControlLabel";
+import Typography from "@mui/material/Typography";
 import Tooltip from "@mui/material/Tooltip";
 import Checkbox from "@mui/material/Checkbox";
 import Button from "@mui/material/Button";
@@ -68,51 +69,6 @@ const WEEKLY_BINNING = {
 };
 
 ReactFC.fcRoot(FusionCharts, TimeSeries, GammelTheme, CandyTheme, ZuneTheme);
-const chart_props = {
-  timeseriesDs: {
-    type: "timeseries",
-    width: "100%",
-    height: "80%",
-    dataEmptyMessage: "Fetching data...",
-    dataSource: {
-      tooltip: {
-        style: {
-          container: {
-            "border-color": "#000000",
-            "background-color": "#75748D",
-          },
-          text: {
-            color: "#FFFFFF",
-          },
-        },
-      },
-      caption: { text: "Stars" },
-      data: null,
-      yAxis: [
-        {
-          plot: [
-            {
-              value: "New Stars",
-              //aggregation: "sum", // doesn't work
-            },
-          ],
-        },
-      ],
-      xAxis: {
-        plot: "Time",
-        timemarker: [],
-        binning: {},
-      },
-      chart: {
-        animation: "0",
-        theme: "candy",
-        exportEnabled: "1",
-        exportMode: "client",
-        exportFormats: "PNG=Export as PNG|PDF=Export as PDF",
-      },
-    },
-  },
-};
 
 const FORCE_REFETCH_TOOLTIP =
   "Using cached data, force refetching the data from GitHub. This will take a while if the repo has a lot of stars.";
@@ -139,6 +95,70 @@ function TimeSeriesChart() {
     defaultRepo = `${user}/${repository}`;
   }
 
+  const chart_props = {
+    timeseriesDs: {
+      type: "timeseries",
+      width: "100%",
+      height: "80%",
+      dataEmptyMessage: "Fetching data...",
+      dataSource: {
+        tooltip: {
+          style: {
+            container: {
+              "border-color": "#000000",
+              "background-color": "#75748D",
+            },
+            text: {
+              color: "#FFFFFF",
+            },
+          },
+        },
+        caption: { text: "Stars" },
+        data: null,
+        yAxis: [
+          {
+            plot: [
+              {
+                value: "New Stars",
+                //aggregation: "sum", // doesn't work
+              },
+            ],
+          },
+        ],
+        xAxis: {
+          plot: "Time",
+          timemarker: [],
+          binning: {},
+        },
+        chart: {
+          animation: "0",
+          theme: "candy",
+          exportEnabled: "1",
+          exportMode: "client",
+          exportFormats: "PNG=Export as PNG|PDF=Export as PDF",
+        },
+      },
+      events: {
+        selectionChange: function (ev) {
+          if (ev && ev.data) {
+            setSelectedTimeRange({
+              start: ev.data.start,
+              end: ev.data.end,
+            });
+          }
+        },
+        rendered: function (e) {
+          setTimeout(() => {
+            e.sender.setTimeSelection(selectedTimeRange);
+          }, 1000);
+        },
+      },
+    },
+  };
+
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+
   const [ds, setds] = useState(chart_props);
 
   const [estimatedTime, setEstimatedTime] = useState(0);
@@ -156,11 +176,21 @@ function TimeSeriesChart() {
 
   const [aggregation, setAggregation] = useState("none");
 
+  const [selectedTimeRange, setSelectedTimeRange] = useState({
+    start: queryParams.get("start"),
+    end: queryParams.get("end"),
+  });
+
   const navigate = useNavigate();
 
   const [selectedRepo, setSelectedRepo] = useState(defaultRepo);
+  const [checkedDateRange, setCheckedDateRange] = useState(false);
 
   const currentSSE = useRef(null);
+
+  const handleDateRangeCheckChange = (event) => {
+    setCheckedDateRange(event.target.checked);
+  };
 
   const handleThemeChange = (event) => {
     setTheme(event.target.value);
@@ -692,7 +722,16 @@ function TimeSeriesChart() {
             marginLeft: "10px",
             marginRight: "30px",
           }}
+          dateRange={checkedDateRange ? selectedTimeRange : null}
         />
+        {
+          <Checkbox
+            checked={checkedDateRange}
+            onChange={handleDateRangeCheckChange}
+            inputProps={{ "aria-label": "controlled" }}
+          />
+        }
+        <Typography variant="body2">With Date Range</Typography>
         <Button
           style={{
             marginLeft: "10px",
