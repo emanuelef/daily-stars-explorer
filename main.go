@@ -309,6 +309,8 @@ func main() {
 			return err
 		}
 
+		defer close(updateChannel)
+
 		maxPeriods, maxPeaks, err := repostats.FindMaxConsecutivePeriods(allStars, 10)
 
 		if err != nil {
