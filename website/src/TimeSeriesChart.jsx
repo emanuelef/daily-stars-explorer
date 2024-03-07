@@ -791,7 +791,11 @@ function TimeSeriesChart() {
           marginLeft: "10px",
         }}
       >
-        {ds != chart_props && <ReactFC {...ds.timeseriesDs} />}
+        {ds != null &&
+          ds != chart_props &&
+          ds &&
+          ds.timeseriesDs &&
+          ds.timeseriesDs.dataSource.data && <ReactFC {...ds.timeseriesDs} />}
       </div>
     </div>
   );
