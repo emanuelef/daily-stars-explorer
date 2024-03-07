@@ -4,6 +4,7 @@ import TextField from "@mui/material/TextField";
 import FormControl from "@mui/material/FormControl";
 import Checkbox from "@mui/material/Checkbox";
 import Typography from "@mui/material/Typography";
+import Tooltip from "@mui/material/Tooltip";
 import Autocomplete from "@mui/material/Autocomplete";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
@@ -49,6 +50,9 @@ const WEEKLY_BINNING = {
   minute: [],
   second: [],
 };
+
+const INCLUDE_DATE_RANGE =
+  "When checked the URL to share will include the current time range selected";
 
 ReactFC.fcRoot(FusionCharts, TimeSeries, GammelTheme, CandyTheme, ZuneTheme);
 
@@ -392,13 +396,15 @@ function CompareChart() {
           <CopyToClipboardButton
             dateRange={checkedDateRange ? selectedTimeRange : null}
           />
-          {
-            <Checkbox
-              checked={checkedDateRange}
-              onChange={handleDateRangeCheckChange}
-              inputProps={{ "aria-label": "controlled" }}
-            />
-          }
+          <Tooltip title={INCLUDE_DATE_RANGE}>
+            {
+              <Checkbox
+                checked={checkedDateRange}
+                onChange={handleDateRangeCheckChange}
+                inputProps={{ "aria-label": "controlled" }}
+              />
+            }
+          </Tooltip>
           <Typography variant="body2">With Date Range</Typography>
         </div>
       </div>

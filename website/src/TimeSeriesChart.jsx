@@ -78,6 +78,9 @@ const INFO_TOOLTIP =
    You can zoom inside the graph by scrolling up and down or dragging the selectors in the underline graph. \
    Once fetched the history is kept for 7 days but it's possible to refetch again by checking the Force Refetch checkbox.";
 
+const INCLUDE_DATE_RANGE =
+  "When checked the URL to share will include the current time range selected";
+
 const isToday = (dateString) => {
   const today = new Date();
   const [day, month, year] = dateString.split("-").map(Number);
@@ -741,13 +744,15 @@ function TimeSeriesChart() {
           }}
           dateRange={checkedDateRange ? selectedTimeRange : null}
         />
-        {
-          <Checkbox
-            checked={checkedDateRange}
-            onChange={handleDateRangeCheckChange}
-            inputProps={{ "aria-label": "controlled" }}
-          />
-        }
+        <Tooltip title={INCLUDE_DATE_RANGE}>
+          {
+            <Checkbox
+              checked={checkedDateRange}
+              onChange={handleDateRangeCheckChange}
+              inputProps={{ "aria-label": "controlled" }}
+            />
+          }
+        </Tooltip>
         <Typography variant="body2">With Date Range</Typography>
         <Button
           style={{
