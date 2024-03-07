@@ -17,6 +17,7 @@ import { parseGitHubRepoURL } from "./githubUtils";
 import GammelTheme from "fusioncharts/themes/fusioncharts.theme.gammel";
 import CandyTheme from "fusioncharts/themes/fusioncharts.theme.candy";
 import ZuneTheme from "fusioncharts/themes/fusioncharts.theme.zune";
+import UmberTheme from "fusioncharts/themes/fusioncharts.theme.umber";
 import CopyToClipboardButton from "./CopyToClipboardButton";
 
 const HOST = import.meta.env.VITE_HOST;
@@ -54,7 +55,7 @@ const WEEKLY_BINNING = {
 const INCLUDE_DATE_RANGE =
   "When checked the URL to share will include the current time range selected";
 
-ReactFC.fcRoot(FusionCharts, TimeSeries, GammelTheme, CandyTheme, ZuneTheme);
+ReactFC.fcRoot(FusionCharts, TimeSeries, GammelTheme, CandyTheme, ZuneTheme, UmberTheme);
 
 const isToday = (dateString) => {
   const today = new Date();
@@ -436,6 +437,7 @@ function CompareChart() {
               <MenuItem value={"candy"}>Candy</MenuItem>
               <MenuItem value={"gammel"}>Gammel</MenuItem>
               <MenuItem value={"zune"}>Zune</MenuItem>
+              <MenuItem value={"umber"}>Umber</MenuItem>
             </Select>
           </FormControl>
         </div>
