@@ -207,7 +207,7 @@ function TimeSeriesChart() {
   };
 
   useEffect(() => {
-    fetchAllStars(selectedRepo, true);
+    fetchAllStars(parseGitHubRepoURL(selectedRepo), true);
   }, [aggregation]);
 
   const handleForceRefetchChange = (event) => {
@@ -273,6 +273,8 @@ function TimeSeriesChart() {
         const starHistory = data.stars;
 
         setStarsLast10d(data.newLast10Days);
+
+        console.log("QUI");
 
         // check if last element is today
         if (starHistory.length > 1) {
