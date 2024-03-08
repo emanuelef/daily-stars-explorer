@@ -121,6 +121,37 @@ const calculatePercentile = (arr, percentile) => {
   }
 };
 
+const calculatePercentiles = (arr, percentile1, percentile2) => {
+  if (
+    arr.length === 0 ||
+    percentile1 < 0 ||
+    percentile1 > 1 ||
+    percentile2 < 0 ||
+    percentile2 > 1
+  ) {
+    return null;
+  }
+
+  // Sort the array
+  const sortedArray = arr.slice().sort((a, b) => a - b);
+
+  // Calculate indices for percentiles
+  const index1 = (percentile1 * (sortedArray.length - 1)) | 0;
+  const index2 = (percentile2 * (sortedArray.length - 1)) | 0;
+
+  // Linear interpolation
+  const value1 =
+    sortedArray[index1] +
+    (percentile1 - index1 / (sortedArray.length - 1)) *
+      (sortedArray[index1 + 1] - sortedArray[index1]);
+  const value2 =
+    sortedArray[index2] +
+    (percentile2 - index2 / (sortedArray.length - 1)) *
+      (sortedArray[index2 + 1] - sortedArray[index2]);
+
+  return [value1, value2];
+};
+
 const calculateFirstDerivative = (starsArray) => {
   const result = [];
 
@@ -171,6 +202,7 @@ export {
   addLOESS,
   addPolynomial,
   calculatePercentile,
+  calculatePercentiles,
   calculateFirstDerivative,
   calculateSecondDerivative,
 };

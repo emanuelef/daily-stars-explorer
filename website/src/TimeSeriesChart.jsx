@@ -1,3 +1,4 @@
+/* eslint-disable no-case-declarations */
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import TextField from "@mui/material/TextField";
@@ -35,6 +36,7 @@ import {
   addLOESS,
   calculateFirstDerivative,
   calculateSecondDerivative,
+  calculatePercentiles,
 } from "./utils";
 
 const HOST = import.meta.env.VITE_HOST;
@@ -69,7 +71,14 @@ const WEEKLY_BINNING = {
   second: [],
 };
 
-ReactFC.fcRoot(FusionCharts, TimeSeries, GammelTheme, CandyTheme, ZuneTheme, UmberTheme);
+ReactFC.fcRoot(
+  FusionCharts,
+  TimeSeries,
+  GammelTheme,
+  CandyTheme,
+  ZuneTheme,
+  UmberTheme
+);
 
 const FORCE_REFETCH_TOOLTIP =
   "Using cached data, force refetching the data from GitHub. This will take a while if the repo has a lot of stars.";
@@ -275,8 +284,6 @@ function TimeSeriesChart() {
 
         setStarsLast10d(data.newLast10Days);
 
-        console.log("QUI");
-
         // check if last element is today
         if (starHistory.length > 1) {
           const lastElement = starHistory[starHistory.length - 1];
@@ -292,7 +299,6 @@ function TimeSeriesChart() {
         }
 
         let appliedAggregationResult = starHistory;
-
         let binning = {};
 
         switch (aggregation) {
@@ -310,6 +316,25 @@ function TimeSeriesChart() {
           case "weeklyBinning":
             schema[1].name = "Weekly Average";
             binning = WEEKLY_BINNING;
+            break;
+          case "normalize":
+            schema[1].name = "Normalized";
+            const [median, highPercentile] = calculatePercentiles(
+              starHistory
+                .filter((subArray) => subArray[1] > 0)
+                .map((subArray) => subArray[1]),
+              0.5,
+              0.98
+            );
+
+            console.log(median, highPercentile);
+
+            appliedAggregationResult = starHistory.map((subArray) => {
+              if (subArray[1] > highPercentile) {
+                return [subArray[0], highPercentile, subArray[2]];
+              }
+              return subArray;
+            });
             break;
           case "loess":
             schema[1].name = "LOESS";
@@ -716,6 +741,7 @@ function TimeSeriesChart() {
             <MenuItem value={"yearlyBinning"}>Yearly Binning</MenuItem>
             <MenuItem value={"monthlyBinning"}>Monthly Binning</MenuItem>
             <MenuItem value={"weeklyBinning"}>Weekly Binning</MenuItem>
+            <MenuItem value={"normalize"}>Normalize</MenuItem>
             <MenuItem value={"loess"}>LOESS</MenuItem>
             <MenuItem value={"runningAverage"}>Running Average</MenuItem>
             <MenuItem value={"runningMedian"}>Running Median</MenuItem>
