@@ -178,6 +178,7 @@ function TimeSeriesChart() {
   const [totalStars, setTotalStars] = useState(0);
   const [creationDate, setCreationDate] = useState("2021-01-01");
   const [age, setAge] = useState("");
+  const [currentStarsHistory, setCurrentStarsHistory] = useState([]);
   const [starsLast10d, setStarsLast10d] = useState("");
   const [progressValue, setProgressValue] = useState(0);
   const [maxProgress, setMaxProgress] = useState(0);
@@ -217,7 +218,7 @@ function TimeSeriesChart() {
   };
 
   useEffect(() => {
-    fetchAllStars(parseGitHubRepoURL(selectedRepo), true);
+    updateGraph(currentStarsHistory);
   }, [aggregation]);
 
   const handleForceRefetchChange = (event) => {
@@ -257,9 +258,103 @@ function TimeSeriesChart() {
     }
   };
 
+  const updateGraph = (starHistory) => {
+    // check if last element is today
+    if (starHistory.length > 1) {
+      const lastElement = starHistory[starHistory.length - 1];
+      console.log(lastElement[0]);
+      console.log(starHistory);
+      const isLastElementToday = isToday(lastElement[0]);
+      starHistory.pop(); // remove last element as the current day is not complete
+      console.log("isLastElementToday", isLastElementToday);
+      setShowForceRefetch(!isLastElementToday);
+      setForceRefetch(false);
+    } else {
+      console.log("Array is empty.");
+    }
+
+    let appliedAggregationResult = starHistory;
+    let binning = {};
+
+    switch (aggregation) {
+      case "none":
+        schema[1].name = "Daily Stars";
+        break;
+      case "yearlyBinning":
+        schema[1].name = "Yearly Average";
+        binning = YEARLY_BINNING;
+        break;
+      case "monthlyBinning":
+        schema[1].name = "Monthly Average";
+        binning = MONTHLY_BINNING;
+        break;
+      case "weeklyBinning":
+        schema[1].name = "Weekly Average";
+        binning = WEEKLY_BINNING;
+        break;
+      case "normalize":
+        schema[1].name = "Normalized";
+        const [median, highPercentile] = calculatePercentiles(
+          starHistory
+            .filter((subArray) => subArray[1] > 0)
+            .map((subArray) => subArray[1]),
+          0.5,
+          0.98
+        );
+
+        console.log(median, highPercentile);
+
+        appliedAggregationResult = starHistory.map((subArray) => {
+          if (subArray[1] > highPercentile) {
+            return [subArray[0], highPercentile, subArray[2]];
+          }
+          return subArray;
+        });
+        break;
+      case "loess":
+        schema[1].name = "LOESS";
+        appliedAggregationResult = addLOESS(starHistory, 0.08);
+        break;
+      case "runningAverage":
+        schema[1].name = "Running Average";
+        appliedAggregationResult = addRunningAverage(starHistory, 120);
+        break;
+      case "runningMedian":
+        schema[1].name = "Running Median";
+        appliedAggregationResult = addRunningMedian(starHistory, 120);
+        break;
+      case "firstOrderDerivative":
+        schema[1].name = "Derivative";
+        appliedAggregationResult = calculateFirstDerivative(starHistory);
+        break;
+      case "secondOrderDerivative":
+        schema[1].name = "Second Derivative";
+        appliedAggregationResult = calculateSecondDerivative(starHistory);
+        break;
+      default:
+        break;
+    }
+
+    const fusionTable = new FusionCharts.DataStore().createDataTable(
+      appliedAggregationResult,
+      schema
+    );
+    const options = { ...ds };
+    options.timeseriesDs.dataSource.data = fusionTable;
+
+    options.timeseriesDs.dataSource.xAxis.binning = binning;
+    options.timeseriesDs.dataSource.chart.theme = theme;
+    options.timeseriesDs.dataSource.chart.exportFileName = `${selectedRepo.replace(
+      "/",
+      "_"
+    )}-stars-history`;
+    setds(options);
+  };
+
   const fetchAllStars = (repo, ignoreForceRefetch = false) => {
     console.log(repo);
 
+    setCurrentStarsHistory([]);
     setStarsLast10d("");
 
     let fetchUrl = `${HOST}/allStars?repo=${repo}`;
@@ -282,91 +377,10 @@ function TimeSeriesChart() {
         console.log(data);
         const starHistory = data.stars;
 
+        setCurrentStarsHistory(starHistory);
         setStarsLast10d(data.newLast10Days);
 
-        // check if last element is today
-        if (starHistory.length > 1) {
-          const lastElement = starHistory[starHistory.length - 1];
-          console.log(lastElement[0]);
-          console.log(starHistory);
-          const isLastElementToday = isToday(lastElement[0]);
-          starHistory.pop(); // remove last element as the current day is not complete
-          console.log("isLastElementToday", isLastElementToday);
-          setShowForceRefetch(!isLastElementToday);
-          setForceRefetch(false);
-        } else {
-          console.log("Array is empty.");
-        }
-
-        let appliedAggregationResult = starHistory;
-        let binning = {};
-
-        switch (aggregation) {
-          case "none":
-            schema[1].name = "Daily Stars";
-            break;
-          case "yearlyBinning":
-            schema[1].name = "Yearly Average";
-            binning = YEARLY_BINNING;
-            break;
-          case "monthlyBinning":
-            schema[1].name = "Monthly Average";
-            binning = MONTHLY_BINNING;
-            break;
-          case "weeklyBinning":
-            schema[1].name = "Weekly Average";
-            binning = WEEKLY_BINNING;
-            break;
-          case "normalize":
-            schema[1].name = "Normalized";
-            const [median, highPercentile] = calculatePercentiles(
-              starHistory
-                .filter((subArray) => subArray[1] > 0)
-                .map((subArray) => subArray[1]),
-              0.5,
-              0.98
-            );
-
-            console.log(median, highPercentile);
-
-            appliedAggregationResult = starHistory.map((subArray) => {
-              if (subArray[1] > highPercentile) {
-                return [subArray[0], highPercentile, subArray[2]];
-              }
-              return subArray;
-            });
-            break;
-          case "loess":
-            schema[1].name = "LOESS";
-            appliedAggregationResult = addLOESS(starHistory, 0.08);
-            break;
-          case "runningAverage":
-            schema[1].name = "Running Average";
-            appliedAggregationResult = addRunningAverage(starHistory, 120);
-            break;
-          case "runningMedian":
-            schema[1].name = "Running Median";
-            appliedAggregationResult = addRunningMedian(starHistory, 120);
-            break;
-          case "firstOrderDerivative":
-            schema[1].name = "Derivative";
-            appliedAggregationResult = calculateFirstDerivative(starHistory);
-            break;
-          case "secondOrderDerivative":
-            schema[1].name = "Second Derivative";
-            appliedAggregationResult = calculateSecondDerivative(starHistory);
-            break;
-          default:
-            break;
-        }
-
-        const fusionTable = new FusionCharts.DataStore().createDataTable(
-          appliedAggregationResult,
-          schema
-        );
-        const options = { ...ds };
-        options.timeseriesDs.dataSource.caption = { text: `Stars ${repo}` };
-        options.timeseriesDs.dataSource.data = fusionTable;
+        updateGraph(starHistory);
 
         const maxPeriods = data.maxPeriods.map((period) => ({
           start: period.StartDay,
@@ -389,13 +403,9 @@ function TimeSeriesChart() {
 
         const timemarkers = maxPeriods.concat(maxPeaks);
 
+        const options = { ...ds };
+        options.timeseriesDs.dataSource.caption = { text: `Stars ${repo}` };
         options.timeseriesDs.dataSource.xAxis.timemarker = timemarkers;
-        options.timeseriesDs.dataSource.xAxis.binning = binning;
-        options.timeseriesDs.dataSource.chart.theme = theme;
-        options.timeseriesDs.dataSource.chart.exportFileName = `${selectedRepo.replace(
-          "/",
-          "_"
-        )}-stars-history`;
         setds(options);
       })
       .catch((e) => {
