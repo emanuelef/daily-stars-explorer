@@ -137,6 +137,11 @@ func main() {
 		return c.Send(nil)
 	})
 
+	app.Get("/gc", func(c *fiber.Ctx) error {
+		runtime.GC()
+		return c.Send(nil)
+	})
+
 	app.Get("/stats", func(c *fiber.Ctx) error {
 		param := c.Query("repo")
 
@@ -312,7 +317,6 @@ func main() {
 		defer close(updateChannel)
 
 		maxPeriods, maxPeaks, err := repostats.FindMaxConsecutivePeriods(allStars, 10)
-
 		if err != nil {
 			return err
 		}
