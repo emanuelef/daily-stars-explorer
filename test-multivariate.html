@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FusionChart - Temperature Readings</title>
+    <script
+      type="text/javascript"
+      src="https://cdn.fusioncharts.com/fusioncharts/latest/fusioncharts.js"
+    ></script>
+    <script
+      type="text/javascript"
+      src="https://cdn.fusioncharts.com/fusioncharts/latest/themes/fusioncharts.theme.fusion.js"
+    ></script>
+    <script
+      type="text/javascript"
+      src="https://cdn.fusioncharts.com/fusioncharts/latest/themes/fusioncharts.theme.candy.js"
+    ></script>
+  </head>
+  <body>
+    <h1>Sales performance</h1>
+    <div id="chart-container"></div>
+
+    <script>
+      const WEEKLY_BINNING = {
+        year: [],
+        month: [],
+        day: [],
+        week: [1],
+        hour: [],
+        minute: [],
+        second: [],
+      };
+
+      Promise.all([
+        loadData(
+          "https://s3.eu-central-1.amazonaws.com/fusion.store/ft/data/different-plot-type-for-each-variable-measure-data.json"
+        ),
+        loadData(
+          "https://s3.eu-central-1.amazonaws.com/fusion.store/ft/schema/different-plot-type-for-each-variable-measure-schema.json"
+        ),
+      ]).then(function (res) {
+        const data = res[0];
+        const schema = res[1];
+
+        const dataStore = new FusionCharts.DataStore();
+        const dataSource = {
+          chart: {},
+          caption: {
+            text: "Sales Performance",
+          },
+          yaxis: [
+            {
+              plot: {
+                value: "Sale Amount",
+                type: "area",
+              },
+              title: "Sale Amount",
+              format: {
+                prefix: "$",
+              },
+              referenceline: [
+                {
+                  label: "Target",
+                  value: 4000000,
+                },
+              ],
+            },
+            {
+              plot: {
+                value: "Units Sold",
+                type: "column",
+              },
+              title: "Units Sold",
+            },
+          ],
+        };
+        dataSource.data = dataStore.createDataTable(data, schema);
+
+        new FusionCharts({
+          type: "timeseries",
+          renderAt: "chart-container",
+          width: "100%",
+          height: "700",
+          dataSource: dataSource,
+        }).render();
+      });
+
+      // Replace this with your actual loadData function
+      function loadData(url) {
+        return fetch(url).then((response) => response.json()); // Assuming JSON data
+      }
+    </script>
+  </body>
+</html>

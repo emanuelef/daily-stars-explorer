@@ -109,62 +109,71 @@ function TimeSeriesChart() {
   }
 
   const chart_props = {
-    timeseriesDs: {
-      type: "timeseries",
-      width: "100%",
-      height: "80%",
-      dataEmptyMessage: "Fetching data...",
-      dataSource: {
-        tooltip: {
-          style: {
-            container: {
-              "border-color": "#000000",
-              "background-color": "#75748D",
-            },
-            text: {
-              color: "#FFFFFF",
-            },
+    type: "timeseries",
+    width: "100%",
+    height: "80%",
+    dataEmptyMessage: "Fetching data...",
+    styleDefinition: {
+      colorstyle: {
+        fill: "#ffff00", //color of the reference line
+      },
+    },
+    dataSource: {
+      tooltip: {
+        style: {
+          container: {
+            "border-color": "#000000",
+            "background-color": "#75748D",
           },
-        },
-        caption: { text: "Stars" },
-        data: null,
-        yAxis: [
-          {
-            plot: [
-              {
-                value: "New Stars",
-                //aggregation: "sum", // doesn't work
-              },
-            ],
+          text: {
+            color: "#FFFFFF",
           },
-        ],
-        xAxis: {
-          plot: "Time",
-          timemarker: [],
-          binning: {},
-        },
-        chart: {
-          animation: "0",
-          theme: "candy",
-          exportEnabled: "1",
-          exportMode: "client",
-          exportFormats: "PNG=Export as PNG|PDF=Export as PDF",
         },
       },
-      events: {
-        selectionChange: function (ev) {
-          if (ev && ev.data) {
-            setSelectedTimeRange({
-              start: ev.data.start,
-              end: ev.data.end,
-            });
-          }
+      yAxis: [
+        {
+          plot: {
+            value: "Daily Stars",
+            type: "line",
+          },
+          title: "Daily Stars",
+          aggregation: "average",
+          referenceline: [],
         },
-        rendered: function (e) {
-          setTimeout(() => {
-            e.sender.setTimeSelection(selectedTimeRange);
-          }, 1000);
+        {
+          plot: {
+            value: "Total Stars",
+            type: "line",
+          },
+          title: "Total Stars",
         },
+      ],
+      xAxis: {
+        plot: "Time",
+        timemarker: [],
+        binning: {},
+      },
+      chart: {
+        animation: "0",
+        theme: "candy",
+        exportEnabled: "1",
+        exportMode: "client",
+        exportFormats: "PNG=Export as PNG|PDF=Export as PDF",
+      },
+    },
+    events: {
+      selectionChange: function (ev) {
+        if (ev && ev.data) {
+          setSelectedTimeRange({
+            start: ev.data.start,
+            end: ev.data.end,
+          });
+        }
+      },
+      rendered: function (e) {
+        setTimeout(() => {
+          e.sender.setTimeSelection(selectedTimeRange);
+        }, 1000);
       },
     },
   };
@@ -209,7 +218,7 @@ function TimeSeriesChart() {
   const handleThemeChange = (event) => {
     setTheme(event.target.value);
     const options = { ...ds };
-    options.timeseriesDs.dataSource.chart.theme = event.target.value;
+    options.dataSource.chart.theme = event.target.value;
     setds(options);
   };
 
@@ -276,24 +285,41 @@ function TimeSeriesChart() {
     let appliedAggregationResult = starHistory;
     let binning = {};
 
+    const options = { ...ds };
+
     switch (aggregation) {
       case "none":
-        schema[1].name = "Daily Stars";
+        options.dataSource.yAxis[0].plot.value =
+          schema[1].name =
+          options.dataSource.yAxis[0].title =
+            "Daily Stars";
         break;
       case "yearlyBinning":
-        schema[1].name = "Yearly Average";
+        options.dataSource.yAxis[0].plot.value =
+          schema[1].name =
+          options.dataSource.yAxis[0].title =
+            "Yearly Average";
         binning = YEARLY_BINNING;
         break;
       case "monthlyBinning":
-        schema[1].name = "Monthly Average";
+        options.dataSource.yAxis[0].plot.value =
+          schema[1].name =
+          options.dataSource.yAxis[0].title =
+            "Monthly Average";
         binning = MONTHLY_BINNING;
         break;
       case "weeklyBinning":
-        schema[1].name = "Weekly Average";
+        options.dataSource.yAxis[0].plot.value =
+          schema[1].name =
+          options.dataSource.yAxis[0].title =
+            "Weekly Average";
         binning = WEEKLY_BINNING;
         break;
       case "normalize":
-        schema[1].name = "Normalized";
+        options.dataSource.yAxis[0].plot.value =
+          schema[1].name =
+          options.dataSource.yAxis[0].title =
+            "Normalized";
         const [median, highPercentile] = calculatePercentiles(
           starHistory
             .filter((subArray) => subArray[1] > 0)
@@ -312,23 +338,38 @@ function TimeSeriesChart() {
         });
         break;
       case "loess":
-        schema[1].name = "LOESS";
+        options.dataSource.yAxis[0].plot.value =
+          schema[1].name =
+          options.dataSource.yAxis[0].title =
+            "LOESS";
         appliedAggregationResult = addLOESS(starHistory, 0.08);
         break;
       case "runningAverage":
-        schema[1].name = "Running Average";
+        options.dataSource.yAxis[0].plot.value =
+          schema[1].name =
+          options.dataSource.yAxis[0].title =
+            "Running Average";
         appliedAggregationResult = addRunningAverage(starHistory, 120);
         break;
       case "runningMedian":
-        schema[1].name = "Running Median";
+        options.dataSource.yAxis[0].plot.value =
+          schema[1].name =
+          options.dataSource.yAxis[0].title =
+            "Running Median";
         appliedAggregationResult = addRunningMedian(starHistory, 120);
         break;
       case "firstOrderDerivative":
-        schema[1].name = "Derivative";
+        options.dataSource.yAxis[0].plot.value =
+          schema[1].name =
+          options.dataSource.yAxis[0].title =
+            "Derivative";
         appliedAggregationResult = calculateFirstDerivative(starHistory);
         break;
       case "secondOrderDerivative":
-        schema[1].name = "Second Derivative";
+        options.dataSource.yAxis[0].plot.value =
+          schema[1].name =
+          options.dataSource.yAxis[0].title =
+            "Second Derivative";
         appliedAggregationResult = calculateSecondDerivative(starHistory);
         break;
       default:
@@ -339,15 +380,28 @@ function TimeSeriesChart() {
       appliedAggregationResult,
       schema
     );
-    const options = { ...ds };
-    options.timeseriesDs.dataSource.data = fusionTable;
 
-    options.timeseriesDs.dataSource.xAxis.binning = binning;
-    options.timeseriesDs.dataSource.chart.theme = theme;
-    options.timeseriesDs.dataSource.chart.exportFileName = `${selectedRepo.replace(
+    options.dataSource.data = fusionTable;
+
+    options.dataSource.xAxis.binning = binning;
+    options.dataSource.chart.theme = theme;
+    options.dataSource.chart.exportFileName = `${selectedRepo.replace(
       "/",
       "_"
     )}-stars-history`;
+
+    /*
+    options.dataSource.yAxis[0].referenceline = [
+      {
+        label: "CCC Temperature",
+        value: 14,
+      },
+    ];
+    */
+
+    // console.log(options.dataSource.yAxis[0].referenceline);
+    console.log(options.dataSource.yAxis);
+
     setds(options);
   };
 
@@ -404,8 +458,11 @@ function TimeSeriesChart() {
         const timemarkers = maxPeriods.concat(maxPeaks);
 
         const options = { ...ds };
-        options.timeseriesDs.dataSource.caption = { text: `Stars ${repo}` };
-        options.timeseriesDs.dataSource.xAxis.timemarker = timemarkers;
+        options.dataSource.caption = { text: `Stars ${repo}` };
+        options.dataSource.subcaption = {
+          text: "Zoom in or try normalize option",
+        };
+        options.dataSource.xAxis.timemarker = timemarkers;
         setds(options);
       })
       .catch((e) => {
@@ -827,15 +884,14 @@ function TimeSeriesChart() {
       />
       <ProgressBar value={progressValue} max={maxProgress} />
       <div
+        id="chart-container"
         style={{
           marginLeft: "10px",
         }}
       >
-        {ds != null &&
-          ds != chart_props &&
-          ds &&
-          ds.timeseriesDs &&
-          ds.timeseriesDs.dataSource.data && <ReactFC {...ds.timeseriesDs} />}
+        {ds != null && ds != chart_props && ds && ds.dataSource.data && (
+          <ReactFC {...ds} />
+        )}
       </div>
     </div>
   );
