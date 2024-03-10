@@ -287,12 +287,34 @@ function TimeSeriesChart() {
 
     const options = { ...ds };
 
+    const res = calculatePercentiles(
+      starHistory
+        .filter((subArray) => subArray[1] > 0)
+        .map((subArray) => subArray[1]),
+      0.5,
+      0.98
+    );
+
+    options.dataSource.subcaption = "";
+    options.dataSource.yAxis[0].referenceline = [];
+
+    console.log(res);
+
     switch (aggregation) {
       case "none":
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
             "Daily Stars";
+        options.dataSource.yAxis[0].plot.type = "line";
+        if (res && res.length == 3) {
+          options.dataSource.subcaption = {
+            text:
+              res[2] > res[1] + 1000 ? "Zoom in or try normalize option" : "",
+          };
+        } else {
+          options.dataSource.subcaption = "";
+        }
         break;
       case "yearlyBinning":
         options.dataSource.yAxis[0].plot.value =
@@ -300,6 +322,7 @@ function TimeSeriesChart() {
           options.dataSource.yAxis[0].title =
             "Yearly Average";
         binning = YEARLY_BINNING;
+        options.dataSource.yAxis[0].plot.type = "column";
         break;
       case "monthlyBinning":
         options.dataSource.yAxis[0].plot.value =
@@ -307,6 +330,7 @@ function TimeSeriesChart() {
           options.dataSource.yAxis[0].title =
             "Monthly Average";
         binning = MONTHLY_BINNING;
+        options.dataSource.yAxis[0].plot.type = "column";
         break;
       case "weeklyBinning":
         options.dataSource.yAxis[0].plot.value =
@@ -314,12 +338,14 @@ function TimeSeriesChart() {
           options.dataSource.yAxis[0].title =
             "Weekly Average";
         binning = WEEKLY_BINNING;
+        options.dataSource.yAxis[0].plot.type = "column";
         break;
       case "normalize":
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
             "Normalized";
+
         const [median, highPercentile] = calculatePercentiles(
           starHistory
             .filter((subArray) => subArray[1] > 0)
@@ -336,6 +362,15 @@ function TimeSeriesChart() {
           }
           return subArray;
         });
+        options.dataSource.yAxis[0].plot.type = "line";
+
+        options.dataSource.yAxis[0].referenceline = [
+          {
+            label: "Median",
+            value: median,
+          },
+        ];
+
         break;
       case "loess":
         options.dataSource.yAxis[0].plot.value =
@@ -343,6 +378,7 @@ function TimeSeriesChart() {
           options.dataSource.yAxis[0].title =
             "LOESS";
         appliedAggregationResult = addLOESS(starHistory, 0.08);
+        options.dataSource.yAxis[0].plot.type = "line";
         break;
       case "runningAverage":
         options.dataSource.yAxis[0].plot.value =
@@ -350,6 +386,7 @@ function TimeSeriesChart() {
           options.dataSource.yAxis[0].title =
             "Running Average";
         appliedAggregationResult = addRunningAverage(starHistory, 120);
+        options.dataSource.yAxis[0].plot.type = "line";
         break;
       case "runningMedian":
         options.dataSource.yAxis[0].plot.value =
@@ -357,6 +394,7 @@ function TimeSeriesChart() {
           options.dataSource.yAxis[0].title =
             "Running Median";
         appliedAggregationResult = addRunningMedian(starHistory, 120);
+        options.dataSource.yAxis[0].plot.type = "line";
         break;
       case "firstOrderDerivative":
         options.dataSource.yAxis[0].plot.value =
@@ -364,6 +402,7 @@ function TimeSeriesChart() {
           options.dataSource.yAxis[0].title =
             "Derivative";
         appliedAggregationResult = calculateFirstDerivative(starHistory);
+        options.dataSource.yAxis[0].plot.type = "line";
         break;
       case "secondOrderDerivative":
         options.dataSource.yAxis[0].plot.value =
@@ -371,6 +410,7 @@ function TimeSeriesChart() {
           options.dataSource.yAxis[0].title =
             "Second Derivative";
         appliedAggregationResult = calculateSecondDerivative(starHistory);
+        options.dataSource.yAxis[0].plot.type = "line";
         break;
       default:
         break;
@@ -401,6 +441,7 @@ function TimeSeriesChart() {
 
     // console.log(options.dataSource.yAxis[0].referenceline);
     console.log(options.dataSource.yAxis);
+    console.log(res);
 
     setds(options);
   };
@@ -459,9 +500,7 @@ function TimeSeriesChart() {
 
         const options = { ...ds };
         options.dataSource.caption = { text: `Stars ${repo}` };
-        options.dataSource.subcaption = {
-          text: "Zoom in or try normalize option",
-        };
+
         options.dataSource.xAxis.timemarker = timemarkers;
         setds(options);
       })

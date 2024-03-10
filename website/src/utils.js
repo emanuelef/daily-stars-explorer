@@ -135,6 +135,8 @@ const calculatePercentiles = (arr, percentile1, percentile2) => {
   // Sort the array
   const sortedArray = arr.slice().sort((a, b) => a - b);
 
+  const max = sortedArray[sortedArray.length - 1];
+
   // Calculate indices for percentiles
   const index1 = (percentile1 * (sortedArray.length - 1)) | 0;
   const index2 = (percentile2 * (sortedArray.length - 1)) | 0;
@@ -149,7 +151,7 @@ const calculatePercentiles = (arr, percentile1, percentile2) => {
     (percentile2 - index2 / (sortedArray.length - 1)) *
       (sortedArray[index2 + 1] - sortedArray[index2]);
 
-  return [value1, value2];
+  return [value1, value2, max];
 };
 
 const calculateFirstDerivative = (starsArray) => {
