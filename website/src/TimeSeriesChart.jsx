@@ -250,6 +250,7 @@ function TimeSeriesChart() {
 
   const fetchPredictions = async (repo) => {
     try {
+      setLoading(true);
       const response = await fetch(`${PREDICTOR_HOST}/predict?repo=${repo}`);
 
       if (!response.ok) {
@@ -259,6 +260,7 @@ function TimeSeriesChart() {
         });
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
+      setLoading(false);
 
       const data = await response.json();
 
