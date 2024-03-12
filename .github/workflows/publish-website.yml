@@ -48,6 +48,7 @@ jobs:
         run: npm run build
         env:
           VITE_HOST: "${{ vars.VITE_HOST }}"
+          PREDICTOR_HOST: "${{ vars.PREDICTOR_HOST }}"
 
       - name: Setup Pages
         uses: actions/configure-pages@v4

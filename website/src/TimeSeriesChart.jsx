@@ -40,6 +40,7 @@ import {
 } from "./utils";
 
 const HOST = import.meta.env.VITE_HOST;
+const PREDICTOR_HOST = "https://143.47.235.108:8082";
 
 const YEARLY_BINNING = {
   year: [1],
@@ -79,6 +80,11 @@ ReactFC.fcRoot(
   ZuneTheme,
   UmberTheme
 );
+
+const formatDate = (originalDate) => {
+  const parts = originalDate.split("-");
+  return `${parts[2]}-${parts[1]}-${parts[0]}`;
+};
 
 const FORCE_REFETCH_TOOLTIP =
   "Using cached data, force refetching the data from GitHub. This will take a while if the repo has a lot of stars.";
@@ -160,6 +166,14 @@ function TimeSeriesChart() {
         exportMode: "client",
         exportFormats: "PNG=Export as PNG|PDF=Export as PDF",
       },
+      extensions: {
+        prediction: {
+          date: "", // 22-09-2023
+          style: {
+            plot: "line",
+          },
+        },
+      },
     },
     events: {
       selectionChange: function (ev) {
@@ -234,6 +248,39 @@ function TimeSeriesChart() {
     setForceRefetch(event.target.checked);
   };
 
+  const fetchPredictions = async (repo) => {
+    try {
+      const response = await fetch(`${PREDICTOR_HOST}/predict?repo=${repo}`);
+
+      if (!response.ok) {
+        setLoading(false);
+        toast.error("Internal Server Error. Please try again later.", {
+          position: toast.POSITION.BOTTOM_CENTER,
+        });
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      const starsForecast = data.forecast_data.map((entry) => [
+        formatDate(entry.ds),
+        Math.round(entry.yhat),
+        Math.round(entry.yhat_lower),
+      ]);
+
+      const starsTrend = data.forecast_trend.map((entry) => [
+        formatDate(entry.ds),
+        entry.trend,
+        0,
+      ]);
+
+      return starsTrend;
+    } catch (error) {
+      console.error(`An error occurred: ${error}`);
+      setLoading(false);
+    }
+  };
+
   const fetchTotalStars = async (repo) => {
     try {
       const response = await fetch(`${HOST}/totalStars?repo=${repo}`);
@@ -267,7 +314,7 @@ function TimeSeriesChart() {
     }
   };
 
-  const updateGraph = (starHistory) => {
+  const updateGraph = async (starHistory) => {
     // check if last element is today
     if (starHistory.length > 1) {
       const lastElement = starHistory[starHistory.length - 1];
@@ -298,8 +345,7 @@ function TimeSeriesChart() {
     options.dataSource.subcaption = "";
     options.dataSource.yAxis[0].referenceline = [];
 
-    console.log(res);
-
+    //console.log(res);
     switch (aggregation) {
       case "none":
         options.dataSource.yAxis[0].plot.value =
@@ -315,6 +361,18 @@ function TimeSeriesChart() {
         } else {
           options.dataSource.subcaption = "";
         }
+        break;
+      case "trend":
+        const repoParsed = parseGitHubRepoURL(selectedRepo);
+        const predictions = await fetchPredictions(repoParsed);
+        //console.log(predictions);
+        appliedAggregationResult = predictions;
+        options.dataSource.yAxis[0].plot.value =
+          schema[1].name =
+          options.dataSource.yAxis[0].title =
+            "Trend";
+        options.dataSource.yAxis[0].plot.type = "line";
+        options.dataSource.subcaption = "Trend";
         break;
       case "yearlyBinning":
         options.dataSource.yAxis[0].plot.value =
@@ -446,7 +504,7 @@ function TimeSeriesChart() {
     setds(options);
   };
 
-  const fetchAllStars = (repo, ignoreForceRefetch = false) => {
+  const fetchAllStars = async (repo, ignoreForceRefetch = false) => {
     console.log(repo);
 
     setCurrentStarsHistory([]);
@@ -621,7 +679,7 @@ function TimeSeriesChart() {
     setLoading(true);
 
     const res = await fetchTotalStars(repoParsed);
-    console.log(res);
+    // console.log(res);
 
     if (res) {
       setTotalStars(res.stars);
@@ -844,6 +902,7 @@ function TimeSeriesChart() {
             onChange={handleAggregationChange}
           >
             <MenuItem value={"none"}>None</MenuItem>
+            <MenuItem value={"trend"}>Trend</MenuItem>
             <MenuItem value={"yearlyBinning"}>Yearly Binning</MenuItem>
             <MenuItem value={"monthlyBinning"}>Monthly Binning</MenuItem>
             <MenuItem value={"weeklyBinning"}>Weekly Binning</MenuItem>
