@@ -93,12 +93,20 @@ function CompareChart() {
       series: "Repo",
       yAxis: [
         {
-          plot: [
-            {
-              value: "New Stars",
-              type: "line",
-            },
-          ],
+          plot: {
+            value: "Daily Stars",
+            type: "line",
+          },
+          title: "Daily Stars",
+          aggregation: "average",
+          referenceline: [],
+        },
+        {
+          plot: {
+            value: "Total Stars",
+            type: "line",
+          },
+          title: "Total Stars",
         },
       ],
       xAxis: {
@@ -216,9 +224,15 @@ function CompareChart() {
     console.log(combinedData);
     let appliedAggregationResult = combinedData;
 
+    options.dataSource.yAxis[0].plot.type = "line";
+
     switch (aggregation) {
       case "none":
-        schema[1].name = "Daily Stars";
+        options.dataSource.yAxis[0].plot.value =
+          schema[1].name =
+          options.dataSource.yAxis[0].title =
+            "Daily Stars";
+        options.dataSource.yAxis[0].plot.type = "line";
         break;
       case "trend":
         const repoParsed = parseGitHubRepoURL(selectedRepo);
@@ -253,16 +267,23 @@ function CompareChart() {
             "Daily Stars Average by Year";
 
         binning = YEARLY_BINNING;
-        options.dataSource.yAxis[0].plot.type = "column";
+        options.dataSource.yAxis[0].plot.type = "line";
         break;
       case "monthlyBinning":
-        schema[1].name = "Daily Stars Average by Month";
+        options.dataSource.yAxis[0].plot.value =
+          schema[1].name =
+          options.dataSource.yAxis[0].title =
+            "Daily Stars Average by Month";
         binning = MONTHLY_BINNING;
-        options.dataSource.yAxis[0].plot.type = "column";
+        options.dataSource.yAxis[0].plot.type = "line";
         break;
       case "weeklyBinning":
-        schema[1].name = "Daily Stars Average by Week";
+        options.dataSource.yAxis[0].plot.value =
+          schema[1].name =
+          options.dataSource.yAxis[0].title =
+            "Daily Stars Average by Week";
         binning = WEEKLY_BINNING;
+        options.dataSource.yAxis[0].plot.type = "line";
         break;
       default:
         break;
