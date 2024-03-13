@@ -1,3 +1,4 @@
+/* eslint-disable no-case-declarations */
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import TextField from "@mui/material/TextField";
@@ -21,6 +22,7 @@ import UmberTheme from "fusioncharts/themes/fusioncharts.theme.umber";
 import CopyToClipboardButton from "./CopyToClipboardButton";
 
 const HOST = import.meta.env.VITE_HOST;
+const PREDICTOR_HOST = "https://143.47.235.108:8082";
 
 const YEARLY_BINNING = {
   year: [1],
@@ -52,10 +54,22 @@ const WEEKLY_BINNING = {
   second: [],
 };
 
+const formatDate = (originalDate) => {
+  const parts = originalDate.split("-");
+  return `${parts[2]}-${parts[1]}-${parts[0]}`;
+};
+
 const INCLUDE_DATE_RANGE =
   "When checked the URL to share will include the current time range selected";
 
-ReactFC.fcRoot(FusionCharts, TimeSeries, GammelTheme, CandyTheme, ZuneTheme, UmberTheme);
+ReactFC.fcRoot(
+  FusionCharts,
+  TimeSeries,
+  GammelTheme,
+  CandyTheme,
+  ZuneTheme,
+  UmberTheme
+);
 
 const isToday = (dateString) => {
   const today = new Date();
@@ -68,6 +82,61 @@ const isToday = (dateString) => {
 };
 
 function CompareChart() {
+  const chart_props = {
+    type: "timeseries",
+    width: "100%",
+    height: "80%",
+    dataEmptyMessage: "Fetching data...",
+    dataSource: {
+      caption: { text: "Stars" },
+      data: null,
+      series: "Repo",
+      yAxis: [
+        {
+          plot: [
+            {
+              value: "New Stars",
+              type: "line",
+            },
+          ],
+        },
+      ],
+      xAxis: {
+        binning: {},
+      },
+      chart: {
+        animation: "0",
+        theme: "candy",
+        exportEnabled: "1",
+        exportMode: "client",
+        exportFormats: "PNG=Export as PNG|PDF=Export as PDF",
+      },
+      extensions: {
+        prediction: {
+          date: "", // 22-09-2023
+          style: {
+            plot: "line",
+          },
+        },
+      },
+    },
+    events: {
+      selectionChange: function (ev) {
+        if (ev && ev.data) {
+          setSelectedTimeRange({
+            start: ev.data.start,
+            end: ev.data.end,
+          });
+        }
+      },
+      rendered: function (e) {
+        setTimeout(() => {
+          e.sender.setTimeSelection(selectedTimeRange);
+        }, 1000);
+      },
+    },
+  };
+
   const { user, repository, secondUser, secondRepository } = useParams();
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
@@ -79,7 +148,7 @@ function CompareChart() {
       ? `${secondUser}/${secondRepository}`
       : "vuejs/vue";
 
-  const [ds, setds] = useState(null);
+  const [ds, setds] = useState(chart_props);
   const [loading, setLoading] = useState(false);
 
   const [theme, setTheme] = useState("candy");
@@ -101,54 +170,6 @@ function CompareChart() {
 
   const navigate = useNavigate();
 
-  const chart_props = {
-    timeseriesDs: {
-      type: "timeseries",
-      width: "100%",
-      height: "80%",
-      dataEmptyMessage: "Fetching data...",
-      dataSource: {
-        caption: { text: "Stars" },
-        data: null,
-        series: "Repo",
-        yAxis: [
-          {
-            plot: [
-              {
-                value: "New Stars",
-              },
-            ],
-          },
-        ],
-        xAxis: {
-          binning: {},
-        },
-        chart: {
-          animation: "0",
-          theme: "candy",
-          exportEnabled: "1",
-          exportMode: "client",
-          exportFormats: "PNG=Export as PNG|PDF=Export as PDF",
-        },
-      },
-      events: {
-        selectionChange: function (ev) {
-          if (ev && ev.data) {
-            setSelectedTimeRange({
-              start: ev.data.start,
-              end: ev.data.end,
-            });
-          }
-        },
-        rendered: function (e) {
-          setTimeout(() => {
-            e.sender.setTimeSelection(selectedTimeRange);
-          }, 1000);
-        },
-      },
-    },
-  };
-
   const handleDateRangeCheckChange = (event) => {
     setCheckedDateRange(event.target.checked);
   };
@@ -156,7 +177,7 @@ function CompareChart() {
   const handleThemeChange = (event) => {
     setTheme(event.target.value);
     const options = { ...ds };
-    options.timeseriesDs.dataSource.chart.theme = event.target.value;
+    options.dataSource.chart.theme = event.target.value;
     setds(options);
 
     const repoParsed = parseGitHubRepoURL(selectedRepo);
@@ -187,23 +208,57 @@ function CompareChart() {
     return response.json();
   };
 
-  const options = { ...chart_props };
+  const options = { ...ds };
 
-  const handleCombinedData = (combinedData) => {
+  const handleCombinedData = async (combinedData) => {
     let binning = {};
+
+    console.log(combinedData);
+    let appliedAggregationResult = combinedData;
 
     switch (aggregation) {
       case "none":
         schema[1].name = "Daily Stars";
         break;
+      case "trend":
+        const repoParsed = parseGitHubRepoURL(selectedRepo);
+        const repoParsed2 = parseGitHubRepoURL(selectedRepo2);
+
+        const [predictions, predictions2] = await Promise.all([
+          fetchPredictions(repoParsed),
+          fetchPredictions(repoParsed2),
+        ]);
+
+        predictions.forEach((subarray) => {
+          subarray.push(repoParsed);
+        });
+
+        predictions2.forEach((subarray) => {
+          subarray.push(repoParsed2);
+        });
+
+        appliedAggregationResult = predictions.concat(predictions2);
+
+        options.dataSource.yAxis[0].plot.value =
+          schema[1].name =
+          options.dataSource.yAxis[0].title =
+            "Trend";
+        options.dataSource.yAxis[0].plot.type = "line";
+        options.dataSource.subcaption = "Trend";
+        break;
       case "yearlyBinning":
-        schema[1].name = "Daily Stars Average by Year";
+        options.dataSource.yAxis[0].plot.value =
+          schema[1].name =
+          options.dataSource.yAxis[0].title =
+            "Daily Stars Average by Year";
+
         binning = YEARLY_BINNING;
+        options.dataSource.yAxis[0].plot.type = "column";
         break;
       case "monthlyBinning":
         schema[1].name = "Daily Stars Average by Month";
         binning = MONTHLY_BINNING;
-        options.timeseriesDs.dataSource.yAxis[0].plot.type = "column";
+        options.dataSource.yAxis[0].plot.type = "column";
         break;
       case "weeklyBinning":
         schema[1].name = "Daily Stars Average by Week";
@@ -213,26 +268,27 @@ function CompareChart() {
         break;
     }
 
+    console.log(appliedAggregationResult);
+
     const fusionTable = new FusionCharts.DataStore().createDataTable(
-      combinedData,
+      appliedAggregationResult,
       schema
     );
-    
-    options.timeseriesDs.dataSource.caption = { text: `Stars` };
-    options.timeseriesDs.dataSource.data = fusionTable;
-    options.timeseriesDs.dataSource.xAxis.binning = binning;
-    options.timeseriesDs.dataSource.yAxis[0].plot[0].value = "Cumulative Stars";
+
+    options.dataSource.caption = { text: `Stars` };
+    options.dataSource.data = fusionTable;
+    options.dataSource.xAxis.binning = binning;
 
     /*
     // Didn't work
-    options.timeseriesDs.dataSource.xAxis.initialinterval = {
+    options.dataSource.xAxis.initialinterval = {
       from: "2022-01-01 12:00:00",
       to: "2023-01-31 12:00:00",
     };
     */
 
-    options.timeseriesDs.dataSource.chart.theme = theme;
-    options.timeseriesDs.dataSource.chart.exportFileName = `${selectedRepo.replace(
+    options.dataSource.chart.theme = theme;
+    options.dataSource.chart.exportFileName = `${selectedRepo.replace(
       "/",
       "_"
     )}-stars-history`;
@@ -263,6 +319,27 @@ function CompareChart() {
       console.log("isLastElementToday", isLastElementToday);
     } else {
       console.log("Array is empty.");
+    }
+  };
+
+  const fetchPredictions = async (repo) => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${PREDICTOR_HOST}/predict?repo=${repo}`);
+      setLoading(false);
+
+      const data = await response.json();
+
+      const starsTrend = data.forecast_trend.map((entry) => [
+        formatDate(entry.ds),
+        entry.trend,
+        0,
+      ]);
+
+      return starsTrend;
+    } catch (error) {
+      console.error(`An error occurred: ${error}`);
+      setLoading(false);
     }
   };
 
@@ -460,6 +537,7 @@ function CompareChart() {
             onChange={handleAggregationChange}
           >
             <MenuItem value={"none"}>None</MenuItem>
+            <MenuItem value={"trend"}>Trend</MenuItem>
             <MenuItem value={"yearlyBinning"}>Yearly Binning</MenuItem>
             <MenuItem value={"monthlyBinning"}>Monthly Binning</MenuItem>
             <MenuItem value={"weeklyBinning"}>Weekly Binning</MenuItem>
@@ -471,7 +549,9 @@ function CompareChart() {
           marginLeft: "10px",
         }}
       >
-        {ds != null && <ReactFC {...ds.timeseriesDs} />}
+        {ds != null && ds != chart_props && ds && ds.dataSource.data && (
+          <ReactFC {...ds} />
+        )}
       </div>
     </div>
   );
