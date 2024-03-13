@@ -187,6 +187,8 @@ function CompareChart() {
     return response.json();
   };
 
+  const options = { ...chart_props };
+
   const handleCombinedData = (combinedData) => {
     let binning = {};
 
@@ -195,15 +197,16 @@ function CompareChart() {
         schema[1].name = "Daily Stars";
         break;
       case "yearlyBinning":
-        schema[1].name = "Yearly Average";
+        schema[1].name = "Daily Stars Average by Year";
         binning = YEARLY_BINNING;
         break;
       case "monthlyBinning":
-        schema[1].name = "Monthly Average";
+        schema[1].name = "Daily Stars Average by Month";
         binning = MONTHLY_BINNING;
+        options.timeseriesDs.dataSource.yAxis[0].plot.type = "column";
         break;
       case "weeklyBinning":
-        schema[1].name = "Weekly Average";
+        schema[1].name = "Daily Stars Average by Week";
         binning = WEEKLY_BINNING;
         break;
       default:
@@ -214,7 +217,7 @@ function CompareChart() {
       combinedData,
       schema
     );
-    const options = { ...chart_props };
+    
     options.timeseriesDs.dataSource.caption = { text: `Stars` };
     options.timeseriesDs.dataSource.data = fusionTable;
     options.timeseriesDs.dataSource.xAxis.binning = binning;

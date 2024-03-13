@@ -380,7 +380,7 @@ function TimeSeriesChart() {
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            "Yearly Average";
+            "Daily Stars Average by Year";
         binning = YEARLY_BINNING;
         options.dataSource.yAxis[0].plot.type = "column";
         break;
@@ -388,7 +388,7 @@ function TimeSeriesChart() {
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            "Monthly Average";
+            "Daily Stars Average by Month";
         binning = MONTHLY_BINNING;
         options.dataSource.yAxis[0].plot.type = "column";
         break;
@@ -396,7 +396,7 @@ function TimeSeriesChart() {
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            "Weekly Average";
+            "Daily Stars Average by Week";
         binning = WEEKLY_BINNING;
         options.dataSource.yAxis[0].plot.type = "column";
         break;
