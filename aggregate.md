@@ -12,16 +12,22 @@ When zoomin in is possible to see each day with the actual number of new stars o
 
 ## Trend
 
-The trend is generated using [Prophet](https://github.com/facebook/prophet) in a separate [repo](https://github.com/emanuelef/daily-stars-predictor
+The trend is generated using [Prophet](https://github.com/facebook/prophet) in a separate [repo](https://github.com/emanuelef/daily-stars-predictor)
 
 <img width="1362" alt="Screenshot 2024-03-14 at 20 13 21" src="https://github.com/emanuelef/daily-stars-explorer/assets/48717/8011300a-240d-47c1-b8ac-a69f5512c0b7">
 
-
 ## Yearly Binning
+<img width="1370" alt="Screenshot 2024-03-14 at 20 14 37" src="https://github.com/emanuelef/daily-stars-explorer/assets/48717/3bd9e977-1e31-4a72-aa4e-64e66a7b6c03">
 
 ## Monthly Binning
 
+<img width="1367" alt="Screenshot 2024-03-14 at 20 15 07" src="https://github.com/emanuelef/daily-stars-explorer/assets/48717/a358c5a5-bfd7-4333-bcc5-3ff12bb7d146">
+
+
 ## Weekly Binning
+<img width="1369" alt="Screenshot 2024-03-14 at 20 15 47" src="https://github.com/emanuelef/daily-stars-explorer/assets/48717/771f02c9-5ab8-4469-862a-a72d8f4b09e8">
+
+
 
 ## Normalize
 
