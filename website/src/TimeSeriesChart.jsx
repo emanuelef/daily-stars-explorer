@@ -367,7 +367,22 @@ function TimeSeriesChart() {
       case "trend":
         const repoParsed = parseGitHubRepoURL(selectedRepo);
         const predictions = await fetchPredictions(repoParsed);
-        //console.log(predictions);
+
+        for (let index = 0; index < starHistory.length; index++) {
+          predictions[index][2] = starHistory[index][2];
+        }
+
+        let lastSum = starHistory[starHistory.length - 1][2];
+
+        for (
+          let index = starHistory.length;
+          index < predictions.length;
+          index++
+        ) {
+          predictions[index][2] = lastSum;
+          lastSum += predictions[index][1];
+        }
+
         appliedAggregationResult = predictions;
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =

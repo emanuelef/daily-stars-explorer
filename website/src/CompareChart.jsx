@@ -251,6 +251,43 @@ function CompareChart() {
           subarray.push(repoParsed2);
         });
 
+        let currentRepo = repoParsed;
+        let currentIndex = 0;
+
+        do {
+          predictions[currentIndex][2] = combinedData[currentIndex][2];
+          currentIndex++;
+          currentRepo = combinedData[currentIndex][3];
+        } while (currentRepo == repoParsed);
+
+        currentIndex--;
+
+        let lastSum = combinedData[currentIndex][2];
+
+        for (let index = currentIndex; index < predictions.length; index++) {
+          predictions[index][2] = lastSum;
+          lastSum += predictions[index][1];
+        }
+
+        currentIndex++;
+
+        for (
+          let index = 0;
+          index < combinedData.length - currentIndex;
+          index++
+        ) {
+          predictions2[index][2] = combinedData[currentIndex + index][2];
+        }
+
+        lastSum = combinedData[combinedData.length -1 ][2];
+
+        currentIndex = combinedData.length - currentIndex;
+
+        for (let index = currentIndex; index < predictions2.length; index++) {
+          predictions2[index][2] = lastSum;
+          lastSum += predictions2[index][1];
+        }
+
         appliedAggregationResult = predictions.concat(predictions2);
 
         options.dataSource.yAxis[0].plot.value =
