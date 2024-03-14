@@ -60,6 +60,10 @@ To keep things efficient, I've implemented a caching mechanism. Once you've fetc
 
 For those curious about how two repositories stack up against each other, my project offers a comparison feature. While stars might not be the sole determinant of a project's worth, this comparison can provide valuable insights.
 
+### Aggregates and trends
+
+Go to https://github.com/emanuelef/daily-stars-explorer/blob/main/aggregate.md for the explanation of the current ways of aggregating the data and the trends that are calcualted.
+
 ---
 
 ## Project Limitations
