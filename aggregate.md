@@ -48,11 +48,34 @@ Normalize options calculates the 98 percentile of all non zero values and replac
 
 ## LOESS
 
+Calcualted LOESS regression using https://github.com/HarryStevens/d3-regression?tab=readme-ov-file#regressionLoess
+
+<img width="864" alt="Screenshot 2024-03-14 at 21 24 42" src="https://github.com/emanuelef/daily-stars-explorer/assets/48717/465676e3-44bf-4c8a-a7ec-90f9be40af2b">
+
 ## Running Average
+
+Running average on a fixed 120 day window
+
+<img width="827" alt="Screenshot 2024-03-14 at 21 26 13" src="https://github.com/emanuelef/daily-stars-explorer/assets/48717/13eb0758-e12b-42dc-aa30-572e556b6d4f">
 
 ## Running Median
 
+Not sure this is really used or just something I tried but this is the running median on a fixed 120 day window
+
+<img width="813" alt="Screenshot 2024-03-14 at 21 27 20" src="https://github.com/emanuelef/daily-stars-explorer/assets/48717/f3de0fd5-0bc4-4ccd-bebf-3981a4679621">
+
 ## Derivative
 
+The first-order derivative of a measure represents the rate of change or the slope of the measure's curve at any given point. In other words, it indicates how quickly the new stars are increasing or decreasing atthat point.
+Since the daily stars are quite noisy the first derivative amplifies that noise, might worth trying to calculate it after smoothing the timeseries.
+
+
+<img width="806" alt="Screenshot 2024-03-14 at 21 28 11" src="https://github.com/emanuelef/daily-stars-explorer/assets/48717/87311c3c-85c8-462c-8bc0-17bc2ad14f30">
+
 ## Second Derivative
+
+Second order discrete derivative.
+Should indicate the acceleration of the new stars, porsitve values mean it is accelerating.
+
+<img width="813" alt="Screenshot 2024-03-14 at 21 30 09" src="https://github.com/emanuelef/daily-stars-explorer/assets/48717/b275decc-8394-4c8f-a3b7-9d3d7bca5f43">
 
