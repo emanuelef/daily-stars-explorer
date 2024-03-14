@@ -844,7 +844,7 @@ function TimeSeriesChart() {
             marginTop: "20px",
             marginRight: "10px",
             marginLeft: "10px",
-            width: "200px",
+            width: "204px",
           }}
           size="small"
           id="creation-date"
