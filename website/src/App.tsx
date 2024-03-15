@@ -15,11 +15,12 @@ import TimelineRoundedIcon from "@mui/icons-material/TimelineRounded";
 import CompareIcon from "@mui/icons-material/Compare";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import QueryStatsRoundedIcon from "@mui/icons-material/QueryStatsRounded";
-import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import SsidChartRoundedIcon from '@mui/icons-material/SsidChartRounded';
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import SsidChartRoundedIcon from "@mui/icons-material/SsidChartRounded";
 
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
+import Tooltip from "@mui/material/Tooltip";
 
 const darkTheme = createTheme({
   palette: {
@@ -54,44 +55,66 @@ function App() {
               component={<Link to="/" className="link" />}
               className="menu1"
               icon={
-                <MenuRoundedIcon
-                  onClick={() => {
-                    setCollapsed(!collapsed);
-                  }}
-                />
+                <Tooltip title="Toggle Menu" placement="right">
+                  <MenuRoundedIcon
+                    onClick={() => {
+                      setCollapsed(!collapsed);
+                    }}
+                  />
+                </Tooltip>
               }
             >
               <h2 style={{ color: "black" }}>Repo Stats</h2>
             </MenuItem>
             <MenuItem
               component={<Link to="/starstimeline/:id" className="link" />}
-              icon={<QueryStatsRoundedIcon />}
+              icon={
+                <Tooltip title="Stars Timeline" placement="right">
+                  <QueryStatsRoundedIcon />
+                </Tooltip>
+              }
             >
               StarsTimeline
             </MenuItem>
             <MenuItem
               component={<Link to="/compare" className="link" />}
-              icon={<SsidChartRoundedIcon />}
+              icon={
+                <Tooltip title="Compare" placement="right">
+                  <SsidChartRoundedIcon />
+                </Tooltip>
+              }
             >
               Compare
             </MenuItem>
             <MenuItem
               component={<Link to="/table" className="link" />}
-              icon={<TableViewRounded />}
+              icon={
+                <Tooltip title="Table" placement="right">
+                  <TableViewRounded />
+                </Tooltip>
+              }
             >
               Table
             </MenuItem>
             <MenuItem
               component={<Link to="/calendar" className="link" />}
-              icon={<CalendarMonthIcon />}
+              icon={
+                <Tooltip title="Calendar" placement="right">
+                  <CalendarMonthIcon />
+                </Tooltip>
+              }
             >
               Calendar
             </MenuItem>
             <MenuItem
               component={<Link to="/info" className="link" />}
-              icon={<InfoOutlinedIcon />}
+              icon={
+                <Tooltip title="Info" placement="right">
+                  <InfoOutlinedIcon />
+                </Tooltip>
+              }
             >
-              Calendar
+              Info
             </MenuItem>
           </Menu>
         </Sidebar>
