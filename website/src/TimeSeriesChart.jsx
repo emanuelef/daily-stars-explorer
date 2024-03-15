@@ -274,7 +274,7 @@ function TimeSeriesChart() {
 
       const starsTrend = data.forecast_trend.map((entry) => [
         formatDate(entry.ds),
-        entry.trend,
+        Math.max(entry.trend, 0),
         0,
       ]);
 
@@ -456,6 +456,12 @@ function TimeSeriesChart() {
             "LOESS";
         appliedAggregationResult = addLOESS(starHistory, 0.08);
         options.dataSource.yAxis[0].plot.type = "line";
+
+        options.dataSource.xAxis.initialinterval = {
+          from: "01-01-2022",
+          to: "01-01-2023",
+        };
+
         break;
       case "runningAverage":
         options.dataSource.yAxis[0].plot.value =

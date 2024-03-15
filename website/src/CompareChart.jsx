@@ -392,7 +392,7 @@ function CompareChart() {
 
       const starsTrend = data.forecast_trend.map((entry) => [
         formatDate(entry.ds),
-        entry.trend,
+        Math.max(entry.trend, 0),
         0,
       ]);
 

@@ -33,7 +33,7 @@
     "react-github-btn": "^1.4.0",
     "react-pro-sidebar": "^1.1.0",
     "react-router-dom": "^6.22.3",
-    "react-toastify": "^10.0.4",
+    "react-toastify": "^10.0.5",
     "react18-json-view": "^0.2.7"
   },
   "devDependencies": {
