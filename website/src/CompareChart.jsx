@@ -100,6 +100,7 @@ function CompareChart() {
           title: "Daily Stars",
           aggregation: "average",
           referenceline: [],
+          type: "", // can be log
         },
         {
           plot: {
@@ -171,6 +172,8 @@ function CompareChart() {
 
   const [checkedDateRange, setCheckedDateRange] = useState(false);
 
+  const [checkedYAxisType, setCheckedYAxisType] = useState(false);
+
   //const chartRef = useRef(null);
 
   const [selectedTimeRange, setSelectedTimeRange] = useState({
@@ -205,6 +208,13 @@ function CompareChart() {
 
   const handleAggregationChange = (event) => {
     setAggregation(event.target.value);
+  };
+
+  const handleYAxisTypeCheckChange = (event) => {
+    setCheckedYAxisType(event.target.checked);
+    const options = { ...ds };
+    options.dataSource.yAxis[0].type = event.target.checked ? "log" : "";
+    setds(options);
   };
 
   useEffect(() => {
@@ -604,6 +614,14 @@ function CompareChart() {
             <MenuItem value={"weeklyBinning"}>Weekly Binning</MenuItem>
           </Select>
         </FormControl>
+        {
+          <Checkbox
+            checked={checkedYAxisType}
+            onChange={handleYAxisTypeCheckChange}
+            inputProps={{ "aria-label": "controlled" }}
+          />
+        }
+        <Typography variant="body2">Log Y-Axis</Typography>
       </div>
       <div
         style={{

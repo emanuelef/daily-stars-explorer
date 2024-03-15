@@ -145,6 +145,7 @@ function TimeSeriesChart() {
           title: "Daily Stars",
           aggregation: "average",
           referenceline: [],
+          type: "", // can be log
         },
         {
           plot: {
@@ -208,6 +209,7 @@ function TimeSeriesChart() {
   const [loading, setLoading] = useState(false);
   const [showForceRefetch, setShowForceRefetch] = useState(false);
   const [forceRefetch, setForceRefetch] = useState(false);
+  const [checkedYAxisType, setCheckedYAxisType] = useState(false);
 
   const [theme, setTheme] = useState("candy");
 
@@ -229,6 +231,13 @@ function TimeSeriesChart() {
 
   const handleDateRangeCheckChange = (event) => {
     setCheckedDateRange(event.target.checked);
+  };
+
+  const handleYAxisTypeCheckChange = (event) => {
+    setCheckedYAxisType(event.target.checked);
+    const options = { ...ds };
+    options.dataSource.yAxis[0].type = event.target.checked ? "log" : "";
+    setds(options);
   };
 
   const handleThemeChange = (event) => {
@@ -835,7 +844,7 @@ function TimeSeriesChart() {
         <TextField
           style={{
             marginTop: "20px",
-            marginRight: "20px",
+            marginRight: "10px",
             marginLeft: "10px",
             width: "100px",
           }}
@@ -852,7 +861,7 @@ function TimeSeriesChart() {
             marginTop: "20px",
             marginRight: "10px",
             marginLeft: "10px",
-            width: "204px",
+            width: "210px",
           }}
           size="small"
           id="creation-date"
@@ -914,7 +923,7 @@ function TimeSeriesChart() {
         <FormControl
           style={{
             width: "180px",
-            marginRight: "20px",
+            marginRight: "10px",
           }}
         >
           <InputLabel id="aggregation-select-drop">Aggregate</InputLabel>
@@ -941,8 +950,23 @@ function TimeSeriesChart() {
             </MenuItem>
           </Select>
         </FormControl>
+        {
+          <Checkbox
+            checked={checkedYAxisType}
+            onChange={handleYAxisTypeCheckChange}
+            inputProps={{ "aria-label": "controlled" }}
+          />
+        }
+        <Typography variant="body2">Log Y-Axis</Typography>
 
-        <Button size="small" variant="contained" onClick={downloadCSV}>
+        <Button
+          style={{
+            marginLeft: "10px",
+          }}
+          size="small"
+          variant="contained"
+          onClick={downloadCSV}
+        >
           Download CSV
         </Button>
         <br />
