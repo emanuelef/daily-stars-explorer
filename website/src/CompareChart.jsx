@@ -161,7 +161,9 @@ function CompareChart() {
 
   const [theme, setTheme] = useState("candy");
 
-  const [aggregation, setAggregation] = useState("none");
+  const [aggregation, setAggregation] = useState(
+    queryParams.get("aggregation") || "none"
+  );
 
   const [selectedRepo, setSelectedRepo] = useState(defaultRepo);
   const [selectedRepo2, setSelectedRepo2] = useState(defaultRepo2);
@@ -279,7 +281,7 @@ function CompareChart() {
           predictions2[index][2] = combinedData[currentIndex + index][2];
         }
 
-        lastSum = combinedData[combinedData.length -1 ][2];
+        lastSum = combinedData[combinedData.length - 1][2];
 
         currentIndex = combinedData.length - currentIndex;
 
@@ -534,6 +536,7 @@ function CompareChart() {
         >
           <CopyToClipboardButton
             dateRange={checkedDateRange ? selectedTimeRange : null}
+            aggregation={aggregation}
           />
           <Tooltip title={INCLUDE_DATE_RANGE}>
             {

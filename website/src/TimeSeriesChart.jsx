@@ -211,7 +211,9 @@ function TimeSeriesChart() {
 
   const [theme, setTheme] = useState("candy");
 
-  const [aggregation, setAggregation] = useState("none");
+  const [aggregation, setAggregation] = useState(
+    queryParams.get("aggregation") || "none"
+  );
 
   const [selectedTimeRange, setSelectedTimeRange] = useState({
     start: queryParams.get("start"),
@@ -955,6 +957,7 @@ function TimeSeriesChart() {
             marginRight: "30px",
           }}
           dateRange={checkedDateRange ? selectedTimeRange : null}
+          aggregation={aggregation}
         />
         <Tooltip title={INCLUDE_DATE_RANGE}>
           {

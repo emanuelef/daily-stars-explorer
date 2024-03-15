@@ -6,7 +6,7 @@ import * as React from "react";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
 
-function CopyToClipboardButton({ dateRange }) {
+function CopyToClipboardButton({ dateRange, aggregation }) {
   const [open, setOpen] = useState(false);
 
   const handleClose = (event, reason) => {
@@ -23,6 +23,11 @@ function CopyToClipboardButton({ dateRange }) {
 
     if (dateRange && dateRange.start && dateRange.end) {
       currentUrl += `?start=${dateRange.start}&end=${dateRange.end}`;
+      if (aggregation) {
+        currentUrl += `&aggregation=${aggregation}`;
+      }
+    } else if (aggregation) {
+      currentUrl += `?aggregation=${aggregation}`;
     }
 
     // Try to copy the URL to the clipboard
