@@ -14,6 +14,9 @@ import TableViewRounded from "@mui/icons-material/TableViewRounded";
 import TimelineRoundedIcon from "@mui/icons-material/TimelineRounded";
 import CompareIcon from "@mui/icons-material/Compare";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import QueryStatsRoundedIcon from "@mui/icons-material/QueryStatsRounded";
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import SsidChartRoundedIcon from '@mui/icons-material/SsidChartRounded';
 
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -62,13 +65,13 @@ function App() {
             </MenuItem>
             <MenuItem
               component={<Link to="/starstimeline/:id" className="link" />}
-              icon={<TimelineRoundedIcon />}
+              icon={<QueryStatsRoundedIcon />}
             >
               StarsTimeline
             </MenuItem>
             <MenuItem
               component={<Link to="/compare" className="link" />}
-              icon={<CompareIcon />}
+              icon={<SsidChartRoundedIcon />}
             >
               Compare
             </MenuItem>
@@ -81,6 +84,12 @@ function App() {
             <MenuItem
               component={<Link to="/calendar" className="link" />}
               icon={<CalendarMonthIcon />}
+            >
+              Calendar
+            </MenuItem>
+            <MenuItem
+              component={<Link to="/info" className="link" />}
+              icon={<InfoOutlinedIcon />}
             >
               Calendar
             </MenuItem>
