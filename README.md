@@ -17,6 +17,9 @@ Remember, even high-starred repos can fizzle out - stars can decline, too!
 In my quest for code, I've found hidden gems with few stars that were perfect, while some popular choices were bloated or on the way down.  
 A growing or stable star count, rather than just a total high number, suggests sustainable interest and community engagement.
 
+## Demo
+
+[Demo Video](https://www.loom.com/share/b1728c0305e74a8ebf1e23c419c84549?sid=3bdcbbf6-d205-4157-bed5-825d4ba5f5e3)
 
 ## Single repo
 
