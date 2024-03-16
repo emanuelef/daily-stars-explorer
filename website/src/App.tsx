@@ -82,7 +82,7 @@ function App() {
                 )
               }
             >
-              StarsTimeline
+              Repo Star History
             </MenuItem>
             <MenuItem
               component={<Link to="/compare" className="link" />}
