@@ -151,7 +151,7 @@ function CalendarChart() {
       <div style={{ height: 1780, width: "100%", backgroundColor: "azure" }}>
         <ResponsiveCalendar
           theme={{
-            background: "#ffffff",
+            background: "#444444",
             text: {
               fontSize: 18,
               fill: "#333333",
