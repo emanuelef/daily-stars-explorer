@@ -5,4 +5,5 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   base: '/daily-stars-explorer/',
   plugins: [react()],
+  assetsInclude: ["**/*.md"],
 })

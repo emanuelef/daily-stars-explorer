@@ -31,6 +31,7 @@
     "react-dom": "^18.2.0",
     "react-fusioncharts": "^4.0.0",
     "react-github-btn": "^1.4.0",
+    "react-markdown": "^9.0.1",
     "react-pro-sidebar": "^1.1.0",
     "react-router-dom": "^6.22.3",
     "react-toastify": "^10.0.5",

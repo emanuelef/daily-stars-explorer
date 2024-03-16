@@ -4,3 +4,20 @@
     height: 100%;
     /* Take up all available height */
 }
+
+.app-container {
+    display: flex;
+    height: 100vh;
+}
+
+.sidebar {
+    flex-shrink: 0;
+    /* Prevent sidebar from shrinking */
+}
+
+.content {
+    flex-grow: 1;
+    /* Expand content to fill remaining space */
+    overflow-y: auto;
+    /* Enable vertical scrolling for content */
+}

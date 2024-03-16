@@ -5,6 +5,7 @@ import MainPage from "./MainPage";
 import TimeSeriesChart from "./TimeSeriesChart";
 import CompareChart from "./CompareChart";
 import CalendarChart from "./CalendarChart";
+import InfoPage from "./InfoPage";
 
 import { Sidebar, Menu, MenuItem } from "react-pro-sidebar";
 import { Routes, Route, Link } from "react-router-dom";
@@ -34,11 +35,12 @@ function App() {
   return (
     <ThemeProvider theme={darkTheme}>
       <CssBaseline />
-      <div style={{ display: "flex", height: "100vh" }}>
+      <div className="app-container">
         <Sidebar
-          className="app"
+          className="sidebar"
           collapsed={collapsed}
           backgroundColor="rgb(51, 117, 117)"
+          width={collapsed ? "70" : "200"}
         >
           <Menu
             menuItemStyles={{
@@ -64,7 +66,7 @@ function App() {
                 </Tooltip>
               }
             >
-              <h2 style={{ color: "black" }}>Repo Stats</h2>
+              <h2 style={{ color: "black" }}>Stars Explorer</h2>
             </MenuItem>
             <MenuItem
               component={<Link to="/starstimeline/:id" className="link" />}
@@ -118,7 +120,7 @@ function App() {
             </MenuItem>
           </Menu>
         </Sidebar>
-        <section style={{ width: "90%", height: "90%" }}>
+        <section className="content">
           <Routes>
             <Route path="/" element={<TimeSeriesChart />} />
             <Route path="/:user/:repository" element={<TimeSeriesChart />} />
@@ -130,6 +132,7 @@ function App() {
               element={<CompareChart />}
             />
             <Route path="/calendar" element={<CalendarChart />} />
+            <Route path="/info" element={<InfoPage />} />
           </Routes>
         </section>
       </div>
