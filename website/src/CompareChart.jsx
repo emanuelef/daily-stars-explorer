@@ -10,6 +10,10 @@ import Autocomplete from "@mui/material/Autocomplete";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
+import Alert from "@mui/material/Alert";
+import IconButton from "@mui/material/IconButton";
+import CloseIcon from "@mui/icons-material/Close";
+import { Link } from "react-router-dom";
 import FusionCharts from "fusioncharts";
 import TimeSeries from "fusioncharts/fusioncharts.timeseries";
 import ReactFC from "react-fusioncharts";
@@ -150,6 +154,12 @@ function CompareChart() {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
 
+  const [open, setOpen] = useState(true);
+
+  const handleClose = () => {
+    setOpen(false);
+  };
+
   let defaultRepo =
     user && repository ? `${user}/${repository}` : "facebook/react";
   let defaultRepo2 =
@@ -220,6 +230,14 @@ function CompareChart() {
   useEffect(() => {
     fetchAllStars(selectedRepo, selectedRepo2);
   }, [aggregation]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setOpen(false);
+    }, 10000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleFetchResponse = (response) => {
     if (!response.ok) {
@@ -475,6 +493,26 @@ function CompareChart() {
 
   return (
     <div>
+      <div>
+        {open && (
+          <Alert
+            severity="info"
+            action={
+              <IconButton
+                aria-label="close"
+                color="inherit"
+                size="small"
+                onClick={handleClose}
+              >
+                <CloseIcon fontSize="inherit" />
+              </IconButton>
+            }
+          >
+            Consider this tool just as a way to compare trendiness, read more in{" "}
+            <Link to="/info">here</Link>.
+          </Alert>
+        )}
+      </div>
       <Typography
         style={{
           marginTop: "10px",
