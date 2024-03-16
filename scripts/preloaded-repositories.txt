@@ -4,7 +4,6 @@ prometheus/prometheus
 helm/helm
 cue-lang/cue
 opentofu/opentofu
-ziglang/zig
 facebook/react
 istio/istio
 k3s-io/k3s

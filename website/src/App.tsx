@@ -8,12 +8,10 @@ import CalendarChart from "./CalendarChart";
 import InfoPage from "./InfoPage";
 
 import { Sidebar, Menu, MenuItem } from "react-pro-sidebar";
-import { Routes, Route, Link } from "react-router-dom";
+import { Routes, Route, Link, useLocation } from "react-router-dom";
 
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import TableViewRounded from "@mui/icons-material/TableViewRounded";
-import TimelineRoundedIcon from "@mui/icons-material/TimelineRounded";
-import CompareIcon from "@mui/icons-material/Compare";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import QueryStatsRoundedIcon from "@mui/icons-material/QueryStatsRounded";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
@@ -48,7 +46,7 @@ function App() {
                 if (level >= 0)
                   return {
                     color: disabled ? "#f5d9ff" : "#07100d",
-                    backgroundColor: active ? "#00cef9" : "undefined",
+                    backgroundColor: active ? "#cccccc" : "undefined",
                   };
               },
             }}
@@ -75,6 +73,14 @@ function App() {
                   <QueryStatsRoundedIcon />
                 </Tooltip>
               }
+              active={
+                !(
+                  useLocation().pathname.includes("/compare") ||
+                  useLocation().pathname.includes("/table") ||
+                  useLocation().pathname.includes("/calendar") ||
+                  useLocation().pathname.includes("/info")
+                )
+              }
             >
               StarsTimeline
             </MenuItem>
@@ -85,6 +91,7 @@ function App() {
                   <SsidChartRoundedIcon />
                 </Tooltip>
               }
+              active={useLocation().pathname.includes("/compare")}
             >
               Compare
             </MenuItem>
@@ -95,6 +102,7 @@ function App() {
                   <TableViewRounded />
                 </Tooltip>
               }
+              active={useLocation().pathname === "/table"}
             >
               Table
             </MenuItem>
@@ -105,6 +113,7 @@ function App() {
                   <CalendarMonthIcon />
                 </Tooltip>
               }
+              active={useLocation().pathname === "/calendar"}
             >
               Calendar
             </MenuItem>
@@ -115,6 +124,7 @@ function App() {
                   <InfoOutlinedIcon />
                 </Tooltip>
               }
+              active={useLocation().pathname === "/info"}
             >
               Info
             </MenuItem>
