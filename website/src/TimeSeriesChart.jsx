@@ -379,7 +379,7 @@ function TimeSeriesChart() {
     options.dataSource.yAxis[0].referenceline = [];
     options.dataSource.yAxis[0].aggregation = "average";
 
-    let text = "";
+    let textBinning = "";
 
     //console.log(res);
     switch (transformation) {
@@ -426,43 +426,43 @@ function TimeSeriesChart() {
         options.dataSource.subcaption = "Trend";
         break;
       case "yearlyBinning":
-        text = `Daily Stars ${aggregation} by Year`;
+        textBinning = `Daily Stars ${aggregation} by Year`;
         if (aggregation == "sum") {
-          text = "Total Stars by Year";
+          textBinning = "Total Stars by Year";
         }
 
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            text;
+            textBinning;
 
         binning = YEARLY_BINNING;
         options.dataSource.yAxis[0].plot.type = "column";
         options.dataSource.yAxis[0].aggregation = aggregation;
         break;
       case "monthlyBinning":
-        text = `Daily Stars ${aggregation} by Month`;
+        textBinning = `Daily Stars ${aggregation} by Month`;
         if (aggregation == "sum") {
-          text = "Total Stars by Year";
+          textBinning = "Total Stars by Year";
         }
 
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            text;
+            textBinning;
         binning = MONTHLY_BINNING;
         options.dataSource.yAxis[0].plot.type = "column";
         options.dataSource.yAxis[0].aggregation = aggregation;
         break;
       case "weeklyBinning":
-        let text = `Daily Stars ${aggregation} by Week`;
+        textBinning = `Daily Stars ${aggregation} by Week`;
         if (aggregation == "sum") {
           ("Total Stars by Year");
         }
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            text;
+            textBinning;
         binning = WEEKLY_BINNING;
         options.dataSource.yAxis[0].plot.type = "column";
         options.dataSource.yAxis[0].aggregation = aggregation;
