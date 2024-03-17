@@ -39,6 +39,9 @@ import {
   calculatePercentiles,
 } from "./utils";
 
+// This needs to be refactored, focus is mostly on functionalities and implementing ideas
+// But it has reached a point where it's difficult to go over the code
+
 const HOST = import.meta.env.VITE_HOST;
 const PREDICTOR_HOST = "https://143.47.235.108:8082";
 
@@ -213,9 +216,11 @@ function TimeSeriesChart() {
 
   const [theme, setTheme] = useState("candy");
 
-  const [aggregation, setAggregation] = useState(
-    queryParams.get("aggregation") || "none"
+  const [transformation, setTransformation] = useState(
+    queryParams.get("transformation") || "none"
   );
+
+  const [aggregation, setAggregation] = useState("average");
 
   const [selectedTimeRange, setSelectedTimeRange] = useState({
     start: queryParams.get("start"),
@@ -247,13 +252,28 @@ function TimeSeriesChart() {
     setds(options);
   };
 
+  const handleTransformationChange = (event) => {
+    setTransformation(event.target.value);
+  };
+
   const handleAggregationChange = (event) => {
     setAggregation(event.target.value);
+    const options = { ...ds };
+    options.dataSource.yAxis[0].aggregation = event.target.value;
+
+    let text = `${event.target.value} Stars`;
+
+    options.dataSource.yAxis[0].plot.value =
+      schema[1].name =
+      options.dataSource.yAxis[0].title =
+        text;
+
+    setds(options);
   };
 
   useEffect(() => {
     updateGraph(currentStarsHistory);
-  }, [aggregation]);
+  }, [transformation]);
 
   const handleForceRefetchChange = (event) => {
     setForceRefetch(event.target.checked);
@@ -342,7 +362,7 @@ function TimeSeriesChart() {
       console.log("Array is empty.");
     }
 
-    let appliedAggregationResult = starHistory;
+    let appliedTransformationResult = starHistory;
     let binning = {};
 
     const options = { ...ds };
@@ -357,9 +377,12 @@ function TimeSeriesChart() {
 
     options.dataSource.subcaption = "";
     options.dataSource.yAxis[0].referenceline = [];
+    options.dataSource.yAxis[0].aggregation = "average";
+
+    let text = "";
 
     //console.log(res);
-    switch (aggregation) {
+    switch (transformation) {
       case "none":
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
@@ -394,7 +417,7 @@ function TimeSeriesChart() {
           lastSum += predictions[index][1];
         }
 
-        appliedAggregationResult = predictions;
+        appliedTransformationResult = predictions;
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
@@ -403,28 +426,46 @@ function TimeSeriesChart() {
         options.dataSource.subcaption = "Trend";
         break;
       case "yearlyBinning":
+        text = `Daily Stars ${aggregation} by Year`;
+        if (aggregation == "sum") {
+          text = "Total Stars by Year";
+        }
+
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            "Daily Stars Average by Year";
+            text;
+
         binning = YEARLY_BINNING;
         options.dataSource.yAxis[0].plot.type = "column";
+        options.dataSource.yAxis[0].aggregation = aggregation;
         break;
       case "monthlyBinning":
+        text = `Daily Stars ${aggregation} by Month`;
+        if (aggregation == "sum") {
+          text = "Total Stars by Year";
+        }
+
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            "Daily Stars Average by Month";
+            text;
         binning = MONTHLY_BINNING;
         options.dataSource.yAxis[0].plot.type = "column";
+        options.dataSource.yAxis[0].aggregation = aggregation;
         break;
       case "weeklyBinning":
+        let text = `Daily Stars ${aggregation} by Week`;
+        if (aggregation == "sum") {
+          ("Total Stars by Year");
+        }
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            "Daily Stars Average by Week";
+            text;
         binning = WEEKLY_BINNING;
         options.dataSource.yAxis[0].plot.type = "column";
+        options.dataSource.yAxis[0].aggregation = aggregation;
         break;
       case "normalize":
         options.dataSource.yAxis[0].plot.value =
@@ -442,7 +483,7 @@ function TimeSeriesChart() {
 
         console.log(median, highPercentile);
 
-        appliedAggregationResult = starHistory.map((subArray) => {
+        appliedTransformationResult = starHistory.map((subArray) => {
           if (subArray[1] > highPercentile) {
             return [subArray[0], highPercentile, subArray[2]];
           }
@@ -463,7 +504,7 @@ function TimeSeriesChart() {
           schema[1].name =
           options.dataSource.yAxis[0].title =
             "LOESS";
-        appliedAggregationResult = addLOESS(starHistory, 0.08);
+        appliedTransformationResult = addLOESS(starHistory, 0.08);
         options.dataSource.yAxis[0].plot.type = "line";
 
         options.dataSource.xAxis.initialinterval = {
@@ -477,7 +518,7 @@ function TimeSeriesChart() {
           schema[1].name =
           options.dataSource.yAxis[0].title =
             "Running Average";
-        appliedAggregationResult = addRunningAverage(starHistory, 120);
+        appliedTransformationResult = addRunningAverage(starHistory, 120);
         options.dataSource.yAxis[0].plot.type = "line";
         break;
       case "runningMedian":
@@ -485,7 +526,7 @@ function TimeSeriesChart() {
           schema[1].name =
           options.dataSource.yAxis[0].title =
             "Running Median";
-        appliedAggregationResult = addRunningMedian(starHistory, 120);
+        appliedTransformationResult = addRunningMedian(starHistory, 120);
         options.dataSource.yAxis[0].plot.type = "line";
         break;
       case "firstOrderDerivative":
@@ -493,7 +534,7 @@ function TimeSeriesChart() {
           schema[1].name =
           options.dataSource.yAxis[0].title =
             "Derivative";
-        appliedAggregationResult = calculateFirstDerivative(starHistory);
+        appliedTransformationResult = calculateFirstDerivative(starHistory);
         options.dataSource.yAxis[0].plot.type = "line";
         break;
       case "secondOrderDerivative":
@@ -501,7 +542,7 @@ function TimeSeriesChart() {
           schema[1].name =
           options.dataSource.yAxis[0].title =
             "Second Derivative";
-        appliedAggregationResult = calculateSecondDerivative(starHistory);
+        appliedTransformationResult = calculateSecondDerivative(starHistory);
         options.dataSource.yAxis[0].plot.type = "line";
         break;
       default:
@@ -509,7 +550,7 @@ function TimeSeriesChart() {
     }
 
     const fusionTable = new FusionCharts.DataStore().createDataTable(
-      appliedAggregationResult,
+      appliedTransformationResult,
       schema
     );
 
@@ -926,14 +967,14 @@ function TimeSeriesChart() {
             marginRight: "10px",
           }}
         >
-          <InputLabel id="aggregation-select-drop">Aggregate</InputLabel>
+          <InputLabel id="transformation-select-drop">Transform</InputLabel>
           <Select
-            labelId="aggregation"
-            id="aggregation"
-            value={aggregation}
+            labelId="transformation"
+            id="transformation"
+            value={transformation}
             size="small"
-            label="Aggregate"
-            onChange={handleAggregationChange}
+            label="Transform"
+            onChange={handleTransformationChange}
           >
             <MenuItem value={"none"}>None</MenuItem>
             <MenuItem value={"trend"}>Trend</MenuItem>
@@ -950,6 +991,29 @@ function TimeSeriesChart() {
             </MenuItem>
           </Select>
         </FormControl>
+        {transformation.includes("Binning") && (
+          <FormControl
+            style={{
+              width: "100px",
+              marginRight: "2px",
+            }}
+          >
+            <InputLabel id="aggregation-select-drop">Aggregate</InputLabel>
+            <Select
+              labelId="aggregation"
+              id="aggregation"
+              value={aggregation}
+              size="small"
+              label="Aggregate"
+              onChange={handleAggregationChange}
+            >
+              <MenuItem value={"average"}>Mean</MenuItem>
+              <MenuItem value={"sum"}>Total</MenuItem>
+              <MenuItem value={"max"}>Max</MenuItem>
+              <MenuItem value={"min"}>Min</MenuItem>
+            </Select>
+          </FormControl>
+        )}
         {
           <Checkbox
             checked={checkedYAxisType}
@@ -987,7 +1051,7 @@ function TimeSeriesChart() {
             marginRight: "30px",
           }}
           dateRange={checkedDateRange ? selectedTimeRange : null}
-          aggregation={aggregation}
+          transformation={transformation}
         />
         <Tooltip title={INCLUDE_DATE_RANGE}>
           {
