@@ -17,7 +17,7 @@
     "@mui/icons-material": "^5.15.14",
     "@mui/lab": "^5.0.0-alpha.169",
     "@mui/material": "^5.15.14",
-    "@mui/x-data-grid": "^6.19.8",
+    "@mui/x-data-grid": "^7.0.0",
     "@nivo/bar": "^0.85.1",
     "@nivo/calendar": "^0.85.1",
     "@nivo/treemap": "^0.85.1",
@@ -38,7 +38,7 @@
     "react18-json-view": "^0.2.7"
   },
   "devDependencies": {
-    "@types/react": "^18.2.67",
+    "@types/react": "^18.2.69",
     "@types/react-dom": "^18.2.22",
     "@typescript-eslint/eslint-plugin": "^7.3.1",
     "@typescript-eslint/parser": "^7.3.1",
@@ -47,6 +47,6 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.6",
     "typescript": "^5.4.3",
-    "vite": "^5.2.2"
+    "vite": "^5.2.4"
   }
 }
