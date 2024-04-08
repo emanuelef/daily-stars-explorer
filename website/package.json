@@ -16,7 +16,7 @@
     "@emotion/styled": "^11.11.5",
     "@mui/icons-material": "^5.15.14",
     "@mui/lab": "^5.0.0-alpha.169",
-    "@mui/material": "^5.15.14",
+    "@mui/material": "^5.15.15",
     "@mui/x-data-grid": "^7.1.0",
     "@nivo/bar": "^0.85.1",
     "@nivo/calendar": "^0.85.1",
