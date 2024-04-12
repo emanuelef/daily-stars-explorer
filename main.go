@@ -13,6 +13,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gofiber/fiber/v2/middleware/pprof"
+
 	//"github.com/emanuelef/gh-repo-stats-server/cache"
 	cache "github.com/Code-Hex/go-generics-cache"
 	"github.com/emanuelef/gh-repo-stats-server/otel_instrumentation"
@@ -108,6 +110,8 @@ func main() {
 	ghStatClients["PAT2"] = NewClientWithPAT(os.Getenv("PAT2"))
 
 	app := fiber.New()
+
+	app.Use(pprof.New())
 
 	app.Use(otelfiber.Middleware(otelfiber.WithNext(func(c *fiber.Ctx) bool {
 		return c.Path() == "/health" || c.Path() == "/sse"

@@ -35,3 +35,5 @@ vendor
 !/analysis-latest.csv
 !/dep-repo-latest.csv
 SWEETVIZ_REPORT.html
+goroutine.png
+heap.png
