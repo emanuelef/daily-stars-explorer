@@ -3,7 +3,7 @@ module github.com/emanuelef/gh-repo-stats-server
 go 1.21.6
 
 require (
-	github.com/Code-Hex/go-generics-cache v1.3.1
+	github.com/Code-Hex/go-generics-cache v1.5.1
 	github.com/emanuelef/github-repo-activity-stats v0.2.16
 	github.com/gofiber/contrib/otelfiber v1.0.10
 	github.com/gofiber/fiber/v2 v2.52.4
