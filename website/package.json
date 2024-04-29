@@ -27,7 +27,7 @@
     "fusioncharts": "3.23.0",
     "highcharts-react-official": "^3.2.1",
     "papaparse": "^5.4.1",
-    "react": "^18.3.0",
+    "react": "^18.3.1",
     "react-dom": "^18.3.0",
     "react-fusioncharts": "^4.0.0",
     "react-github-btn": "^1.4.0",
@@ -38,7 +38,7 @@
     "react18-json-view": "^0.2.8"
   },
   "devDependencies": {
-    "@types/react": "^18.3.0",
+    "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.0",
     "@typescript-eslint/eslint-plugin": "^7.7.1",
     "@typescript-eslint/parser": "^7.7.1",
