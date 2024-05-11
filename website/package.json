@@ -14,10 +14,10 @@
   "dependencies": {
     "@emotion/react": "^11.11.4",
     "@emotion/styled": "^11.11.5",
-    "@mui/icons-material": "^5.15.16",
+    "@mui/icons-material": "^5.15.17",
     "@mui/lab": "^5.0.0-alpha.170",
-    "@mui/material": "^5.15.16",
-    "@mui/x-data-grid": "^7.3.2",
+    "@mui/material": "^5.15.17",
+    "@mui/x-data-grid": "^7.4.0",
     "@nivo/bar": "^0.86.0",
     "@nivo/calendar": "^0.86.0",
     "@nivo/treemap": "^0.86.0",
@@ -33,18 +33,18 @@
     "react-github-btn": "^1.4.0",
     "react-markdown": "^9.0.1",
     "react-pro-sidebar": "^1.1.0",
-    "react-router-dom": "^6.23.0",
+    "react-router-dom": "^6.23.1",
     "react-toastify": "^10.0.5",
     "react18-json-view": "^0.2.8"
   },
   "devDependencies": {
-    "@types/react": "^18.3.1",
+    "@types/react": "^18.3.2",
     "@types/react-dom": "^18.3.0",
     "@typescript-eslint/eslint-plugin": "^7.8.0",
     "@typescript-eslint/parser": "^7.8.0",
     "@vitejs/plugin-react": "^4.2.1",
     "eslint-plugin-react-hooks": "^4.6.2",
-    "eslint-plugin-react-refresh": "^0.4.6",
+    "eslint-plugin-react-refresh": "^0.4.7",
     "typescript": "^5.4.5",
     "vite": "^5.2.11"
   }
