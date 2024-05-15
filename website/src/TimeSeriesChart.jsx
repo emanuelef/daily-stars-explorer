@@ -507,10 +507,10 @@ function TimeSeriesChart() {
         appliedTransformationResult = addLOESS(starHistory, 0.08);
         options.dataSource.yAxis[0].plot.type = "line";
 
-        options.dataSource.xAxis.initialinterval = {
+/*         options.dataSource.xAxis.initialinterval = {
           from: "01-01-2022",
           to: "01-01-2023",
-        };
+        }; */
 
         break;
       case "runningAverage":
