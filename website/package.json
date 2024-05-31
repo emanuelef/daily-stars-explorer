@@ -14,10 +14,10 @@
   "dependencies": {
     "@emotion/react": "^11.11.4",
     "@emotion/styled": "^11.11.5",
-    "@mui/icons-material": "^5.15.18",
+    "@mui/icons-material": "^5.15.19",
     "@mui/lab": "^5.0.0-alpha.170",
-    "@mui/material": "^5.15.18",
-    "@mui/x-data-grid": "^7.5.0",
+    "@mui/material": "^5.15.19",
+    "@mui/x-data-grid": "^7.6.1",
     "@nivo/bar": "^0.87.0",
     "@nivo/calendar": "^0.87.0",
     "@nivo/treemap": "^0.87.0",
@@ -40,12 +40,12 @@
   "devDependencies": {
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
-    "@typescript-eslint/eslint-plugin": "^7.10.0",
-    "@typescript-eslint/parser": "^7.10.0",
+    "@typescript-eslint/eslint-plugin": "^7.11.0",
+    "@typescript-eslint/parser": "^7.11.0",
     "@vitejs/plugin-react": "^4.3.0",
     "eslint-plugin-react-hooks": "^4.6.2",
     "eslint-plugin-react-refresh": "^0.4.7",
     "typescript": "^5.4.5",
-    "vite": "^5.2.11"
+    "vite": "^5.2.12"
   }
 }
