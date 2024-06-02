@@ -379,10 +379,10 @@ function TimeSeriesChart() {
     console.log(res);
     console.log(starHistory.length);
 
-    // Remove spike on first day if higher than average
+    // Remove spike on first day if higher or equal than 98 percentile
     if (starHistory.length > 2) {
-      console.log(starHistory[0][1], res[1]);
-      if (starHistory[0][1] > res[1]) {
+      console.log(starHistory[0][1], res[2]);
+      if (starHistory[0][1] >= res[2]) {
         // remove first element
         console.log(starHistory[0]);
         starHistory.shift();
