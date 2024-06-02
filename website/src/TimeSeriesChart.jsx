@@ -375,6 +375,20 @@ function TimeSeriesChart() {
       0.98
     );
 
+    console.log("percentiles");
+    console.log(res);
+    console.log(starHistory.length);
+
+    // Remove spike on first day if higher than average
+    if (starHistory.length > 2) {
+      console.log(starHistory[0][1], res[1]);
+      if (starHistory[0][1] > res[1]) {
+        // remove first element
+        console.log(starHistory[0]);
+        starHistory.shift();
+      }
+    }
+
     options.dataSource.subcaption = "";
     options.dataSource.yAxis[0].referenceline = [];
     options.dataSource.yAxis[0].aggregation = "average";
@@ -507,7 +521,7 @@ function TimeSeriesChart() {
         appliedTransformationResult = addLOESS(starHistory, 0.08);
         options.dataSource.yAxis[0].plot.type = "line";
 
-/*         options.dataSource.xAxis.initialinterval = {
+        /*         options.dataSource.xAxis.initialinterval = {
           from: "01-01-2022",
           to: "01-01-2023",
         }; */
