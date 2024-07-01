@@ -1,4 +1,4 @@
-FROM golang:1.22.3-alpine as builder
+FROM golang:1.22.4-alpine as builder
 WORKDIR /app
 COPY main.go .
 COPY cache ./cache
