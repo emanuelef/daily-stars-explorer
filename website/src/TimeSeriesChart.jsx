@@ -43,7 +43,7 @@ import {
 // But it has reached a point where it's difficult to go over the code
 
 const HOST = import.meta.env.VITE_HOST;
-const PREDICTOR_HOST = "https://143.47.235.108:8082";
+const PREDICTOR_HOST = import.meta.env.PREDICTOR_HOST;
 
 const YEARLY_BINNING = {
   year: [1],
