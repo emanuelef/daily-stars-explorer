@@ -151,6 +151,30 @@ function IssuesTimeSeriesChart() {
           },
           title: "Total Opened",
         },
+        {
+          plot: {
+            value: "Daily Closed",
+            type: "line",
+          },
+          title: "Daily Closed",
+          aggregation: "average",
+          referenceline: [],
+          type: "", // can be log
+        },
+        {
+          plot: {
+            value: "Total Closed",
+            type: "line",
+          },
+          title: "Total Closed",
+        },
+        {
+          plot: {
+            value: "Total Currently Open",
+            type: "line",
+          },
+          title: "Total Currently Open",
+        },
       ],
       xAxis: {
         plot: "Time",
@@ -177,13 +201,11 @@ function IssuesTimeSeriesChart() {
   const [creationDate, setCreationDate] = useState("2021-01-01");
   const [age, setAge] = useState("");
   const [currentIssuesHistory, setCurrentIssuesHistory] = useState([]);
-  const [starsLast10d, setStarsLast10d] = useState("");
   const [progressValue, setProgressValue] = useState(0);
   const [maxProgress, setMaxProgress] = useState(0);
   const [loading, setLoading] = useState(false);
   const [showForceRefetch, setShowForceRefetch] = useState(false);
   const [forceRefetch, setForceRefetch] = useState(false);
-  const [checkedYAxisType, setCheckedYAxisType] = useState(false);
 
   const [theme, setTheme] = useState("candy");
 
@@ -452,7 +474,6 @@ function IssuesTimeSeriesChart() {
     console.log(repo);
 
     setCurrentIssuesHistory([]);
-    setStarsLast10d("");
 
     let fetchUrl = `${HOST}/allIssues?repo=${repo}`;
 
@@ -483,48 +504,6 @@ function IssuesTimeSeriesChart() {
       .catch((e) => {
         console.error(`An error occurred: ${e}`);
         setLoading(false);
-      });
-  };
-
-  const downloadCSV = () => {
-    const repoParsed = parseGitHubRepoURL(selectedRepo);
-    const downloadUrl = `${HOST}/allStarsCsv?repo=${repoParsed}`;
-
-    fetch(downloadUrl)
-      .then((response) => response.blob())
-      .then((blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${repoParsed.replace("/", "_")}-stars-history.csv`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-      })
-      .catch((error) => {
-        console.error("Error downloading CSV:", error);
-      });
-  };
-
-  const downloadJSON = () => {
-    const repoParsed = parseGitHubRepoURL(selectedRepo);
-    const downloadUrl = `${HOST}/allStars?repo=${repoParsed}`;
-
-    fetch(downloadUrl)
-      .then((response) => response.json())
-      .then((data) => {
-        const starsContent = JSON.stringify(data.stars);
-        const blob = new Blob([starsContent], { type: "application/json" });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${repoParsed.replace("/", "_")}-stars-history.json`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-      })
-      .catch((error) => {
-        console.error("Error downloading JSON:", error);
       });
   };
 
@@ -730,21 +709,6 @@ function IssuesTimeSeriesChart() {
             marginTop: "20px",
             marginRight: "10px",
             marginLeft: "10px",
-            width: "100px",
-          }}
-          size="small"
-          id="age"
-          label="⭐ Last 10 d"
-          value={starsLast10d}
-          InputProps={{
-            readOnly: true,
-          }}
-        />
-        <TextField
-          style={{
-            marginTop: "20px",
-            marginRight: "10px",
-            marginLeft: "10px",
             width: "210px",
           }}
           size="small"
@@ -852,37 +816,6 @@ function IssuesTimeSeriesChart() {
             </Select>
           </FormControl>
         )}
-        {
-          <Checkbox
-            checked={checkedYAxisType}
-            onChange={handleYAxisTypeCheckChange}
-            inputProps={{ "aria-label": "controlled" }}
-          />
-        }
-        <Typography variant="body2">Log Y-Axis</Typography>
-
-        <Button
-          style={{
-            marginLeft: "10px",
-          }}
-          size="small"
-          variant="contained"
-          onClick={downloadCSV}
-        >
-          Download CSV
-        </Button>
-        <br />
-        <Button
-          style={{
-            marginLeft: "10px",
-            marginRight: "10px",
-          }}
-          size="small"
-          variant="contained"
-          onClick={downloadJSON}
-        >
-          Download Json
-        </Button>
         <CopyToClipboardButton
           style={{
             marginLeft: "10px",
