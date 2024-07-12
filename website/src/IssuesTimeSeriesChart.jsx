@@ -454,22 +454,6 @@ function IssuesTimeSeriesChart() {
         appliedTransformationResult = addRunningMedian(starHistory, 120);
         options.dataSource.yAxis[0].plot.type = "line";
         break;
-      case "firstOrderDerivative":
-        options.dataSource.yAxis[0].plot.value =
-          schema[1].name =
-          options.dataSource.yAxis[0].title =
-            "Derivative";
-        appliedTransformationResult = calculateFirstDerivative(starHistory);
-        options.dataSource.yAxis[0].plot.type = "line";
-        break;
-      case "secondOrderDerivative":
-        options.dataSource.yAxis[0].plot.value =
-          schema[1].name =
-          options.dataSource.yAxis[0].title =
-            "Second Derivative";
-        appliedTransformationResult = calculateSecondDerivative(starHistory);
-        options.dataSource.yAxis[0].plot.type = "line";
-        break;
       default:
         break;
     }
