@@ -5,6 +5,7 @@ import MainPage from "./MainPage";
 import TimeSeriesChart from "./TimeSeriesChart";
 import CompareChart from "./CompareChart";
 import IssuesTimeSeriesChart from "./IssuesTimeSeriesChart";
+import ForksTimeSeriesChart from "./ForksTimeSeriesChart";
 import CalendarChart from "./CalendarChart";
 import InfoPage from "./InfoPage";
 
@@ -18,6 +19,7 @@ import QueryStatsRoundedIcon from "@mui/icons-material/QueryStatsRounded";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import SsidChartRoundedIcon from "@mui/icons-material/SsidChartRounded";
 import BugReportRoundedIcon from "@mui/icons-material/BugReportRounded";
+import AltRouteOutlinedIcon from "@mui/icons-material/AltRouteOutlined";
 
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -81,7 +83,8 @@ function App() {
                   useLocation().pathname.includes("/table") ||
                   useLocation().pathname.includes("/calendar") ||
                   useLocation().pathname.includes("/info") ||
-                  useLocation().pathname.includes("/issues")
+                  useLocation().pathname.includes("/issues") ||
+                  useLocation().pathname.includes("/forks")
                 )
               }
             >
@@ -108,6 +111,17 @@ function App() {
               active={useLocation().pathname.includes("/issues")}
             >
               Issues
+            </MenuItem>
+            <MenuItem
+              component={<Link to="/forks" className="link" />}
+              icon={
+                <Tooltip title="Forks Timeline" placement="right">
+                  <AltRouteOutlinedIcon />
+                </Tooltip>
+              }
+              active={useLocation().pathname.includes("/forks")}
+            >
+              Forks
             </MenuItem>
             <MenuItem
               component={<Link to="/table" className="link" />}
@@ -158,6 +172,7 @@ function App() {
             <Route path="/calendar" element={<CalendarChart />} />
             <Route path="/info" element={<InfoPage />} />
             <Route path="/issues" element={<IssuesTimeSeriesChart />} />
+            <Route path="/forks" element={<ForksTimeSeriesChart />} />
           </Routes>
         </section>
       </div>
