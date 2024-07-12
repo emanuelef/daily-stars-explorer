@@ -768,55 +768,7 @@ function IssuesTimeSeriesChart() {
           </FormControl>
         </div>
 
-        <FormControl
-          style={{
-            width: "180px",
-            marginRight: "10px",
-          }}
-        >
-          <InputLabel id="transformation-select-drop">Transform</InputLabel>
-          <Select
-            labelId="transformation"
-            id="transformation"
-            value={transformation}
-            size="small"
-            label="Transform"
-            onChange={handleTransformationChange}
-          >
-            <MenuItem value={"none"}>None</MenuItem>
-            <MenuItem value={"yearlyBinning"}>Yearly Binning</MenuItem>
-            <MenuItem value={"monthlyBinning"}>Monthly Binning</MenuItem>
-            <MenuItem value={"weeklyBinning"}>Weekly Binning</MenuItem>
-            <MenuItem value={"normalize"}>Normalize</MenuItem>
-            <MenuItem value={"loess"}>LOESS</MenuItem>
-            <MenuItem value={"runningAverage"}>Running Average</MenuItem>
-            <MenuItem value={"runningMedian"}>Running Median</MenuItem>
-          </Select>
-        </FormControl>
-        {transformation.includes("Binning") && (
-          <FormControl
-            style={{
-              width: "100px",
-              marginRight: "2px",
-            }}
-          >
-            <InputLabel id="aggregation-select-drop">Aggregate</InputLabel>
-            <Select
-              labelId="aggregation"
-              id="aggregation"
-              value={aggregation}
-              size="small"
-              label="Aggregate"
-              onChange={handleAggregationChange}
-            >
-              <MenuItem value={"average"}>Mean</MenuItem>
-              <MenuItem value={"sum"}>Total</MenuItem>
-              <MenuItem value={"max"}>Max</MenuItem>
-              <MenuItem value={"min"}>Min</MenuItem>
-            </Select>
-          </FormControl>
-        )}
-        <CopyToClipboardButton
+   {/*      <CopyToClipboardButton
           style={{
             marginLeft: "10px",
             marginRight: "30px",
@@ -833,7 +785,7 @@ function IssuesTimeSeriesChart() {
             />
           }
         </Tooltip>
-        <Typography variant="body2">With Date Range</Typography>
+        <Typography variant="body2">With Date Range</Typography> */}
         <Button
           style={{
             marginLeft: "10px",
@@ -861,11 +813,11 @@ function IssuesTimeSeriesChart() {
           </GitHubButton>
         </div>
       </div>
-      <EstimatedTimeProgress
+{/*       <EstimatedTimeProgress
         text="Estimated Time Left"
         totalTime={estimatedTime}
       />
-      <ProgressBar value={progressValue} max={maxProgress} />
+      <ProgressBar value={progressValue} max={maxProgress} /> */}
       <div
         id="chart-container"
         style={{
