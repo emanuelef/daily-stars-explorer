@@ -17,7 +17,7 @@ import SendIcon from "@mui/icons-material/Send";
 import FusionCharts from "fusioncharts";
 import TimeSeries from "fusioncharts/fusioncharts.timeseries";
 import ReactFC from "react-fusioncharts";
-import schema from "./schema";
+import schema from "./schema-issues";
 import EstimatedTimeProgress from "./EstimatedTimeProgress";
 import ProgressBar from "./ProgressBar";
 import { parseISO, intervalToDuration } from "date-fns";
@@ -34,8 +34,6 @@ import {
   addRunningMedian,
   addRunningAverage,
   addLOESS,
-  calculateFirstDerivative,
-  calculateSecondDerivative,
   calculatePercentiles,
 } from "./utils";
 
@@ -138,20 +136,20 @@ function IssuesTimeSeriesChart() {
       yAxis: [
         {
           plot: {
-            value: "Daily Stars",
+            value: "Daily Opened",
             type: "line",
           },
-          title: "Daily Stars",
+          title: "Daily Opened",
           aggregation: "average",
           referenceline: [],
           type: "", // can be log
         },
         {
           plot: {
-            value: "Total Stars",
+            value: "Total Opened",
             type: "line",
           },
-          title: "Total Stars",
+          title: "Total Opened",
         },
       ],
       xAxis: {
@@ -178,7 +176,7 @@ function IssuesTimeSeriesChart() {
   const [totalStars, setTotalStars] = useState(0);
   const [creationDate, setCreationDate] = useState("2021-01-01");
   const [age, setAge] = useState("");
-  const [currentStarsHistory, setCurrentStarsHistory] = useState([]);
+  const [currentIssuesHistory, setCurrentIssuesHistory] = useState([]);
   const [starsLast10d, setStarsLast10d] = useState("");
   const [progressValue, setProgressValue] = useState(0);
   const [maxProgress, setMaxProgress] = useState(0);
@@ -245,7 +243,7 @@ function IssuesTimeSeriesChart() {
   };
 
   useEffect(() => {
-    updateGraph(currentStarsHistory);
+    updateGraph(currentIssuesHistory);
   }, [transformation]);
 
   const handleForceRefetchChange = (event) => {
@@ -289,7 +287,7 @@ function IssuesTimeSeriesChart() {
     // check if last element is today
     if (starHistory.length > 1) {
       const lastElement = starHistory[starHistory.length - 1];
-      console.log(lastElement[0]);
+      console.log(lastElement);
       console.log(starHistory);
       const isLastElementToday = isToday(lastElement[0]);
       starHistory.pop(); // remove last element as the current day is not complete
@@ -305,27 +303,7 @@ function IssuesTimeSeriesChart() {
 
     const options = { ...ds };
 
-    const res = calculatePercentiles(
-      starHistory
-        .filter((subArray) => subArray[1] > 0)
-        .map((subArray) => subArray[1]),
-      0.5,
-      0.98
-    );
-
-    console.log("percentiles");
-    console.log(res);
     console.log(starHistory.length);
-
-    // Remove spike on first day if higher or equal than 98 percentile
-    if (starHistory.length > 2) {
-      console.log(starHistory[0][1], res[2]);
-      if (starHistory[0][1] >= res[2]) {
-        // remove first element
-        console.log(starHistory[0]);
-        starHistory.shift();
-      }
-    }
 
     options.dataSource.subcaption = "";
     options.dataSource.yAxis[0].referenceline = [];
@@ -339,21 +317,14 @@ function IssuesTimeSeriesChart() {
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            "Daily Stars";
+            "Daily Opened";
         options.dataSource.yAxis[0].plot.type = "line";
-        if (res && res.length == 3) {
-          options.dataSource.subcaption = {
-            text:
-              res[2] > res[1] + 1000 ? "Zoom in or try normalize option" : "",
-          };
-        } else {
-          options.dataSource.subcaption = "";
-        }
+        options.dataSource.subcaption = "";
         break;
       case "yearlyBinning":
-        textBinning = `Daily Stars ${aggregation} by Year`;
+        textBinning = `Daily Opened ${aggregation} by Year`;
         if (aggregation == "sum") {
-          textBinning = "Total Stars by Year";
+          textBinning = "Total Opened by Year";
         }
 
         options.dataSource.yAxis[0].plot.value =
@@ -366,9 +337,9 @@ function IssuesTimeSeriesChart() {
         options.dataSource.yAxis[0].aggregation = aggregation;
         break;
       case "monthlyBinning":
-        textBinning = `Daily Stars ${aggregation} by Month`;
+        textBinning = `Daily Opened ${aggregation} by Month`;
         if (aggregation == "sum") {
-          textBinning = "Total Stars by Year";
+          textBinning = "Total Opened by Year";
         }
 
         options.dataSource.yAxis[0].plot.value =
@@ -380,9 +351,9 @@ function IssuesTimeSeriesChart() {
         options.dataSource.yAxis[0].aggregation = aggregation;
         break;
       case "weeklyBinning":
-        textBinning = `Daily Stars ${aggregation} by Week`;
+        textBinning = `Daily Opened ${aggregation} by Week`;
         if (aggregation == "sum") {
-          ("Total Stars by Year");
+          ("Total Opened by Year");
         }
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
@@ -472,29 +443,18 @@ function IssuesTimeSeriesChart() {
       "_"
     )}-stars-history`;
 
-    /*
-    options.dataSource.yAxis[0].referenceline = [
-      {
-        label: "CCC Temperature",
-        value: 14,
-      },
-    ];
-    */
-
-    // console.log(options.dataSource.yAxis[0].referenceline);
     console.log(options.dataSource.yAxis);
-    console.log(res);
 
     setds(options);
   };
 
-  const fetchAllStars = async (repo, ignoreForceRefetch = false) => {
+  const fetchAllIssues = async (repo, ignoreForceRefetch = false) => {
     console.log(repo);
 
-    setCurrentStarsHistory([]);
+    setCurrentIssuesHistory([]);
     setStarsLast10d("");
 
-    let fetchUrl = `${HOST}/allStars?repo=${repo}`;
+    let fetchUrl = `${HOST}/allIssues?repo=${repo}`;
 
     if (forceRefetch && !ignoreForceRefetch) {
       fetchUrl += "&forceRefetch=true";
@@ -512,38 +472,12 @@ function IssuesTimeSeriesChart() {
       .then((data) => {
         setLoading(false);
         console.log(data);
-        const starHistory = data.stars;
-
-        setCurrentStarsHistory(starHistory);
-        setStarsLast10d(data.newLast10Days);
-
+        const starHistory = data.issues;
+        setCurrentIssuesHistory(starHistory);
         updateGraph(starHistory);
-
-        const maxPeriods = data.maxPeriods.map((period) => ({
-          start: period.StartDay,
-          end: period.EndDay,
-          label: `${period.TotalStars} is the highest number of new stars in a 10 day period`,
-          timeformat: "%d-%m-%Y",
-          type: "full",
-        }));
-
-        const maxPeaks = data.maxPeaks.map((peak) => ({
-          start: peak.Day,
-          timeformat: "%d-%m-%Y",
-          label: `${peak.Stars} is the maximum number of new stars in one day`,
-          style: {
-            marker: {
-              fill: "#30EE47",
-            },
-          },
-        }));
-
-        const timemarkers = maxPeriods.concat(maxPeaks);
-
         const options = { ...ds };
-        options.dataSource.caption = { text: `Stars ${repo}` };
+        options.dataSource.caption = { text: `Issues ${repo}` };
 
-        options.dataSource.xAxis.timemarker = timemarkers;
         setds(options);
       })
       .catch((e) => {
@@ -637,7 +571,7 @@ function IssuesTimeSeriesChart() {
         closeSSE();
         //if (onGoing) {
         setTimeout(() => {
-          fetchAllStars(repo, true);
+          fetchAllIssues(repo, true);
         }, 1600);
         //}
         setLoading(false);
@@ -652,9 +586,9 @@ function IssuesTimeSeriesChart() {
   const handleClick = async () => {
     const repoParsed = parseGitHubRepoURL(selectedRepo);
 
-    navigate(`/${repoParsed}`, {
-      replace: false,
-    });
+    // navigate(`/${repoParsed}`, {
+    //   replace: false,
+    // });
 
     if (repoParsed === null) {
       return;
@@ -687,7 +621,7 @@ function IssuesTimeSeriesChart() {
     setMaxProgress(0);
 
     if (!status.onGoing) {
-      fetchAllStars(repoParsed);
+      fetchAllIssues(repoParsed);
     }
 
     if (!status.cached) {

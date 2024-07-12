@@ -101,7 +101,7 @@ function App() {
             <MenuItem
               component={<Link to="/issues" className="link" />}
               icon={
-                <Tooltip title="Issues" placement="right">
+                <Tooltip title="Issues Timeline" placement="right">
                   <BugReportRoundedIcon />
                 </Tooltip>
               }
