@@ -4,6 +4,7 @@ import "./App.css";
 import MainPage from "./MainPage";
 import TimeSeriesChart from "./TimeSeriesChart";
 import CompareChart from "./CompareChart";
+import IssuesTimeSeriesChart from "./IssuesTimeSeriesChart";
 import CalendarChart from "./CalendarChart";
 import InfoPage from "./InfoPage";
 
@@ -16,6 +17,7 @@ import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import QueryStatsRoundedIcon from "@mui/icons-material/QueryStatsRounded";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import SsidChartRoundedIcon from "@mui/icons-material/SsidChartRounded";
+import BugReportRoundedIcon from "@mui/icons-material/BugReportRounded";
 
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -78,7 +80,8 @@ function App() {
                   useLocation().pathname.includes("/compare") ||
                   useLocation().pathname.includes("/table") ||
                   useLocation().pathname.includes("/calendar") ||
-                  useLocation().pathname.includes("/info")
+                  useLocation().pathname.includes("/info") ||
+                  useLocation().pathname.includes("/issues")
                 )
               }
             >
@@ -94,6 +97,17 @@ function App() {
               active={useLocation().pathname.includes("/compare")}
             >
               Compare
+            </MenuItem>
+            <MenuItem
+              component={<Link to="/issues" className="link" />}
+              icon={
+                <Tooltip title="Issues" placement="right">
+                  <BugReportRoundedIcon />
+                </Tooltip>
+              }
+              active={useLocation().pathname.includes("/issues")}
+            >
+              Issues
             </MenuItem>
             <MenuItem
               component={<Link to="/table" className="link" />}
@@ -143,6 +157,7 @@ function App() {
             />
             <Route path="/calendar" element={<CalendarChart />} />
             <Route path="/info" element={<InfoPage />} />
+            <Route path="/issues" element={<IssuesTimeSeriesChart />} />
           </Routes>
         </section>
       </div>
