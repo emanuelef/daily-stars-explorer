@@ -1,10 +1,9 @@
 /* eslint-disable no-case-declarations */
 import { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
 import TextField from "@mui/material/TextField";
 import FormControl from "@mui/material/FormControl";
 import FormControlLabel from "@mui/material/FormControlLabel";
-import Typography from "@mui/material/Typography";
 import Tooltip from "@mui/material/Tooltip";
 import Checkbox from "@mui/material/Checkbox";
 import Button from "@mui/material/Button";
@@ -26,48 +25,11 @@ import GammelTheme from "fusioncharts/themes/fusioncharts.theme.gammel";
 import CandyTheme from "fusioncharts/themes/fusioncharts.theme.candy";
 import ZuneTheme from "fusioncharts/themes/fusioncharts.theme.zune";
 import UmberTheme from "fusioncharts/themes/fusioncharts.theme.umber";
-import CopyToClipboardButton from "./CopyToClipboardButton";
 import GitHubButton from "react-github-btn";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import {
-  addRunningMedian,
-  addRunningAverage,
-  addLOESS,
-  calculatePercentiles,
-} from "./utils";
 
 const HOST = import.meta.env.VITE_HOST;
-
-const YEARLY_BINNING = {
-  year: [1],
-  month: [],
-  day: [],
-  week: [],
-  hour: [],
-  minute: [],
-  second: [],
-};
-
-const MONTHLY_BINNING = {
-  year: [],
-  month: [1],
-  day: [],
-  week: [],
-  hour: [],
-  minute: [],
-  second: [],
-};
-
-const WEEKLY_BINNING = {
-  year: [],
-  month: [],
-  day: [],
-  week: [1],
-  hour: [],
-  minute: [],
-  second: [],
-};
 
 ReactFC.fcRoot(
   FusionCharts,
@@ -78,11 +40,6 @@ ReactFC.fcRoot(
   UmberTheme
 );
 
-const formatDate = (originalDate) => {
-  const parts = originalDate.split("-");
-  return `${parts[2]}-${parts[1]}-${parts[0]}`;
-};
-
 const FORCE_REFETCH_TOOLTIP =
   "Using cached data, force refetching the data from GitHub. This will take a while if the repo has a lot of stars.";
 
@@ -90,9 +47,6 @@ const INFO_TOOLTIP =
   "Stars are fetched until UTC midnight of the previous day. \
    You can zoom inside the graph by scrolling up and down or dragging the selectors in the underline graph. \
    Once fetched the history is kept for 7 days but it's possible to refetch again by checking the Force Refetch checkbox.";
-
-const INCLUDE_DATE_RANGE =
-  "When checked the URL to share will include the current time range selected";
 
 const isToday = (dateString) => {
   const today = new Date();
@@ -133,47 +87,23 @@ function IssuesTimeSeriesChart() {
           },
         },
       },
+      caption: { text: "Issues" },
+      data: null,
+      series: "Type",
       yAxis: [
         {
           plot: {
-            value: "Daily Opened",
+            value: "Daily",
             type: "line",
           },
-          title: "Daily Opened",
-          aggregation: "average",
-          referenceline: [],
-          type: "", // can be log
+          title: "Daily",
         },
         {
           plot: {
-            value: "Total Opened",
+            value: "Total",
             type: "line",
           },
-          title: "Total Opened",
-        },
-        {
-          plot: {
-            value: "Daily Closed",
-            type: "line",
-          },
-          title: "Daily Closed",
-          aggregation: "average",
-          referenceline: [],
-          type: "", // can be log
-        },
-        {
-          plot: {
-            value: "Total Closed",
-            type: "line",
-          },
-          title: "Total Closed",
-        },
-        {
-          plot: {
-            value: "Total Currently Open",
-            type: "line",
-          },
-          title: "Total Currently Open",
+          title: "Total",
         },
       ],
       xAxis: {
@@ -219,8 +149,6 @@ function IssuesTimeSeriesChart() {
     start: queryParams.get("start"),
     end: queryParams.get("end"),
   });
-
-  const navigate = useNavigate();
 
   const [selectedRepo, setSelectedRepo] = useState(defaultRepo);
   const [checkedDateRange, setCheckedDateRange] = useState(false);
@@ -331,128 +259,26 @@ function IssuesTimeSeriesChart() {
     options.dataSource.yAxis[0].referenceline = [];
     options.dataSource.yAxis[0].aggregation = "average";
 
-    let textBinning = "";
+    options.dataSource.yAxis[0].plot.value =
+      schema[1].name =
+      options.dataSource.yAxis[0].title =
+        "Daily";
+    options.dataSource.yAxis[0].plot.type = "line";
+    options.dataSource.subcaption = "";
 
-    //console.log(res);
-    switch (transformation) {
-      case "none":
-        options.dataSource.yAxis[0].plot.value =
-          schema[1].name =
-          options.dataSource.yAxis[0].title =
-            "Daily Opened";
-        options.dataSource.yAxis[0].plot.type = "line";
-        options.dataSource.subcaption = "";
-        break;
-      case "yearlyBinning":
-        textBinning = `Daily Opened ${aggregation} by Year`;
-        if (aggregation == "sum") {
-          textBinning = "Total Opened by Year";
-        }
+    console.log("convert data source");
 
-        options.dataSource.yAxis[0].plot.value =
-          schema[1].name =
-          options.dataSource.yAxis[0].title =
-            textBinning;
+    let calculatedResult = [];
 
-        binning = YEARLY_BINNING;
-        options.dataSource.yAxis[0].plot.type = "column";
-        options.dataSource.yAxis[0].aggregation = aggregation;
-        break;
-      case "monthlyBinning":
-        textBinning = `Daily Opened ${aggregation} by Month`;
-        if (aggregation == "sum") {
-          textBinning = "Total Opened by Year";
-        }
-
-        options.dataSource.yAxis[0].plot.value =
-          schema[1].name =
-          options.dataSource.yAxis[0].title =
-            textBinning;
-        binning = MONTHLY_BINNING;
-        options.dataSource.yAxis[0].plot.type = "column";
-        options.dataSource.yAxis[0].aggregation = aggregation;
-        break;
-      case "weeklyBinning":
-        textBinning = `Daily Opened ${aggregation} by Week`;
-        if (aggregation == "sum") {
-          ("Total Opened by Year");
-        }
-        options.dataSource.yAxis[0].plot.value =
-          schema[1].name =
-          options.dataSource.yAxis[0].title =
-            textBinning;
-        binning = WEEKLY_BINNING;
-        options.dataSource.yAxis[0].plot.type = "column";
-        options.dataSource.yAxis[0].aggregation = aggregation;
-        break;
-      case "normalize":
-        options.dataSource.yAxis[0].plot.value =
-          schema[1].name =
-          options.dataSource.yAxis[0].title =
-            "Normalized";
-
-        const [median, highPercentile] = calculatePercentiles(
-          starHistory
-            .filter((subArray) => subArray[1] > 0)
-            .map((subArray) => subArray[1]),
-          0.5,
-          0.98
-        );
-
-        console.log(median, highPercentile);
-
-        appliedTransformationResult = starHistory.map((subArray) => {
-          if (subArray[1] > highPercentile) {
-            return [subArray[0], highPercentile, subArray[2]];
-          }
-          return subArray;
-        });
-        options.dataSource.yAxis[0].plot.type = "line";
-
-        options.dataSource.yAxis[0].referenceline = [
-          {
-            label: "Median",
-            value: median,
-          },
-        ];
-
-        break;
-      case "loess":
-        options.dataSource.yAxis[0].plot.value =
-          schema[1].name =
-          options.dataSource.yAxis[0].title =
-            "LOESS";
-        appliedTransformationResult = addLOESS(starHistory, 0.08);
-        options.dataSource.yAxis[0].plot.type = "line";
-
-        /*         options.dataSource.xAxis.initialinterval = {
-          from: "01-01-2022",
-          to: "01-01-2023",
-        }; */
-
-        break;
-      case "runningAverage":
-        options.dataSource.yAxis[0].plot.value =
-          schema[1].name =
-          options.dataSource.yAxis[0].title =
-            "Running Average";
-        appliedTransformationResult = addRunningAverage(starHistory, 120);
-        options.dataSource.yAxis[0].plot.type = "line";
-        break;
-      case "runningMedian":
-        options.dataSource.yAxis[0].plot.value =
-          schema[1].name =
-          options.dataSource.yAxis[0].title =
-            "Running Median";
-        appliedTransformationResult = addRunningMedian(starHistory, 120);
-        options.dataSource.yAxis[0].plot.type = "line";
-        break;
-      default:
-        break;
+    for (let res of appliedTransformationResult) {
+      calculatedResult.push([res[0], res[1], res[3], "Opened"]);
+      calculatedResult.push([res[0], res[2], res[4], "Closed"]);
     }
 
+    console.log(calculatedResult);
+
     const fusionTable = new FusionCharts.DataStore().createDataTable(
-      appliedTransformationResult,
+      calculatedResult,
       schema
     );
 
@@ -768,7 +594,7 @@ function IssuesTimeSeriesChart() {
           </FormControl>
         </div>
 
-   {/*      <CopyToClipboardButton
+        {/*      <CopyToClipboardButton
           style={{
             marginLeft: "10px",
             marginRight: "30px",
@@ -813,11 +639,6 @@ function IssuesTimeSeriesChart() {
           </GitHubButton>
         </div>
       </div>
-{/*       <EstimatedTimeProgress
-        text="Estimated Time Left"
-        totalTime={estimatedTime}
-      />
-      <ProgressBar value={progressValue} max={maxProgress} /> */}
       <div
         id="chart-container"
         style={{
