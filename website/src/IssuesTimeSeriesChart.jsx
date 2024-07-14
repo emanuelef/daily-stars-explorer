@@ -87,21 +87,28 @@ function IssuesTimeSeriesChart() {
       },
       caption: { text: "Issues" },
       data: null,
-      series: "Category",
+      //series: "Category",
       yAxis: [
         {
           plot: {
-            value: "Daily",
+            value: "Daily Opened",
             type: "line",
           },
-          title: "Daily",
+          title: "Daily Opened",
         },
         {
           plot: {
-            value: "Total",
+            value: "Daily Closed",
             type: "line",
           },
-          title: "Total",
+          title: "Daily Closed",
+        },
+        {
+          plot: {
+            value: "Open Issues",
+            type: "line",
+          },
+          title: "Open Issues",
         },
       ],
       xAxis: {
@@ -257,8 +264,7 @@ function IssuesTimeSeriesChart() {
     let calculatedResult = [];
 
     for (let res of appliedTransformationResult) {
-      calculatedResult.push([res[0], res[1], res[3], "Opened"]);
-      calculatedResult.push([res[0], res[2], res[4], "Closed"]);
+      calculatedResult.push([res[0], res[1], res[2], res[3] - res[4]]);
     }
 
     console.log(calculatedResult);

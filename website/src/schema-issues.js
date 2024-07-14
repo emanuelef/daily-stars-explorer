@@ -5,16 +5,16 @@ const schema = [
     format: "%-d-%-m-%Y",
   },
   {
-    name: "Daily",
+    name: "Daily Opened",
     type: "number",
   },
   {
-    name: "Total",
+    name: "Daily Closed",
     type: "number",
   },
   {
-    name: "Category",
-    type: "string",
+    name: "Open Issues",
+    type: "number",
   },
 ];
 
