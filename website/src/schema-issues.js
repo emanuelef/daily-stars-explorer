@@ -13,7 +13,7 @@ const schema = [
     type: "number",
   },
   {
-    name: "Type",
+    name: "Category",
     type: "string",
   },
 ];

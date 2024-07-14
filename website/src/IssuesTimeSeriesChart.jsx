@@ -17,8 +17,6 @@ import FusionCharts from "fusioncharts";
 import TimeSeries from "fusioncharts/fusioncharts.timeseries";
 import ReactFC from "react-fusioncharts";
 import schema from "./schema-issues";
-import EstimatedTimeProgress from "./EstimatedTimeProgress";
-import ProgressBar from "./ProgressBar";
 import { parseISO, intervalToDuration } from "date-fns";
 import { parseGitHubRepoURL } from "./githubUtils";
 import GammelTheme from "fusioncharts/themes/fusioncharts.theme.gammel";
@@ -89,7 +87,7 @@ function IssuesTimeSeriesChart() {
       },
       caption: { text: "Issues" },
       data: null,
-      series: "Type",
+      series: "Category",
       yAxis: [
         {
           plot: {
@@ -240,7 +238,7 @@ function IssuesTimeSeriesChart() {
       console.log(lastElement);
       console.log(starHistory);
       const isLastElementToday = isToday(lastElement[0]);
-      starHistory.pop(); // remove last element as the current day is not complete
+      starHistory.pop(); // remove last element since the current day is not complete
       console.log("isLastElementToday", isLastElementToday);
       setShowForceRefetch(!isLastElementToday);
       setForceRefetch(false);
@@ -254,18 +252,6 @@ function IssuesTimeSeriesChart() {
     const options = { ...ds };
 
     console.log(starHistory.length);
-
-    options.dataSource.subcaption = "";
-    options.dataSource.yAxis[0].referenceline = [];
-    options.dataSource.yAxis[0].aggregation = "average";
-
-    options.dataSource.yAxis[0].plot.value =
-      schema[1].name =
-      options.dataSource.yAxis[0].title =
-        "Daily";
-    options.dataSource.yAxis[0].plot.type = "line";
-    options.dataSource.subcaption = "";
-
     console.log("convert data source");
 
     let calculatedResult = [];
