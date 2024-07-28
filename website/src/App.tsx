@@ -172,7 +172,9 @@ function App() {
             <Route path="/calendar" element={<CalendarChart />} />
             <Route path="/info" element={<InfoPage />} />
             <Route path="/issues" element={<IssuesTimeSeriesChart />} />
+            <Route path="/issues/:user/:repository" element={<IssuesTimeSeriesChart />} />
             <Route path="/forks" element={<ForksTimeSeriesChart />} />
+            <Route path="/forks/:user/:repository" element={<ForksTimeSeriesChart />} />
           </Routes>
         </section>
       </div>
