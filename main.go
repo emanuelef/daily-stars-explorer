@@ -130,7 +130,7 @@ func main() {
 	})))
 
 	rateLimiter := limiter.New(limiter.Config{
-		Max:        80,            // Maximum number of requests allowed per hour
+		Max:        120,           // Maximum number of requests allowed per hour
 		Expiration: 1 * time.Hour, // Duration for the rate limit window
 		KeyGenerator: func(c *fiber.Ctx) string {
 			ip := c.Get("X-Forwarded-For")
