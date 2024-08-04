@@ -4,6 +4,7 @@ COPY main.go .
 COPY cache ./cache
 COPY otel_instrumentation ./otel_instrumentation
 COPY session ./session
+COPY news ./news
 COPY go.mod .
 COPY go.sum .
 RUN go mod download
