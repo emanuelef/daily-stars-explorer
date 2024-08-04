@@ -197,10 +197,9 @@ function TimeSeriesChart() {
       timeMarkerClick: function (eventObj, dataObj) {
         //console.log(eventObj);
         //console.log(dataObj);
-
         console.log(dataObj["startText"]);
-
-        //console.log(hnNews[dataObj.startText]);
+        console.log(currentHNnews.current[dataObj["startText"]]);
+        window.open(currentHNnews.current[dataObj["startText"]]["HNURL"], "_blank");
       },
     },
   };
@@ -223,7 +222,7 @@ function TimeSeriesChart() {
   const [forceRefetch, setForceRefetch] = useState(false);
   const [checkedYAxisType, setCheckedYAxisType] = useState(false);
 
-  const [hnNews, setHNNews] = useState({});
+  const currentHNnews = useRef({});
 
   const [theme, setTheme] = useState("candy");
 
@@ -610,7 +609,7 @@ function TimeSeriesChart() {
         });
 
 
-        setHNNews(mapHN);
+        currentHNnews.current = mapHN;
 
         console.log(mapHN)
 
@@ -622,7 +621,7 @@ function TimeSeriesChart() {
 
           return {
             start: formattedDate,
-            label: item.Title,
+            label: item.Title + "<br>" + "Points: " + item.Points + "<br>" + "Comments:" + item.NumComments,
             timeformat: "%d-%m-%Y",
             style: {
               marker: {
