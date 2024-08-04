@@ -36,7 +36,7 @@ type Article struct {
 func FetchHackerNewsArticles(query string, minPoints int) ([]Article, error) {
 	var articles []Article
 	page := 0
-	hitsPerPage := 1000
+	hitsPerPage := 100
 
 	for {
 		hnURL := "http://hn.algolia.com/api/v1/search"

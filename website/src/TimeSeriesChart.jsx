@@ -163,6 +163,7 @@ function TimeSeriesChart() {
         timemarker: [],
         binning: {},
       },
+      //      datamarker: [],
       chart: {
         animation: "0",
         theme: "candy",
@@ -193,6 +194,14 @@ function TimeSeriesChart() {
           e.sender.setTimeSelection(selectedTimeRange);
         }, 1000);
       },
+      timeMarkerClick: function (eventObj, dataObj) {
+        //console.log(eventObj);
+        //console.log(dataObj);
+
+        console.log(dataObj["startText"]);
+
+        //console.log(hnNews[dataObj.startText]);
+      },
     },
   };
 
@@ -213,6 +222,8 @@ function TimeSeriesChart() {
   const [showForceRefetch, setShowForceRefetch] = useState(false);
   const [forceRefetch, setForceRefetch] = useState(false);
   const [checkedYAxisType, setCheckedYAxisType] = useState(false);
+
+  const [hnNews, setHNNews] = useState({});
 
   const [theme, setTheme] = useState("candy");
 
@@ -266,7 +277,7 @@ function TimeSeriesChart() {
     options.dataSource.yAxis[0].plot.value =
       schema[1].name =
       options.dataSource.yAxis[0].title =
-        text;
+      text;
 
     setds(options);
   };
@@ -308,6 +319,29 @@ function TimeSeriesChart() {
       ]);
 
       return starsTrend;
+    } catch (error) {
+      console.error(`An error occurred: ${error}`);
+      setLoading(false);
+    }
+  };
+
+  const fetchHN = async (repo) => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${HOST}/hackernews?query=${repo}`);
+
+      if (!response.ok) {
+        setLoading(false);
+        toast.error("Internal Server Error. Please try again later.", {
+          position: toast.POSITION.BOTTOM_CENTER,
+        });
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      setLoading(false);
+
+      const data = await response.json();
+
+      return data;
     } catch (error) {
       console.error(`An error occurred: ${error}`);
       setLoading(false);
@@ -401,7 +435,7 @@ function TimeSeriesChart() {
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            "Daily Stars";
+          "Daily Stars";
         options.dataSource.yAxis[0].plot.type = "line";
         if (res && res.length == 3) {
           options.dataSource.subcaption = {
@@ -435,7 +469,7 @@ function TimeSeriesChart() {
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            "Trend";
+          "Trend";
         options.dataSource.yAxis[0].plot.type = "line";
         options.dataSource.subcaption = "Trend";
         break;
@@ -448,7 +482,7 @@ function TimeSeriesChart() {
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            textBinning;
+          textBinning;
 
         binning = YEARLY_BINNING;
         options.dataSource.yAxis[0].plot.type = "column";
@@ -463,7 +497,7 @@ function TimeSeriesChart() {
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            textBinning;
+          textBinning;
         binning = MONTHLY_BINNING;
         options.dataSource.yAxis[0].plot.type = "column";
         options.dataSource.yAxis[0].aggregation = aggregation;
@@ -476,7 +510,7 @@ function TimeSeriesChart() {
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            textBinning;
+          textBinning;
         binning = WEEKLY_BINNING;
         options.dataSource.yAxis[0].plot.type = "column";
         options.dataSource.yAxis[0].aggregation = aggregation;
@@ -485,7 +519,7 @@ function TimeSeriesChart() {
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            "Normalized";
+          "Normalized";
 
         const [median, highPercentile] = calculatePercentiles(
           starHistory
@@ -517,7 +551,7 @@ function TimeSeriesChart() {
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            "LOESS";
+          "LOESS";
         appliedTransformationResult = addLOESS(starHistory, 0.08);
         options.dataSource.yAxis[0].plot.type = "line";
 
@@ -531,7 +565,7 @@ function TimeSeriesChart() {
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            "Running Average";
+          "Running Average";
         appliedTransformationResult = addRunningAverage(starHistory, 120);
         options.dataSource.yAxis[0].plot.type = "line";
         break;
@@ -539,23 +573,73 @@ function TimeSeriesChart() {
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            "Running Median";
+          "Running Median";
         appliedTransformationResult = addRunningMedian(starHistory, 120);
         options.dataSource.yAxis[0].plot.type = "line";
         break;
       case "firstOrderDerivative":
-        options.dataSource.yAxis[0].plot.value =
-          schema[1].name =
-          options.dataSource.yAxis[0].title =
-            "Derivative";
-        appliedTransformationResult = calculateFirstDerivative(starHistory);
-        options.dataSource.yAxis[0].plot.type = "line";
+        /*         options.dataSource.yAxis[0].plot.value =
+                  schema[1].name =
+                  options.dataSource.yAxis[0].title =
+                  "Derivative";
+                appliedTransformationResult = calculateFirstDerivative(starHistory);
+                options.dataSource.yAxis[0].plot.type = "line"; */
+        const repoParsedTmp = parseGitHubRepoURL(selectedRepo);
+
+
+        let parts = repoParsedTmp.split("/");
+        let repoName = parts[1];
+
+
+        const hackernews = await fetchHN(repoName);
+
+        const mapHN = {};
+
+        hackernews.forEach(item => {
+
+          const date = new Date(item.CreatedAt);
+          const day = String(date.getDate()).padStart(2, '0');
+          const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are zero-indexed
+          const year = date.getFullYear();
+          const formattedDate = `${day}-${month}-${year}`;
+
+          mapHN[formattedDate] = {
+            URL: item.URL,
+            HNURL: item.HNURL
+          };
+        });
+
+
+        setHNNews(mapHN);
+
+        console.log(mapHN)
+
+        let news = hackernews.slice(0, 20).map(item => {
+          // Parse the date from the CreatedAt field
+          let date = new Date(item.CreatedAt);
+          // Format the date to "dd-mm-yyyy"
+          let formattedDate = `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}`;
+
+          return {
+            start: formattedDate,
+            label: item.Title,
+            timeformat: "%d-%m-%Y",
+            style: {
+              marker: {
+                fill: "#FFEE47",
+              },
+            },
+          };
+        });
+
+
+        options.dataSource.xAxis.timemarker = news;
         break;
       case "secondOrderDerivative":
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            "Second Derivative";
+          "Second Derivative";
         appliedTransformationResult = calculateSecondDerivative(starHistory);
         options.dataSource.yAxis[0].plot.type = "line";
         break;
@@ -649,6 +733,16 @@ function TimeSeriesChart() {
         options.dataSource.caption = { text: `Stars ${repo}` };
 
         options.dataSource.xAxis.timemarker = timemarkers;
+
+        /*         options.dataSource.datamarker = [{
+                  value: "Daily Stars",
+                  time: "11-11-2023",
+                  identifier: "H",
+                  timeformat: "%d-%m-%Y",
+                  tooltext:
+                    "Test"
+                }] */
+
         setds(options);
       })
       .catch((e) => {
@@ -779,8 +873,7 @@ function TimeSeriesChart() {
         end: Date.now(),
       });
       setAge(
-        `${years && years !== 0 ? `${years}y ` : ""}${
-          months && months !== 0 ? `${months}m ` : ""
+        `${years && years !== 0 ? `${years}y ` : ""}${months && months !== 0 ? `${months}m ` : ""
         }${days && days !== 0 ? `${days}d ` : ""}`
       );
     }

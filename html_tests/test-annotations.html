@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FusionChart - Temperature Readings</title>
+  <script type="text/javascript" src="https://cdn.fusioncharts.com/fusioncharts/latest/fusioncharts.js"></script>
+  <script type="text/javascript"
+    src="https://cdn.fusioncharts.com/fusioncharts/latest/themes/fusioncharts.theme.fusion.js"></script>
+  <script type="text/javascript"
+    src="https://cdn.fusioncharts.com/fusioncharts/latest/themes/fusioncharts.theme.candy.js"></script>
+</head>
+
+<body>
+  <div id="chart-container"></div>
+
+  <script>
+    Promise.all([
+      loadData(
+        "https://s3.eu-central-1.amazonaws.com/fusion.store/ft/data/annotating-single-data-point-data.json"
+      ),
+      loadData(
+        "https://s3.eu-central-1.amazonaws.com/fusion.store/ft/schema/annotating-single-data-point-schema.json"
+      )
+    ]).then(function (res) {
+      const data = res[0];
+      const schema = res[1];
+
+      const dataStore = new FusionCharts.DataStore();
+      const dataSource = {
+        chart: {
+          theme: "candy"
+        },
+        caption: {
+          text: "Interest Rate Analysis"
+        },
+        subcaption: {
+          text: "Federal Reserve (USA)"
+        },
+        yaxis: [
+          {
+            plot: "Interest Rate",
+            format: {
+              suffix: "%"
+            },
+            title: "Interest Rate"
+          }
+        ],
+        datamarker: [
+          {
+            value: "Interest Rate",
+            time: "Mar-1980",
+            identifier: "H",
+            timeformat: "%b-%Y",
+            tooltext:
+              "As a part of credit control program, under the leadership of Paul Volcker, the Fed tightened the money supply, allowing the federal fund rates to approach 20 percent."
+          },
+          {
+            value: "Interest Rate",
+            time: "Aug-1982",
+            identifier: "L",
+            timeformat: "%b-%Y",
+            tooltext:
+              "The FED eases off the monetary brakes, allowing interest rates to fall and the economy to begin a strong recovery."
+          },
+          {
+            value: "Interest Rate",
+            time: "Oct-1987",
+            identifier: "L",
+            timeformat: "%b-%Y",
+            tooltext: "The FED is forced to ease rate after the stock market crash."
+          },
+          {
+            value: "Interest Rate",
+            time: "May-1989",
+            identifier: "H",
+            timeformat: "%b-%Y",
+            tooltext:
+              "Liquidity problem forced the Fed to increase rate to nearly 10%."
+          },
+          {
+            value: "Interest Rate",
+            time: "Sept-1992",
+            identifier: "L",
+            timeformat: "%b-%Y",
+            tooltext:
+              "To fight the jobless economy growth the Fed had to reduce the interest rate to 3%."
+          },
+          {
+            value: "Interest Rate",
+            time: "Jun-2003",
+            identifier: "L",
+            timeformat: "%b-%Y",
+            tooltext:
+              "Struggling to revive the economy, the FED cuts it’s benchmark rate to 1%."
+          },
+          {
+            value: "Interest Rate",
+            time: "Sep-2007",
+            identifier: "L",
+            timeformat: "%b-%Y",
+            tooltext: "Fed started reducing the Federal Fund Rate."
+          },
+          {
+            value: "Interest Rate",
+            time: "Dec-2008",
+            identifier: "L",
+            timeformat: "%b-%Y",
+            tooltext:
+              "Fed reduced the interest rates to sub 0.25% to manage the menace of longest economic downturn since World War 2"
+          }
+        ]
+      };
+      dataSource.data = dataStore.createDataTable(data, schema);
+
+      new FusionCharts({
+        type: "timeseries",
+        renderAt: "chart-container",
+        width: "100%",
+        height: "500",
+        dataSource: dataSource
+      }).render();
+    });
+
+    function loadData(url) {
+      return fetch(url).then((response) => response.json()); // Assuming JSON data
+    }
+
+  </script>
+</body>
+
+</html>
