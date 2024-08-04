@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -17,6 +18,7 @@ import (
 
 	//"github.com/emanuelef/gh-repo-stats-server/cache"
 	cache "github.com/Code-Hex/go-generics-cache"
+	"github.com/emanuelef/gh-repo-stats-server/news"
 	"github.com/emanuelef/gh-repo-stats-server/otel_instrumentation"
 	"github.com/emanuelef/gh-repo-stats-server/session"
 	"github.com/emanuelef/github-repo-activity-stats/repostats"
@@ -111,6 +113,7 @@ func main() {
 	cacheStars := cache.New[string, StarsWithStatsResponse]()
 	cacheIssues := cache.New[string, IssuesWithStatsResponse]()
 	cacheForks := cache.New[string, ForksWithStatsResponse]()
+	cacheHackerNews := cache.New[string, []news.Article]()
 
 	onGoingStars := make(map[string]bool)
 	onGoingIssues := make(map[string]bool)
@@ -156,6 +159,33 @@ func main() {
 	app.Get("/gc", func(c *fiber.Ctx) error {
 		runtime.GC()
 		return c.Send(nil)
+	})
+
+	app.Get("/hackernews", func(c *fiber.Ctx) error {
+		query := c.Query("query", "golang")
+
+		if res, hit := cacheHackerNews.Get(query); hit {
+			return c.JSON(res)
+		}
+
+		limit, err := strconv.Atoi(c.Query("limit", "10"))
+		if err != nil {
+			return c.Status(400).SendString("Invalid limit parameter")
+		}
+
+		articles, err := news.FetchHackerNewsArticles(query, limit)
+		if err != nil {
+			log.Printf("Error fetching Hacker News articles: %v", err)
+			return c.Status(500).SendString("Internal Server Error")
+		}
+
+		now := time.Now()
+		nextDay := now.UTC().Truncate(24 * time.Hour).Add(1 * 24 * time.Hour)
+		durationUntilEndOfDay := nextDay.Sub(now)
+
+		cacheHackerNews.Set(query, articles, cache.WithExpiration(durationUntilEndOfDay))
+
+		return c.JSON(articles)
 	})
 
 	app.Get("/stats", func(c *fiber.Ctx) error {
