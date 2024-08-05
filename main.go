@@ -114,6 +114,7 @@ func main() {
 	cacheIssues := cache.New[string, IssuesWithStatsResponse]()
 	cacheForks := cache.New[string, ForksWithStatsResponse]()
 	cacheHackerNews := cache.New[string, []news.Article]()
+	cacheReddit := cache.New[string, []news.ArticleData]()
 
 	onGoingStars := make(map[string]bool)
 	onGoingIssues := make(map[string]bool)
@@ -184,6 +185,33 @@ func main() {
 		durationUntilEndOfDay := nextDay.Sub(now)
 
 		cacheHackerNews.Set(query, articles, cache.WithExpiration(durationUntilEndOfDay))
+
+		return c.JSON(articles)
+	})
+
+	app.Get("/reddit", func(c *fiber.Ctx) error {
+		query := c.Query("query", "golang")
+
+		if res, hit := cacheReddit.Get(query); hit {
+			return c.JSON(res)
+		}
+
+		limit, err := strconv.Atoi(c.Query("limit", "2"))
+		if err != nil {
+			return c.Status(400).SendString("Invalid limit parameter")
+		}
+
+		articles, err := news.FetchRedditPosts(query, limit)
+		if err != nil {
+			log.Printf("Error fetching Reddit articles: %v", err)
+			return c.Status(500).SendString("Internal Server Error")
+		}
+
+		now := time.Now()
+		nextDay := now.UTC().Truncate(24 * time.Hour).Add(1 * 24 * time.Hour)
+		durationUntilEndOfDay := nextDay.Sub(now)
+
+		cacheReddit.Set(query, articles, cache.WithExpiration(durationUntilEndOfDay))
 
 		return c.JSON(articles)
 	})
