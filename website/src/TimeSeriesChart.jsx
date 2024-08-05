@@ -347,6 +347,29 @@ function TimeSeriesChart() {
     }
   };
 
+  const fetchReddit = async (repo) => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${HOST}/reddit?query=${repo}`);
+
+      if (!response.ok) {
+        setLoading(false);
+        toast.error("Internal Server Error. Please try again later.", {
+          position: toast.POSITION.BOTTOM_CENTER,
+        });
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      setLoading(false);
+
+      const data = await response.json();
+
+      return data;
+    } catch (error) {
+      console.error(`An error occurred: ${error}`);
+      setLoading(false);
+    }
+  };
+
   const fetchTotalStars = async (repo) => {
     try {
       const response = await fetch(`${HOST}/totalStars?repo=${repo}`);
@@ -585,17 +608,13 @@ function TimeSeriesChart() {
                 options.dataSource.yAxis[0].plot.type = "line"; */
         const repoParsedTmp = parseGitHubRepoURL(selectedRepo);
 
-
         let parts = repoParsedTmp.split("/");
         let repoName = parts[1];
 
-
         const hackernews = await fetchHN(repoName);
-
         const mapHN = {};
 
         hackernews.forEach(item => {
-
           const date = new Date(item.CreatedAt);
           const day = String(date.getDate()).padStart(2, '0');
           const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are zero-indexed
@@ -607,7 +626,6 @@ function TimeSeriesChart() {
             HNURL: item.HNURL
           };
         });
-
 
         currentHNnews.current = mapHN;
 
@@ -625,7 +643,7 @@ function TimeSeriesChart() {
             timeformat: "%d-%m-%Y",
             style: {
               marker: {
-                fill: "#FFEE47",
+                fill: "#FF6600",
               },
             },
           };
@@ -635,12 +653,50 @@ function TimeSeriesChart() {
         options.dataSource.xAxis.timemarker = news;
         break;
       case "secondOrderDerivative":
+        /*
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
           "Second Derivative";
         appliedTransformationResult = calculateSecondDerivative(starHistory);
         options.dataSource.yAxis[0].plot.type = "line";
+        */
+        const redditPosts = await fetchReddit(parseGitHubRepoURL(selectedRepo).split("/")[1]);
+        const mapReddit = {};
+
+        redditPosts.forEach(item => {
+          const date = new Date(item.created);
+          const day = String(date.getDate()).padStart(2, '0');
+          const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are zero-indexed
+          const year = date.getFullYear();
+          const formattedDate = `${day}-${month}-${year}`;
+
+          mapReddit[formattedDate] = {
+            HNURL: item.url
+          };
+        });
+
+        currentHNnews.current = mapReddit;
+
+        let reddit = redditPosts.slice(0, 20).map(item => {
+          let date = new Date(item.created);
+          let formattedDate = `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}`;
+
+          return {
+            start: formattedDate,
+            label: item.title + "<br>" + "Ups: " + item.ups + "<br>" + "Comments:" + item.num_comments,
+            timeformat: "%d-%m-%Y",
+            style: {
+              marker: {
+                fill: "#FF6600",
+              },
+            },
+          };
+        });
+
+
+        options.dataSource.xAxis.timemarker = reddit;
+
         break;
       default:
         break;
