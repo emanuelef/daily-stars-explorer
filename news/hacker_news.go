@@ -19,8 +19,13 @@ type HNResponse struct {
 
 type HighlightResult struct {
 	Title struct {
-		Value string `json:"value"`
+		Value        string   `json:"value"`
+		MatchedWords []string `json:"matchedWords"`
 	} `json:"title"`
+	URL struct {
+		Value        string   `json:"value"`
+		MatchedWords []string `json:"matchedWords"`
+	} `json:"url"`
 }
 
 type HNHit struct {
@@ -31,7 +36,7 @@ type HNHit struct {
 	URL             string          `json:"url"`
 	StoryURL        string          `json:"story_url"`
 	ObjectID        string          `json:"objectID"`
-	HighlightResult HighlightResult `json:"highlightResult"`
+	HighlightResult HighlightResult `json:"_highlightResult"`
 }
 
 type Article struct {
@@ -53,7 +58,7 @@ func FetchHackerNewsArticles(query string, minPoints int) ([]Article, error) {
 		params := url.Values{}
 		params.Add("query", query)
 		params.Add("numericFilters", fmt.Sprintf("points>%d", minPoints))
-		params.Add("attributesToRetrieve", "title,created_at,points,num_comments,url,story_url,objectID,highlightResult")
+		params.Add("attributesToRetrieve", "title,created_at,points,num_comments,url,story_url,objectID,_highlightResult")
 		params.Add("hitsPerPage", strconv.Itoa(HITS_PER_PAGE))
 		params.Add("page", strconv.Itoa(page))
 
@@ -84,8 +89,8 @@ func FetchHackerNewsArticles(query string, minPoints int) ([]Article, error) {
 				articleURL = hit.StoryURL
 			}
 
-			// Extract matched words from the highlight result
-			matchedWords := extractMatchedWords(hit.HighlightResult.Title.Value)
+			// Combine matched words from title and URL
+			matchedWords := append(hit.HighlightResult.Title.MatchedWords, hit.HighlightResult.URL.MatchedWords...)
 
 			articles = append(articles, Article{
 				Title:        hit.Title,
@@ -107,33 +112,4 @@ func FetchHackerNewsArticles(query string, minPoints int) ([]Article, error) {
 	}
 
 	return articles, nil
-}
-
-// Helper function to extract matched words from the highlight result
-func extractMatchedWords(highlight string) []string {
-	var matchedWords []string
-	var word string
-	var inTag bool
-
-	for _, char := range highlight {
-		switch char {
-		case '<':
-			inTag = true
-			if word != "" {
-				matchedWords = append(matchedWords, word)
-				word = ""
-			}
-		case '>':
-			inTag = false
-		default:
-			if !inTag {
-				word += string(char)
-			}
-		}
-	}
-	if word != "" {
-		matchedWords = append(matchedWords, word)
-	}
-
-	return matchedWords
 }
