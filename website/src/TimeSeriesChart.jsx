@@ -403,6 +403,25 @@ function TimeSeriesChart() {
     }
   };
 
+  const filterHNResults = (results, repoName) => {
+    const uniqueUrls = new Set(); // To track URLs that have already been added
+    const filteredResults = [];
+
+    results.forEach(result => {
+      const url = result.URL.toLowerCase();
+      const title = result.Title.toLowerCase();
+      const repoNameLower = repoName.toLowerCase();
+
+      // Check if the URL is unique and if the title contains the repoName
+      if (!uniqueUrls.has(url) && title.includes(repoNameLower)) {
+        uniqueUrls.add(url); // Add the URL to the set
+        filteredResults.push(result); // Add the result to the filtered list
+      }
+    });
+
+    return filteredResults;
+  };
+
   const updateGraph = async (starHistory) => {
     // check if last element is today
     if (starHistory.length > 1) {
@@ -611,7 +630,16 @@ function TimeSeriesChart() {
         let parts = repoParsedTmp.split("/");
         let repoName = parts[1];
 
-        const hackernews = await fetchHN(repoName);
+        const [hackernewsRepoName, hackernewsWithUser] = await Promise.all([
+          fetchHN(repoName),
+          fetchHN(repoParsedTmp),
+        ]);
+
+        const hackernews = filterHNResults([
+          ...hackernewsRepoName,
+          ...hackernewsWithUser,
+        ], repoName)
+
         const mapHN = {};
 
         hackernews.forEach(item => {
