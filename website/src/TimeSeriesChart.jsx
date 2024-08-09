@@ -132,7 +132,7 @@ function TimeSeriesChart() {
         style: {
           container: {
             "border-color": "#000000",
-            "background-color": "#4a4a4a",
+            "background-color": "#1a1a1a",
             boxShadow: "0 4px 8px rgba(0,0,0,0.2)"
           },
           text: {
