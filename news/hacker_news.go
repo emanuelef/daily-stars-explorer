@@ -10,7 +10,7 @@ import (
 )
 
 const HITS_PER_PAGE = 100
-const MAX_PAGES = 2
+const MAX_PAGES = 3
 
 type HNResponse struct {
 	Hits    []HNHit `json:"hits"`
@@ -22,10 +22,6 @@ type HighlightResult struct {
 		Value        string   `json:"value"`
 		MatchedWords []string `json:"matchedWords"`
 	} `json:"title"`
-	URL struct {
-		Value        string   `json:"value"`
-		MatchedWords []string `json:"matchedWords"`
-	} `json:"url"`
 }
 
 type HNHit struct {
@@ -89,8 +85,8 @@ func FetchHackerNewsArticles(query string, minPoints int) ([]Article, error) {
 				articleURL = hit.StoryURL
 			}
 
-			// Combine matched words from title and URL
-			matchedWords := append(hit.HighlightResult.Title.MatchedWords, hit.HighlightResult.URL.MatchedWords...)
+			// Extract matched words from the title's highlight result
+			matchedWords := hit.HighlightResult.Title.MatchedWords
 
 			articles = append(articles, Article{
 				Title:        hit.Title,
