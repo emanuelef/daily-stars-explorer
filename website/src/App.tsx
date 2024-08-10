@@ -5,6 +5,7 @@ import MainPage from "./MainPage";
 import TimeSeriesChart from "./TimeSeriesChart";
 import CompareChart from "./CompareChart";
 import IssuesTimeSeriesChart from "./IssuesTimeSeriesChart";
+import PRsTimeSeriesChart from "./PRsTimeSeriesChart";
 import ForksTimeSeriesChart from "./ForksTimeSeriesChart";
 import CalendarChart from "./CalendarChart";
 import InfoPage from "./InfoPage";
@@ -20,6 +21,7 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import SsidChartRoundedIcon from "@mui/icons-material/SsidChartRounded";
 import BugReportRoundedIcon from "@mui/icons-material/BugReportRounded";
 import AltRouteOutlinedIcon from "@mui/icons-material/AltRouteOutlined";
+import CallMergeRoundedIcon from '@mui/icons-material/CallMergeRounded';
 
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -84,7 +86,8 @@ function App() {
                   useLocation().pathname.includes("/calendar") ||
                   useLocation().pathname.includes("/info") ||
                   useLocation().pathname.includes("/issues") ||
-                  useLocation().pathname.includes("/forks")
+                  useLocation().pathname.includes("/forks") ||
+                  useLocation().pathname.includes("/prs")
                 )
               }
             >
@@ -100,6 +103,17 @@ function App() {
               active={useLocation().pathname.includes("/compare")}
             >
               Compare
+            </MenuItem>
+            <MenuItem
+              component={<Link to="/prs" className="link" />}
+              icon={
+                <Tooltip title="PRs Timeline" placement="right">
+                  <CallMergeRoundedIcon />
+                </Tooltip>
+              }
+              active={useLocation().pathname.includes("/prs")}
+            >
+              Issues
             </MenuItem>
             <MenuItem
               component={<Link to="/issues" className="link" />}
@@ -175,6 +189,8 @@ function App() {
             <Route path="/issues/:user/:repository" element={<IssuesTimeSeriesChart />} />
             <Route path="/forks" element={<ForksTimeSeriesChart />} />
             <Route path="/forks/:user/:repository" element={<ForksTimeSeriesChart />} />
+            <Route path="/prs" element={<PRsTimeSeriesChart />} />
+            <Route path="/prs/:user/:repository" element={<PRsTimeSeriesChart />} />
           </Routes>
         </section>
       </div>
