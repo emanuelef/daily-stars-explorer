@@ -389,6 +389,45 @@ function TimeSeriesChart() {
     options.dataSource.xAxis.timemarker = [...reddit, ...currentPeaks.current];
   }
 
+  const fetchYoutubeFeed = async (options) => {
+    const ytPosts = await fetchYT(parseGitHubRepoURL(selectedRepo).split("/")[1]);
+    const mapYT = {};
+
+    ytPosts.forEach(item => {
+      const date = new Date(item.published_at);
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are zero-indexed
+      const year = date.getFullYear();
+      const formattedDate = `${day}-${month}-${year}`;
+
+      mapYT[formattedDate] = {
+        HNURL: item.video_url
+      };
+    });
+
+    console.log(mapYT);
+
+    currentHNnews.current = mapYT;
+
+    let youtube = ytPosts.slice(0, 20).map(item => {
+      let date = new Date(item.published_at);
+      let formattedDate = `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}`;
+
+      return {
+        start: formattedDate,
+        label: item.title + "<br>" + "Views: " + item.view_count,
+        timeformat: "%d-%m-%Y",
+        style: {
+          marker: {
+            fill: "#FF6600",
+          },
+        },
+      };
+    });
+
+    options.dataSource.xAxis.timemarker = [...youtube, ...currentPeaks.current];
+  }
+
   const fetchPredictions = async (repo) => {
     try {
       setLoading(true);
@@ -451,6 +490,29 @@ function TimeSeriesChart() {
     try {
       setLoading(true);
       const response = await fetch(`${HOST}/reddit?query=${repo}`);
+
+      if (!response.ok) {
+        setLoading(false);
+        toast.error("Internal Server Error. Please try again later.", {
+          position: toast.POSITION.BOTTOM_CENTER,
+        });
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      setLoading(false);
+
+      const data = await response.json();
+
+      return data;
+    } catch (error) {
+      console.error(`An error occurred: ${error}`);
+      setLoading(false);
+    }
+  };
+
+  const fetchYT = async (repo) => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${HOST}/youtube?query=${repo}`);
 
       if (!response.ok) {
         setLoading(false);
@@ -749,6 +811,9 @@ function TimeSeriesChart() {
         break;
       case "reddit":
         await fetchRedditFeed(options);
+        break;
+      case "youtube":
+        await fetchYoutubeFeed(options);
         break;
       case "none":
         options.dataSource.xAxis.timemarker = currentPeaks.current;
@@ -1063,7 +1128,8 @@ function TimeSeriesChart() {
           >
             <MenuItem value={"none"}>None</MenuItem>
             <MenuItem value={"hacker"}>HNews</MenuItem>
-            <MenuItem value={"reddit"}>Reddit</MenuItem> 
+            <MenuItem value={"reddit"}>Reddit</MenuItem>
+            <MenuItem value={"youtube"}>YouTube</MenuItem>
           </Select>
         </FormControl>
 
