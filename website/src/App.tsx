@@ -113,7 +113,7 @@ function App() {
               }
               active={useLocation().pathname.includes("/prs")}
             >
-              Issues
+              PRs
             </MenuItem>
             <MenuItem
               component={<Link to="/issues" className="link" />}
