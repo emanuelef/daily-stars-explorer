@@ -37,6 +37,7 @@ import {
   calculateFirstDerivative,
   calculateSecondDerivative,
   calculatePercentiles,
+  formatNumber,
 } from "./utils";
 
 // This needs to be refactored, focus is mostly on functionalities and implementing ideas
@@ -417,7 +418,7 @@ function TimeSeriesChart() {
 
       return {
         start: formattedDate,
-        label: item.title + "<br>" + "Views: " + item.view_count,
+        label: item.title + "<br>" + "Views: " + formatNumber(item.view_count),
         timeformat: "%d-%m-%Y",
         style: {
           marker: {
@@ -1117,7 +1118,7 @@ function TimeSeriesChart() {
           marginTop: "20px",
           marginRight: "10px",
           marginLeft: "0px",
-          width: "100px",
+          width: "120px",
         }}>
           <InputLabel id="style-select-drop">Feeds</InputLabel>
           <Select
@@ -1175,7 +1176,7 @@ function TimeSeriesChart() {
         <TextField
           style={{
             marginTop: "20px",
-            marginRight: "10px",
+            marginRight: "5px",
             marginLeft: "10px",
             width: "90px",
           }}
@@ -1190,7 +1191,7 @@ function TimeSeriesChart() {
         <TextField
           style={{
             marginTop: "20px",
-            marginRight: "10px",
+            marginRight: "5px",
             marginLeft: "10px",
             width: "100px",
           }}
@@ -1205,7 +1206,7 @@ function TimeSeriesChart() {
         <TextField
           style={{
             marginTop: "20px",
-            marginRight: "10px",
+            marginRight: "5px",
             marginLeft: "10px",
             width: "210px",
           }}

@@ -145,11 +145,11 @@ const calculatePercentiles = (arr, percentile1, percentile2) => {
   const value1 =
     sortedArray[index1] +
     (percentile1 - index1 / (sortedArray.length - 1)) *
-      (sortedArray[index1 + 1] - sortedArray[index1]);
+    (sortedArray[index1 + 1] - sortedArray[index1]);
   const value2 =
     sortedArray[index2] +
     (percentile2 - index2 / (sortedArray.length - 1)) *
-      (sortedArray[index2 + 1] - sortedArray[index2]);
+    (sortedArray[index2 + 1] - sortedArray[index2]);
 
   return [value1, value2, max];
 };
@@ -198,6 +198,16 @@ const calculateSecondDerivative = (starsArray) => {
   return result;
 };
 
+const formatNumber = (num) => {
+  if (num < 1000) {
+    return num.toString();
+  } else if (num < 1_000_000) {
+    return (num / 1000).toFixed(2) + 'k';
+  } else {
+    return (num / 1_000_000).toFixed(2) + 'M';
+  }
+}
+
 export {
   addRunningMedian,
   addRunningAverage,
@@ -207,4 +217,5 @@ export {
   calculatePercentiles,
   calculateFirstDerivative,
   calculateSecondDerivative,
+  formatNumber,
 };
