@@ -329,8 +329,6 @@ function TimeSeriesChart() {
 
     currentHNnews.current = mapHN;
 
-    console.log(mapHN)
-
     let news = hackernews.slice(0, 20).map(item => {
       // Parse the date from the CreatedAt field
       let date = new Date(item.CreatedAt);
@@ -390,8 +388,14 @@ function TimeSeriesChart() {
   }
 
   const fetchYoutubeFeed = async (options) => {
-    const ytPosts = await fetchYT(parseGitHubRepoURL(selectedRepo).split("/")[1]);
+    let ytPosts = await fetchYT(parseGitHubRepoURL(selectedRepo).split("/")[1]);
     const mapYT = {};
+
+    const repoParsedTmp = parseGitHubRepoURL(selectedRepo);
+    let parts = repoParsedTmp.split("/");
+    let repoName = parts[1];
+
+    ytPosts = ytPosts.filter(item => item.title.toLowerCase().includes(repoName.toLowerCase()));
 
     ytPosts.forEach(item => {
       const date = new Date(item.published_at);
@@ -404,8 +408,6 @@ function TimeSeriesChart() {
         HNURL: item.video_url
       };
     });
-
-    console.log(mapYT);
 
     currentHNnews.current = mapYT;
 
