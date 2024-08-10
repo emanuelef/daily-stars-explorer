@@ -1061,9 +1061,9 @@ function TimeSeriesChart() {
             label="Feed"
             onChange={handleFeedChange}
           >
-            <MenuItem value={"hacker"}>HNews</MenuItem>
-            <MenuItem value={"reddit"}>Reddit</MenuItem>
             <MenuItem value={"none"}>None</MenuItem>
+            <MenuItem value={"hacker"}>HNews</MenuItem>
+            <MenuItem value={"reddit"}>Reddit</MenuItem> 
           </Select>
         </FormControl>
 
