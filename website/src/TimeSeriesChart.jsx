@@ -224,7 +224,9 @@ function TimeSeriesChart() {
   const [checkedYAxisType, setCheckedYAxisType] = useState(false);
 
   const currentHNnews = useRef({});
+  const currentPeaks = useRef([]);
 
+  const [feed, setFeed] = useState("hacker");
   const [theme, setTheme] = useState("candy");
 
   const [transformation, setTransformation] = useState(
@@ -263,6 +265,10 @@ function TimeSeriesChart() {
     setds(options);
   };
 
+  const handleFeedChange = (event) => {
+    setFeed(event.target.value);
+  };
+
   const handleTransformationChange = (event) => {
     setTransformation(event.target.value);
   };
@@ -284,11 +290,104 @@ function TimeSeriesChart() {
 
   useEffect(() => {
     updateGraph(currentStarsHistory);
-  }, [transformation]);
+  }, [transformation, feed]);
 
   const handleForceRefetchChange = (event) => {
     setForceRefetch(event.target.checked);
   };
+
+  const fetchHNFeed = async (options) => {
+    const repoParsedTmp = parseGitHubRepoURL(selectedRepo);
+
+    let parts = repoParsedTmp.split("/");
+    let repoName = parts[1];
+
+    const [hackernewsRepoName, hackernewsWithUser] = await Promise.all([
+      fetchHN(repoName),
+      fetchHN(repoParsedTmp),
+    ]);
+
+    const hackernews = filterHNResults([
+      ...hackernewsRepoName,
+      ...hackernewsWithUser,
+    ], repoName)
+
+    const mapHN = {};
+
+    hackernews.forEach(item => {
+      const date = new Date(item.CreatedAt);
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are zero-indexed
+      const year = date.getFullYear();
+      const formattedDate = `${day}-${month}-${year}`;
+
+      mapHN[formattedDate] = {
+        URL: item.URL,
+        HNURL: item.HNURL
+      };
+    });
+
+    currentHNnews.current = mapHN;
+
+    console.log(mapHN)
+
+    let news = hackernews.slice(0, 20).map(item => {
+      // Parse the date from the CreatedAt field
+      let date = new Date(item.CreatedAt);
+      // Format the date to "dd-mm-yyyy"
+      let formattedDate = `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}`;
+
+      return {
+        start: formattedDate,
+        label: item.Title + "<br>" + "Points: " + item.Points + "<br>" + "Comments:" + item.NumComments,
+        timeformat: "%d-%m-%Y",
+        style: {
+          marker: {
+            fill: "#FF6600",
+          },
+        },
+      };
+    });
+
+    options.dataSource.xAxis.timemarker = [...news, ...currentPeaks.current];
+  }
+
+  const fetchRedditFeed = async (options) => {
+    const redditPosts = await fetchReddit(parseGitHubRepoURL(selectedRepo).split("/")[1]);
+    const mapReddit = {};
+
+    redditPosts.forEach(item => {
+      const date = new Date(item.created);
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are zero-indexed
+      const year = date.getFullYear();
+      const formattedDate = `${day}-${month}-${year}`;
+
+      mapReddit[formattedDate] = {
+        HNURL: item.url
+      };
+    });
+
+    currentHNnews.current = mapReddit;
+
+    let reddit = redditPosts.slice(0, 20).map(item => {
+      let date = new Date(item.created);
+      let formattedDate = `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}`;
+
+      return {
+        start: formattedDate,
+        label: item.title + "<br>" + "Ups: " + item.ups + "<br>" + "Comments:" + item.num_comments,
+        timeformat: "%d-%m-%Y",
+        style: {
+          marker: {
+            fill: "#FF6600",
+          },
+        },
+      };
+    });
+
+    options.dataSource.xAxis.timemarker = [...reddit, ...currentPeaks.current];
+  }
 
   const fetchPredictions = async (repo) => {
     try {
@@ -407,16 +506,20 @@ function TimeSeriesChart() {
   const filterHNResults = (results, repoName) => {
     const uniqueUrls = new Set(); // To track URLs that have already been added
     const filteredResults = [];
+    const repoNameLower = repoName.toLowerCase();
+    const hasSpecialSeparator = repoName.includes('-') || repoName.includes('_');
 
     results.forEach(result => {
       const url = result.URL.toLowerCase();
       const title = result.Title.toLowerCase();
-      const repoNameLower = repoName.toLowerCase();
 
-      // Check if the URL is unique and if the title contains the repoName
-      if (!uniqueUrls.has(url) && title.includes(repoNameLower)) {
-        uniqueUrls.add(url); // Add the URL to the set
-        filteredResults.push(result); // Add the result to the filtered list
+      // Check if the URL is unique
+      if (!uniqueUrls.has(url)) {
+        // If there are no hyphens in the repoName, check if the title contains repoName
+        if (hasSpecialSeparator || title.includes(repoNameLower)) {
+          uniqueUrls.add(url); // Add the URL to the set
+          filteredResults.push(result); // Add the result to the filtered list
+        }
       }
     });
 
@@ -620,114 +723,35 @@ function TimeSeriesChart() {
         options.dataSource.yAxis[0].plot.type = "line";
         break;
       case "firstOrderDerivative":
-        /*         options.dataSource.yAxis[0].plot.value =
-                  schema[1].name =
-                  options.dataSource.yAxis[0].title =
-                  "Derivative";
-                appliedTransformationResult = calculateFirstDerivative(starHistory);
-                options.dataSource.yAxis[0].plot.type = "line"; */
-        const repoParsedTmp = parseGitHubRepoURL(selectedRepo);
-
-        let parts = repoParsedTmp.split("/");
-        let repoName = parts[1];
-
-        const [hackernewsRepoName, hackernewsWithUser] = await Promise.all([
-          fetchHN(repoName),
-          fetchHN(repoParsedTmp),
-        ]);
-
-        const hackernews = filterHNResults([
-          ...hackernewsRepoName,
-          ...hackernewsWithUser,
-        ], repoName)
-
-        const mapHN = {};
-
-        hackernews.forEach(item => {
-          const date = new Date(item.CreatedAt);
-          const day = String(date.getDate()).padStart(2, '0');
-          const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are zero-indexed
-          const year = date.getFullYear();
-          const formattedDate = `${day}-${month}-${year}`;
-
-          mapHN[formattedDate] = {
-            URL: item.URL,
-            HNURL: item.HNURL
-          };
-        });
-
-        currentHNnews.current = mapHN;
-
-        console.log(mapHN)
-
-        let news = hackernews.slice(0, 20).map(item => {
-          // Parse the date from the CreatedAt field
-          let date = new Date(item.CreatedAt);
-          // Format the date to "dd-mm-yyyy"
-          let formattedDate = `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}`;
-
-          return {
-            start: formattedDate,
-            label: item.Title + "<br>" + "Points: " + item.Points + "<br>" + "Comments:" + item.NumComments,
-            timeformat: "%d-%m-%Y",
-            style: {
-              marker: {
-                fill: "#FF6600",
-              },
-            },
-          };
-        });
-
-
-        options.dataSource.xAxis.timemarker = news;
+        options.dataSource.yAxis[0].plot.value =
+          schema[1].name =
+          options.dataSource.yAxis[0].title =
+          "Derivative";
+        appliedTransformationResult = calculateFirstDerivative(starHistory);
+        options.dataSource.yAxis[0].plot.type = "line";
         break;
       case "secondOrderDerivative":
-        /*
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
           "Second Derivative";
         appliedTransformationResult = calculateSecondDerivative(starHistory);
         options.dataSource.yAxis[0].plot.type = "line";
-        */
-        const redditPosts = await fetchReddit(parseGitHubRepoURL(selectedRepo).split("/")[1]);
-        const mapReddit = {};
-
-        redditPosts.forEach(item => {
-          const date = new Date(item.created);
-          const day = String(date.getDate()).padStart(2, '0');
-          const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are zero-indexed
-          const year = date.getFullYear();
-          const formattedDate = `${day}-${month}-${year}`;
-
-          mapReddit[formattedDate] = {
-            HNURL: item.url
-          };
-        });
-
-        currentHNnews.current = mapReddit;
-
-        let reddit = redditPosts.slice(0, 20).map(item => {
-          let date = new Date(item.created);
-          let formattedDate = `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}`;
-
-          return {
-            start: formattedDate,
-            label: item.title + "<br>" + "Ups: " + item.ups + "<br>" + "Comments:" + item.num_comments,
-            timeformat: "%d-%m-%Y",
-            style: {
-              marker: {
-                fill: "#FF6600",
-              },
-            },
-          };
-        });
-
-
-        options.dataSource.xAxis.timemarker = reddit;
-
         break;
+
       default:
+        break;
+    }
+
+    switch (feed) {
+      case "hacker":
+        await fetchHNFeed(options);
+        break;
+      case "reddit":
+        await fetchRedditFeed(options);
+        break;
+      case "none":
+        options.dataSource.xAxis.timemarker = currentPeaks.current;
         break;
     }
 
@@ -811,12 +835,12 @@ function TimeSeriesChart() {
           },
         }));
 
-        const timemarkers = maxPeriods.concat(maxPeaks);
+        currentPeaks.current = maxPeriods.concat(maxPeaks);
 
         const options = { ...ds };
         options.dataSource.caption = { text: `Stars ${repo}` };
 
-        options.dataSource.xAxis.timemarker = timemarkers;
+        options.dataSource.xAxis.timemarker = currentPeaks.current;
 
         /*         options.dataSource.datamarker = [{
                   value: "Daily Stars",
@@ -1008,7 +1032,7 @@ function TimeSeriesChart() {
             marginTop: "20px",
             marginRight: "20px",
             marginLeft: "10px",
-            width: "500px",
+            width: "400px",
           }}
           label="Enter a GitHub repository"
           variant="outlined"
@@ -1021,6 +1045,28 @@ function TimeSeriesChart() {
             }
           }}
         />
+
+        <FormControl style={{
+          marginTop: "20px",
+          marginRight: "10px",
+          marginLeft: "0px",
+          width: "100px",
+        }}>
+          <InputLabel id="style-select-drop">Feeds</InputLabel>
+          <Select
+            labelId="feed"
+            id="feed"
+            value={feed}
+            size="small"
+            label="Feed"
+            onChange={handleFeedChange}
+          >
+            <MenuItem value={"hacker"}>HNews</MenuItem>
+            <MenuItem value={"reddit"}>Reddit</MenuItem>
+            <MenuItem value={"none"}>None</MenuItem>
+          </Select>
+        </FormControl>
+
         <LoadingButton
           style={{
             marginTop: "20px",
@@ -1049,7 +1095,7 @@ function TimeSeriesChart() {
                   name="forceRefetch"
                 />
               }
-              label="Force Refetch"
+              label="Update"
             />
           </Tooltip>
         )}
