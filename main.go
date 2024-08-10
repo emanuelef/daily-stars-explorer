@@ -115,6 +115,7 @@ func main() {
 	cacheForks := cache.New[string, ForksWithStatsResponse]()
 	cacheHackerNews := cache.New[string, []news.Article]()
 	cacheReddit := cache.New[string, []news.ArticleData]()
+	cacheYouTube := cache.New[string, []news.YTVideoMetadata]()
 
 	onGoingStars := make(map[string]bool)
 	onGoingIssues := make(map[string]bool)
@@ -146,7 +147,23 @@ func main() {
 		},
 	})
 
+	rateLimiterFeed := limiter.New(limiter.Config{
+		Max:        200,           // Maximum number of requests allowed per hour
+		Expiration: 1 * time.Hour, // Duration for the rate limit window
+		KeyGenerator: func(c *fiber.Ctx) string {
+			ip := c.Get("X-Forwarded-For")
+			// If X-Forwarded-For is empty, fallback to RemoteIP
+			if ip == "" {
+				ip = "unknown"
+			}
+			return ip
+		},
+	})
+
 	app.Use("/allStars", rateLimiter)
+	app.Use("/youtube", rateLimiterFeed)
+	app.Use("/reddit", rateLimiterFeed)
+	app.Use("/hackernews", rateLimiterFeed)
 	app.Use(recover.New())
 	app.Use(cors.New())
 	app.Use(compress.New())
@@ -212,6 +229,33 @@ func main() {
 		durationUntilEndOfDay := nextDay.Sub(now)
 
 		cacheReddit.Set(query, articles, cache.WithExpiration(durationUntilEndOfDay))
+
+		return c.JSON(articles)
+	})
+
+	app.Get("/youtube", func(c *fiber.Ctx) error {
+		query := c.Query("query", "golang")
+
+		if res, hit := cacheYouTube.Get(query); hit {
+			return c.JSON(res)
+		}
+
+		limit, err := strconv.Atoi(c.Query("limit", "10"))
+		if err != nil {
+			return c.Status(400).SendString("Invalid limit parameter")
+		}
+
+		articles, err := news.FetchYouTubeVideos(query, limit)
+		if err != nil {
+			log.Printf("Error fetching Hacker News articles: %v", err)
+			return c.Status(500).SendString("Internal Server Error")
+		}
+
+		now := time.Now()
+		nextDay := now.UTC().Truncate(24 * time.Hour).Add(1 * 24 * time.Hour)
+		durationUntilEndOfDay := nextDay.Sub(now)
+
+		cacheYouTube.Set(query, articles, cache.WithExpiration(durationUntilEndOfDay))
 
 		return c.JSON(articles)
 	})
