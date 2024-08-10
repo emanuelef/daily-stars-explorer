@@ -226,7 +226,7 @@ function TimeSeriesChart() {
   const currentHNnews = useRef({});
   const currentPeaks = useRef([]);
 
-  const [feed, setFeed] = useState("hacker");
+  const [feed, setFeed] = useState("none");
   const [theme, setTheme] = useState("candy");
 
   const [transformation, setTransformation] = useState(
