@@ -61,6 +61,10 @@ type ForksWithStatsResponse struct {
 	Forks []stats.ForksPerDay `json:"forks"`
 }
 
+type PRsWithStatsResponse struct {
+	PRs []stats.PRsPerDay `json:"prs"`
+}
+
 func getEnv(key, fallback string) string {
 	value, exists := os.LookupEnv(key)
 	if !exists {
@@ -113,6 +117,7 @@ func main() {
 	cacheStars := cache.New[string, StarsWithStatsResponse]()
 	cacheIssues := cache.New[string, IssuesWithStatsResponse]()
 	cacheForks := cache.New[string, ForksWithStatsResponse]()
+	cachePRs := cache.New[string, PRsWithStatsResponse]()
 	cacheHackerNews := cache.New[string, []news.Article]()
 	cacheReddit := cache.New[string, []news.ArticleData]()
 	cacheYouTube := cache.New[string, []news.YTVideoMetadata]()
@@ -120,6 +125,7 @@ func main() {
 	onGoingStars := make(map[string]bool)
 	onGoingIssues := make(map[string]bool)
 	onGoingForks := make(map[string]bool)
+	onGoingPRs := make(map[string]bool)
 
 	ghStatClients := make(map[string]*repostats.ClientGQL)
 
@@ -662,6 +668,110 @@ func main() {
 
 		cacheForks.Set(repo, res, cache.WithExpiration(durationUntilEndOfDay))
 		delete(onGoingForks, repo)
+
+		return c.JSON(res)
+	})
+
+	app.Get("/allPRs", func(c *fiber.Ctx) error {
+		param := c.Query("repo")
+		randomIndex := rand.Intn(len(maps.Keys(ghStatClients)))
+		clientKey := c.Query("client", maps.Keys(ghStatClients)[randomIndex])
+		forceRefetch := c.Query("forceRefetch", "false") == "true"
+
+		client, ok := ghStatClients[clientKey]
+		if !ok {
+			return c.Status(404).SendString("Resource not found")
+		}
+
+		repo, err := url.QueryUnescape(param)
+		if err != nil {
+			return err
+		}
+
+		// needed because c.Query cannot be used as a map key
+		repo = fmt.Sprintf("%s", repo)
+		repo = strings.ToLower(repo)
+
+		ip := c.Get("X-Forwarded-For")
+
+		// If X-Forwarded-For is empty, fallback to RemoteIP
+		if ip == "" {
+			ip = c.IP()
+		}
+
+		userAgent := c.Get("User-Agent")
+		log.Printf("PRs Request from IP: %s, Repo: %s User-Agent: %s\n", ip, repo, userAgent)
+
+		if strings.Contains(userAgent, "python-requests") {
+			return c.Status(404).SendString("Custom 404 Error: Resource not found")
+		}
+
+		span := trace.SpanFromContext(c.UserContext())
+		span.SetAttributes(attribute.String("github.repo", repo))
+		span.SetAttributes(attribute.String("caller.ip", ip))
+
+		if forceRefetch {
+			cachePRs.Delete(repo)
+		}
+
+		if res, hit := cachePRs.Get(repo); hit {
+			return c.JSON(res)
+		}
+
+		// if another request is already getting the data, skip and rely on SSE updates
+		if _, hit := onGoingPRs[repo]; hit {
+			return c.SendStatus(fiber.StatusNoContent)
+		}
+
+		onGoingPRs[repo] = true
+
+		updateChannel := make(chan int)
+		var allPRs []stats.PRsPerDay
+
+		eg, ctx := errgroup.WithContext(ctx)
+
+		eg.Go(func() error {
+			allPRs, err = client.GetAllPRsHistory(ctx, repo, updateChannel)
+			if err != nil {
+				return err
+			}
+			return nil
+		})
+
+		for progress := range updateChannel {
+			// fmt.Printf("Progress: %d\n", progress)
+
+			wg := &sync.WaitGroup{}
+
+			for _, s := range currentSessions.Sessions {
+				wg.Add(1)
+				go func(cs *session.Session) {
+					defer wg.Done()
+					if cs.Repo == repo {
+						cs.StateChannel <- progress
+					}
+				}(s)
+			}
+			wg.Wait()
+		}
+
+		// defer close(updateChannel)
+
+		if err := eg.Wait(); err != nil {
+			delete(onGoingPRs, repo)
+			return err
+		}
+
+		res := PRsWithStatsResponse{
+			PRs: allPRs,
+		}
+
+		now := time.Now()
+		nextDay := now.UTC().Truncate(24 * time.Hour).Add(DAY_CACHED * 24 * time.Hour)
+		durationUntilEndOfDay := nextDay.Sub(now)
+
+		cachePRs.Set(repo, res, cache.WithExpiration(durationUntilEndOfDay))
+		delete(onGoingPRs, repo)
 
 		return c.JSON(res)
 	})
