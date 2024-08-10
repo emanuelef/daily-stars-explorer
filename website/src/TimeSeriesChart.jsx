@@ -330,7 +330,7 @@ function TimeSeriesChart() {
 
     currentHNnews.current = mapHN;
 
-    let news = hackernews.slice(0, 20).map(item => {
+    let news = hackernews.slice(0, 40).map(item => {
       // Parse the date from the CreatedAt field
       let date = new Date(item.CreatedAt);
       // Format the date to "dd-mm-yyyy"
@@ -369,7 +369,7 @@ function TimeSeriesChart() {
 
     currentHNnews.current = mapReddit;
 
-    let reddit = redditPosts.slice(0, 20).map(item => {
+    let reddit = redditPosts.slice(0, 40).map(item => {
       let date = new Date(item.created);
       let formattedDate = `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}`;
 
@@ -412,7 +412,7 @@ function TimeSeriesChart() {
 
     currentHNnews.current = mapYT;
 
-    let youtube = ytPosts.slice(0, 20).map(item => {
+    let youtube = ytPosts.slice(0, 100).map(item => {
       let date = new Date(item.published_at);
       let formattedDate = `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}`;
 
