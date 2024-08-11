@@ -7,6 +7,7 @@ import CompareChart from "./CompareChart";
 import IssuesTimeSeriesChart from "./IssuesTimeSeriesChart";
 import PRsTimeSeriesChart from "./PRsTimeSeriesChart";
 import ForksTimeSeriesChart from "./ForksTimeSeriesChart";
+import CommitsTimeSeriesChart from "./CommitsTimeSeriesChart";
 import CalendarChart from "./CalendarChart";
 import InfoPage from "./InfoPage";
 
@@ -22,6 +23,7 @@ import SsidChartRoundedIcon from "@mui/icons-material/SsidChartRounded";
 import BugReportRoundedIcon from "@mui/icons-material/BugReportRounded";
 import AltRouteOutlinedIcon from "@mui/icons-material/AltRouteOutlined";
 import CallMergeRoundedIcon from '@mui/icons-material/CallMergeRounded';
+import CommitRoundedIcon from '@mui/icons-material/CommitRounded';
 
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -87,7 +89,8 @@ function App() {
                   useLocation().pathname.includes("/info") ||
                   useLocation().pathname.includes("/issues") ||
                   useLocation().pathname.includes("/forks") ||
-                  useLocation().pathname.includes("/prs")
+                  useLocation().pathname.includes("/prs") ||
+                  useLocation().pathname.includes("/commits")
                 )
               }
             >
@@ -103,6 +106,17 @@ function App() {
               active={useLocation().pathname.includes("/compare")}
             >
               Compare
+            </MenuItem>
+            <MenuItem
+              component={<Link to="/commits" className="link" />}
+              icon={
+                <Tooltip title="Commits Timeline" placement="right">
+                  <CommitRoundedIcon />
+                </Tooltip>
+              }
+              active={useLocation().pathname.includes("/commits")}
+            >
+              Commits
             </MenuItem>
             <MenuItem
               component={<Link to="/prs" className="link" />}
@@ -191,6 +205,8 @@ function App() {
             <Route path="/forks/:user/:repository" element={<ForksTimeSeriesChart />} />
             <Route path="/prs" element={<PRsTimeSeriesChart />} />
             <Route path="/prs/:user/:repository" element={<PRsTimeSeriesChart />} />
+            <Route path="/commits" element={<CommitsTimeSeriesChart />} />
+            <Route path="/commits/:user/:repository" element={<CommitsTimeSeriesChart />} />
           </Routes>
         </section>
       </div>
