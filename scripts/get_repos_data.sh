@@ -14,3 +14,8 @@ while IFS= read -r repo; do
 
   sleep 600
 done <preloaded-repositories.txt
+
+curl -s "http://143.47.226.125:8080/allCommits?repo=helm/helm"
+curl -s "http://143.47.226.125:8080/allPRs?repo=helm/helm"
+curl -s "http://143.47.226.125:8080/allIssues?repo=helm/helm"
+curl -s "http://143.47.226.125:8080/allForks?repo=helm/helm"

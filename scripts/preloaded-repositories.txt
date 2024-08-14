@@ -1,8 +1,5 @@
 helm/helm
-kubernetes/kubernetes
 helm/helm-mapkubeapis
-prometheus/prometheus
-cue-lang/cue
 facebook/react
 vuejs/vue
 rust-lang/rust
@@ -13,6 +10,7 @@ microsoft/typescript
 redis/redis
 ollama/ollama
 jetbrains/kotlin
+kubernetes/kubernetes
 apple/swift
 hashicorp/terraform
 pandas-dev/pandas
