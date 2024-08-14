@@ -24,6 +24,7 @@ type TokenResponse struct {
 
 type PostData struct {
 	Title       string  `json:"title"`
+	SelfText    string  `json:"selftext"`
 	Created     float64 `json:"created"`
 	Ups         int     `json:"ups"`
 	NumComments int     `json:"num_comments"`
@@ -36,6 +37,7 @@ type ArticleData struct {
 	Ups         int    `json:"ups"`
 	NumComments int    `json:"num_comments"`
 	Url         string `json:"url"`
+	Content     string `json:"content,omitempty"` // Add this field to store the content of the first post
 }
 
 type RedditResponse struct {
@@ -86,7 +88,7 @@ func FetchRedditPosts(query string, minUpvotes int) ([]ArticleData, error) {
 	params := url.Values{}
 	params.Set("q", query)
 	params.Set("sort", "relevance")
-	params.Set("limit", "100")
+	params.Set("limit", "120")
 
 	req, err := http.NewRequest("GET", "https://oauth.reddit.com/search?"+params.Encode(), nil)
 	if err != nil {
@@ -112,13 +114,18 @@ func FetchRedditPosts(query string, minUpvotes int) ([]ArticleData, error) {
 	for _, child := range redditResponse.Data.Children {
 		if child.Data.Ups >= minUpvotes {
 			createdAt := time.Unix(int64(child.Data.Created), 0).Format("2006-01-02 15:04:05")
-			articles = append(articles, ArticleData{
+			article := ArticleData{
 				Title:       child.Data.Title,
 				Created:     createdAt,
 				Ups:         child.Data.Ups,
 				NumComments: child.Data.NumComments,
 				Url:         "https://www.reddit.com" + child.Data.Permalink,
-			})
+			}
+
+			if strings.Contains(strings.ToLower(child.Data.Title), strings.ToLower(query)) || strings.Contains(strings.ToLower(child.Data.SelfText), strings.ToLower(query)) {
+				article.Content = child.Data.SelfText
+				articles = append(articles, article)
+			}
 		}
 	}
 
