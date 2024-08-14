@@ -66,7 +66,7 @@ function PRsTimeSeriesChart() {
   const chart_props = {
     type: "timeseries",
     width: "100%",
-    height: "80%",
+    height: "88%",
     dataEmptyMessage: "Fetching data...",
     styleDefinition: {
       colorstyle: {
