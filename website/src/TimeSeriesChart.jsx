@@ -581,7 +581,7 @@ function TimeSeriesChart() {
       // Check if the URL is unique
       if (!uniqueUrls.has(url)) {
         // If there are no hyphens in the repoName, check if the title contains repoName
-        if (hasSpecialSeparator || title.includes(repoNameLower)) {
+        if (hasSpecialSeparator || title.includes(repoNameLower) || url.includes(repoNameLower)) {
           uniqueUrls.add(url); // Add the URL to the set
           filteredResults.push(result); // Add the result to the filtered list
         }
