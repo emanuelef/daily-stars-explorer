@@ -17,7 +17,7 @@
     "@mui/icons-material": "^5.16.7",
     "@mui/lab": "^5.0.0-alpha.173",
     "@mui/material": "^5.16.7",
-    "@mui/x-data-grid": "^7.13.0",
+    "@mui/x-data-grid": "^7.14.0",
     "@nivo/bar": "^0.87.0",
     "@nivo/calendar": "^0.87.0",
     "@nivo/treemap": "^0.87.0",
@@ -44,7 +44,7 @@
     "@typescript-eslint/parser": "^8.2.0",
     "@vitejs/plugin-react": "^4.3.1",
     "eslint-plugin-react-hooks": "^4.6.2",
-    "eslint-plugin-react-refresh": "^0.4.10",
+    "eslint-plugin-react-refresh": "^0.4.11",
     "typescript": "^5.5.4",
     "vite": "^5.4.2"
   }
