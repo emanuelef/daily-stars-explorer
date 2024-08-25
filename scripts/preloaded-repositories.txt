@@ -6,6 +6,7 @@ rust-lang/rust
 pytorch/pytorch
 gofiber/fiber
 gin-gonic/gin
+grafana/grafana
 microsoft/typescript
 redis/redis
 ollama/ollama
@@ -14,3 +15,6 @@ kubernetes/kubernetes
 apple/swift
 hashicorp/terraform
 pandas-dev/pandas
+quickwit-oss/quickwit
+pyenv/pyenv
+opentofu/opentofu
