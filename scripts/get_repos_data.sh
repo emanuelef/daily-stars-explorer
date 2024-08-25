@@ -15,12 +15,12 @@ while IFS= read -r repo; do
   sleep 600
 done <preloaded-repositories.txt
 
-curl -s "http://143.47.226.125:8080/allCommits?repo=helm/helm"
-curl -s "http://143.47.226.125:8080/allPRs?repo=helm/helm"
-curl -s "http://143.47.226.125:8080/allIssues?repo=helm/helm"
-curl -s "http://143.47.226.125:8080/allForks?repo=helm/helm"
+curl -s "http://143.47.226.125:8080/allCommits?repo=helm/helm" > /dev/null
+curl -s "http://143.47.226.125:8080/allPRs?repo=helm/helm" > /dev/null
+curl -s "http://143.47.226.125:8080/allIssues?repo=helm/helm" > /dev/null
+curl -s "http://143.47.226.125:8080/allForks?repo=helm/helm" > /dev/null
 sleep 600
-curl -s "http://143.47.226.125:8080/allCommits?repo=pyenv/pyenv"
-curl -s "http://143.47.226.125:8080/allPRs?repo=pyenv/pyenv"
-curl -s "http://143.47.226.125:8080/allIssues?repo=pyenv/pyenv"
-curl -s "http://143.47.226.125:8080/allForks?repo=pyenv/pyenv"
+curl -s "http://143.47.226.125:8080/allCommits?repo=pyenv/pyenv" > /dev/null
+curl -s "http://143.47.226.125:8080/allPRs?repo=pyenv/pyenv" > /dev/null
+curl -s "http://143.47.226.125:8080/allIssues?repo=pyenv/pyenv" > /dev/null
+curl -s "http://143.47.226.125:8080/allForks?repo=pyenv/pyenv" > /dev/null
