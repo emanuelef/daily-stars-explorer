@@ -30,6 +30,9 @@ import CopyToClipboardButton from "./CopyToClipboardButton";
 import GitHubButton from "react-github-btn";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import Alert from "@mui/material/Alert";
+import IconButton from "@mui/material/IconButton";
+import CloseIcon from "@mui/icons-material/Close";
 import {
   addRunningMedian,
   addRunningAverage,
@@ -1082,6 +1085,11 @@ function TimeSeriesChart() {
 
   return (
     <div>
+      <Alert
+        severity="warning"
+      >
+        Currently experiencing intermittent issues related to the DNS service{" "}
+      </Alert>
       <ToastContainer
         position="top-center"
         autoClose={5000}
