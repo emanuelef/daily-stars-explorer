@@ -1085,23 +1085,6 @@ function TimeSeriesChart() {
 
   return (
     <div>
-      <Alert
-        severity="warning"
-      >
-        Currently experiencing intermittent issues related to the DNS service{" "}
-      </Alert>
-      <ToastContainer
-        position="top-center"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="dark"
-      />
       <div style={{ display: "flex", alignItems: "center" }}>
         <TextField
           style={{
