@@ -26,7 +26,7 @@ import UmberTheme from "fusioncharts/themes/fusioncharts.theme.umber";
 import CopyToClipboardButton from "./CopyToClipboardButton";
 
 const HOST = import.meta.env.VITE_HOST;
-const PREDICTOR_HOST = "https://emanuelef.dynv6.net:8082";
+const PREDICTOR_HOST = "https://emafuma.mywire.org:8082";
 
 const YEARLY_BINNING = {
   year: [1],
