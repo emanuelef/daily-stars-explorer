@@ -17,7 +17,7 @@
     "@mui/icons-material": "^6.0.2",
     "@mui/lab": "^6.0.0-beta.9",
     "@mui/material": "^6.0.2",
-    "@mui/x-data-grid": "^7.15.0",
+    "@mui/x-data-grid": "^7.16.0",
     "@nivo/bar": "^0.87.0",
     "@nivo/calendar": "^0.87.0",
     "@nivo/treemap": "^0.87.0",
