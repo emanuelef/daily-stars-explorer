@@ -1187,7 +1187,7 @@ function TimeSeriesChart() {
             width: "100px",
           }}
           size="small"
-          id="age"
+          id="last-10d"
           label="⭐ Last 10 d"
           value={starsLast10d}
           InputProps={{
@@ -1214,7 +1214,7 @@ function TimeSeriesChart() {
             marginTop: "20px",
             marginRight: "10px",
             marginLeft: "10px",
-            width: "120px",
+            width: "130px",
           }}
           size="small"
           id="age"
