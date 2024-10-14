@@ -34,7 +34,7 @@
     "react-markdown": "^9.0.1",
     "react-pro-sidebar": "^1.1.0",
     "react-router-dom": "^6.27.0",
-    "react-toastify": "^10.0.5",
+    "react-toastify": "^10.0.6",
     "react18-json-view": "^0.2.8"
   },
   "devDependencies": {
