@@ -1,0 +1,25 @@
+name: daily-stars
+services:
+  daily-stars-explorer:
+    build: .
+    image: ghcr.io/emanuelef/daily-stars-explorer:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8080
+      - REDDIT_CLIENT_ID=your-reddit-client-id
+      - REDDIT_CLIENT_SECRET=your-reddit-client-secret
+      - REDDIT_USER_AGENT=your-reddit-user-agent
+      - REDDIT_USERNAME=your-reddit-username
+      - REDDIT_PASSWORD=your-reddit-password
+      - YOUTUBE_API_KEY=your-youtube-api-key
+      - PAT=your-github-personal-access-token
+      - PAT2=your-github-personal-access-token
+    healthcheck:
+      test: ["CMD", "wget", "-q", "http://127.0.0.1:8080/health", "-O", "-"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    expose:
+      - "8080"
