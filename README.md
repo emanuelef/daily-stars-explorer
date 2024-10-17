@@ -38,7 +38,7 @@ https://emanuelef.github.io/daily-stars-explorer/#/compare
 ## Run in Docker
 
 ```bash
-docker run --restart=always --env-file .env -d -p 8080:8080 ghcr.io/emanuelef/daily-stars-explorer:latest
+docker run --name daily-stars-explorer --restart=always --env-file .env -d -p 8080:8080 ghcr.io/emanuelef/daily-stars-explorer:latest
 ```
 
 ## Articles
