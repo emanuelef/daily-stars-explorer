@@ -1085,7 +1085,7 @@ func main() {
 		return nil
 	})
 
-	host := getEnv("HOST", "localhost")
+	host := getEnv("HOST", "0.0.0.0")
 	port := getEnv("PORT", "8080")
 	hostAddress := fmt.Sprintf("%s:%s", host, port)
 
