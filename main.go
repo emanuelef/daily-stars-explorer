@@ -188,6 +188,17 @@ func main() {
 		return c.Send(nil)
 	})
 
+	// Do not index the website
+	app.Get("/robots.txt", func(c *fiber.Ctx) error {
+		return c.SendString("User-agent: *\nDisallow: /")
+	})
+
+	// serve the static files from the website/dist folder
+	app.Static("/", "./website/dist")
+
+	// serve the assets files from the website/dist/assets folder
+	app.Static("/daily-stars-explorer/assets", "./website/dist/assets")
+
 	app.Get("/gc", func(c *fiber.Ctx) error {
 		runtime.GC()
 		return c.Send(nil)
