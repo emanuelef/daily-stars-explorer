@@ -1,5 +1,4 @@
 FROM node:23-alpine AS website
-ENV NODE_ENV=dev
 ENV VITE_HOST=""
 WORKDIR /build
 COPY website .
