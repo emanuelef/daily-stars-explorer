@@ -1,7 +1,10 @@
-FROM node:14.17.0-alpine AS website
-WORKDIR /app
-COPY website /app/website
-RUN cd website && npm install && npm run build
+FROM node:23-alpine AS website
+ENV NODE_ENV=dev
+ENV VITE_HOST=""
+WORKDIR /build
+COPY website .
+RUN npm install && npm run build
+RUN ls -la /build/dist
 
 FROM golang:1.23.2-alpine AS builder
 WORKDIR /app
@@ -18,6 +21,6 @@ RUN go build -o gh_stats_app ./main.go
 FROM alpine:latest AS runner
 WORKDIR /home/app
 COPY --from=builder /app/gh_stats_app .
-COPY --from=website /app/website/dist ./website/dist
+COPY --from=website /build/dist ./website/dist
 EXPOSE 8080
 ENTRYPOINT ["./gh_stats_app"]
