@@ -19,6 +19,10 @@ A growing or stable star count, rather than just a total high number, suggests s
 
 In [Factors contributing to daily stars](./website/src/info.md#factors-contributing-to-daily-stars) I explain what are the reasons why some repos can get high number of stars.
 
+## Hosted version
+
+There's a [version hosted](https://emanuelef.github.io/daily-stars-explorer/#/helm/helm) that is using my PAT.
+
 ## Demo
 
 [Demo Video](https://www.loom.com/share/b1728c0305e74a8ebf1e23c419c84549?sid=3bdcbbf6-d205-4157-bed5-825d4ba5f5e3)
