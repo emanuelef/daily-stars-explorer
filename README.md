@@ -50,6 +50,7 @@ docker run --name daily-stars-explorer --restart=always --env-file .env -d -p 80
 - [How to get full history of GitHub stars](https://medium.com/@emafuma/how-to-get-full-history-of-github-stars-f03cc93183a7)
 - [Building a Cost-Free, Always-On Personal Project Stack](https://medium.com/@emafuma/building-a-cost-free-always-on-personal-project-stack-3eaa02ac16b6)
 - [Introducing My GitHub Stars History Project: Unlocking the Full Star Story Beyond 40K and Daily Trends](https://www.reddit.com/r/github/comments/17e31ab/introducing_my_github_stars_history_project/)
+- [GitHub Daily Stars Explorer: New Features and User-Requested Improvements](https://medium.com/@emafuma/github-daily-stars-explorer-new-features-and-user-requested-improvements-f2805ac98cfd)
 
 ## Features
 
