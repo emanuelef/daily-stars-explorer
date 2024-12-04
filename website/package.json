@@ -33,19 +33,19 @@
     "react-github-btn": "^1.4.0",
     "react-markdown": "^9.0.1",
     "react-pro-sidebar": "^1.1.0",
-    "react-router-dom": "^7.0.1",
+    "react-router-dom": "^7.0.2",
     "react-toastify": "^10.0.6",
     "react18-json-view": "^0.2.8"
   },
   "devDependencies": {
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
-    "@typescript-eslint/eslint-plugin": "^8.16.0",
-    "@typescript-eslint/parser": "^8.16.0",
+    "@typescript-eslint/eslint-plugin": "^8.17.0",
+    "@typescript-eslint/parser": "^8.17.0",
     "@vitejs/plugin-react": "^4.3.4",
     "eslint-plugin-react-hooks": "^5.0.0",
-    "eslint-plugin-react-refresh": "^0.4.14",
+    "eslint-plugin-react-refresh": "^0.4.16",
     "typescript": "^5.7.2",
-    "vite": "^6.0.1"
+    "vite": "^6.0.2"
   }
 }
