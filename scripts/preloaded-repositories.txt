@@ -18,3 +18,5 @@ pandas-dev/pandas
 quickwit-oss/quickwit
 pyenv/pyenv
 opentofu/opentofu
+fastapi/fastapi
+django/django
