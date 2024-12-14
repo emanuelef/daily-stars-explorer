@@ -8,7 +8,6 @@ import IssuesTimeSeriesChart from "./IssuesTimeSeriesChart";
 import PRsTimeSeriesChart from "./PRsTimeSeriesChart";
 import ForksTimeSeriesChart from "./ForksTimeSeriesChart";
 import CommitsTimeSeriesChart from "./CommitsTimeSeriesChart";
-import CalendarChart from "./CalendarChart";
 import InfoPage from "./InfoPage";
 
 import { Sidebar, Menu, MenuItem } from "react-pro-sidebar";
@@ -16,7 +15,6 @@ import { Routes, Route, Link, useLocation } from "react-router-dom";
 
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import TableViewRounded from "@mui/icons-material/TableViewRounded";
-import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import QueryStatsRoundedIcon from "@mui/icons-material/QueryStatsRounded";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import SsidChartRoundedIcon from "@mui/icons-material/SsidChartRounded";
@@ -85,7 +83,6 @@ function App() {
                 !(
                   useLocation().pathname.includes("/compare") ||
                   useLocation().pathname.includes("/table") ||
-                  useLocation().pathname.includes("/calendar") ||
                   useLocation().pathname.includes("/info") ||
                   useLocation().pathname.includes("/issues") ||
                   useLocation().pathname.includes("/forks") ||
@@ -163,17 +160,6 @@ function App() {
               Table
             </MenuItem>
             <MenuItem
-              component={<Link to="/calendar" className="link" />}
-              icon={
-                <Tooltip title="Calendar" placement="right">
-                  <CalendarMonthIcon />
-                </Tooltip>
-              }
-              active={useLocation().pathname === "/calendar"}
-            >
-              Calendar
-            </MenuItem>
-            <MenuItem
               component={<Link to="/info" className="link" />}
               icon={
                 <Tooltip title="Info" placement="right">
@@ -197,7 +183,6 @@ function App() {
               path="/compare/:user/:repository/:secondUser/:secondRepository"
               element={<CompareChart />}
             />
-            <Route path="/calendar" element={<CalendarChart />} />
             <Route path="/info" element={<InfoPage />} />
             <Route path="/issues" element={<IssuesTimeSeriesChart />} />
             <Route path="/issues/:user/:repository" element={<IssuesTimeSeriesChart />} />
