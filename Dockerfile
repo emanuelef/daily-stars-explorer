@@ -2,7 +2,7 @@ FROM node:23-alpine AS website
 ENV VITE_HOST=""
 WORKDIR /build
 COPY website .
-RUN npm install && npm run build
+RUN npm install --force && npm run build
 RUN ls -la /build/dist
 
 FROM golang:1.23.4-alpine AS builder
