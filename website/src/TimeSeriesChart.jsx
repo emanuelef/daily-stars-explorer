@@ -99,7 +99,7 @@ const FORCE_REFETCH_TOOLTIP =
 const INFO_TOOLTIP =
   "Stars are fetched until UTC midnight of the previous day. \
    You can zoom inside the graph by scrolling up and down or dragging the selectors in the underline graph. \
-   Once fetched the history is kept for 7 days but it's possible to refetch again by checking the Force Refetch checkbox.";
+   Once fetched the history is kept for 7 days but it's possible to refetch again by checking the Update checkbox.";
 
 const INCLUDE_DATE_RANGE =
   "When checked the URL to share will include the current time range selected";
