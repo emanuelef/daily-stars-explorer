@@ -121,6 +121,23 @@ function TimeSeriesChart() {
     defaultRepo = `${user}/${repository}`;
   }
 
+  const [zoomedStars, setZoomedStars] = useState(0);
+  const [zoomedStarsPercentageTotal, setZoomedStarsPercentageTotal] = useState(0);
+
+  const handleZoom = (start, end) => {
+    if (ds && ds.dataSource && ds.dataSource.data) {
+      const zoomedData = ds.dataSource.data._data.filter(
+        (dataPoint) => dataPoint[0] >= start && dataPoint[0] <= end
+      );
+      const totalStarsSelection = zoomedData.reduce((sum, dataPoint) => sum + dataPoint[1], 0);
+      setZoomedStars(totalStarsSelection);
+      setZoomedStarsPercentageTotal(
+        ((totalStarsSelection / ds.dataSource.data._data[ds.dataSource.data._data.length - 1][2]) * 100).toFixed(2)
+      );
+    }
+  };
+
+
   const chart_props = {
     type: "timeseries",
     width: "100%",
@@ -192,6 +209,7 @@ function TimeSeriesChart() {
             start: ev.data.start,
             end: ev.data.end,
           });
+          handleZoom(ev.data.start, ev.data.end);
         }
       },
       rendered: function (e) {
@@ -1386,6 +1404,36 @@ function TimeSeriesChart() {
             Star Me
           </GitHubButton>
         </div>
+      </div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          marginTop: "10px",
+          marginLeft: "10px",
+        }}
+      >
+        <label
+          style={{
+            color: "white",
+            marginRight: "10px",
+          }}
+        >
+          New Stars in Zoomed Period:
+        </label>
+        <input
+          type="text"
+          value={`${formatNumber(zoomedStars)} - ${zoomedStarsPercentageTotal}%`}
+          readOnly
+          style={{
+            color: "white",
+            backgroundColor: "black",
+            border: "1px solid #ccc",
+            borderRadius: "4px",
+            padding: "5px",
+            width: "130px",
+          }}
+        />
       </div>
       <EstimatedTimeProgress
         text="Estimated Time Left"
