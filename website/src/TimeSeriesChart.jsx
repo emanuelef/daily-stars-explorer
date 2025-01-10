@@ -1405,9 +1405,35 @@ function TimeSeriesChart() {
           </GitHubButton>
         </div>
       </div>
-      <div>
-        <label>Total Stars in Zoomed Period: </label>
-        <input type="text" value={`${formatNumber(zoomedStars)} - ${zoomedStarsPercentageTotal}%`} readOnly />
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          marginTop: "10px",
+          marginLeft: "10px",
+        }}
+      >
+        <label
+          style={{
+            color: "white",
+            marginRight: "10px",
+          }}
+        >
+          New Stars in Zoomed Period:
+        </label>
+        <input
+          type="text"
+          value={`${formatNumber(zoomedStars)} - ${zoomedStarsPercentageTotal}%`}
+          readOnly
+          style={{
+            color: "white",
+            backgroundColor: "black",
+            border: "1px solid #ccc",
+            borderRadius: "4px",
+            padding: "5px",
+            width: "130px",
+          }}
+        />
       </div>
       <EstimatedTimeProgress
         text="Estimated Time Left"
