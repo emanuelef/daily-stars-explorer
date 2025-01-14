@@ -185,7 +185,7 @@ function CompareChart() {
   const [selectedRepo2, setSelectedRepo2] = useState(defaultRepo2);
   const [starsRepos, setStarsRepos] = useState([]);
 
-  const currentRepo= useRef(defaultRepo);
+  const currentRepo = useRef(defaultRepo);
   const currentRepo2 = useRef(defaultRepo2);
 
   const [checkedDateRange, setCheckedDateRange] = useState(false);
@@ -653,7 +653,8 @@ function CompareChart() {
           value={selectedRepo2}
           onChange={(e, v) => {
             currentRepo2.current = v?.label;
-            setSelectedRepo2(v?.label)}}
+            setSelectedRepo2(v?.label)
+          }}
         />
         <div
           style={{ marginTop: "20px", display: "flex", alignItems: "center" }}
@@ -751,16 +752,19 @@ function CompareChart() {
               style={{
                 color: "white",
                 marginRight: "10px",
+                width: "500px", // Set a fixed width for the label
+                display: "inline-block", // Make the label display inline-block
               }}
             >
-              {`New Stars in Zoomed Period (${repo}):`}
+              {`${repo}`}
             </label>
             <input
               type="text"
-              value={`${zoomedStars[repo] !== undefined
-                ? `${formatNumber(zoomedStars[repo])} - ${zoomedStarsPercentageTotal[repo]}%`
-                : "N/A"
-                }`}
+              value={
+                zoomedStars[repo] !== undefined
+                  ? `+${formatNumber(zoomedStars[repo])} ${zoomedStarsPercentageTotal[repo]}%`
+                  : "N/A"
+              }
               readOnly
               style={{
                 color: "white",
@@ -768,7 +772,7 @@ function CompareChart() {
                 border: "1px solid #ccc",
                 borderRadius: "4px",
                 padding: "5px",
-                width: "200px",
+                width: "200px", // Match the width of the label
               }}
             />
           </div>
