@@ -1,5 +1,5 @@
 /* eslint-disable no-case-declarations */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import TextField from "@mui/material/TextField";
 import FormControl from "@mui/material/FormControl";
@@ -185,6 +185,9 @@ function CompareChart() {
   const [selectedRepo2, setSelectedRepo2] = useState(defaultRepo2);
   const [starsRepos, setStarsRepos] = useState([]);
 
+  const currentRepo= useRef(defaultRepo);
+  const currentRepo2 = useRef(defaultRepo2);
+
   const [checkedDateRange, setCheckedDateRange] = useState(false);
 
   const [checkedYAxisType, setCheckedYAxisType] = useState(false);
@@ -203,8 +206,6 @@ function CompareChart() {
 
   const handleZoom = (start, end) => {
     if (ds && ds.dataSource && ds.dataSource.data) {
-      console.log(ds.dataSource.data._data);
-
       // Filter data points within the zoomed range
       const zoomedData = ds.dataSource.data._data.filter(
         (dataPoint) => dataPoint[0] >= start && dataPoint[0] <= end
@@ -233,19 +234,21 @@ function CompareChart() {
 
       console.log("Latest Totals by Repository:", latestTotalsByRepo);
 
+      console.log("Selected Repositories:", currentRepo.current, selectedRepo2);
+
       // Extract totals for the selected repositories
-      const totalStarsRepo1 = totalsByRepo[selectedRepo] || 0;
-      const totalStarsRepo2 = totalsByRepo[selectedRepo2] || 0;
+      const totalStarsRepo1 = totalsByRepo[currentRepo.current] || 0;
+      const totalStarsRepo2 = totalsByRepo[currentRepo2.current] || 0;
 
       console.log("Total Stars Repo 1 (Zoomed):", totalStarsRepo1);
       console.log("Total Stars Repo 2 (Zoomed):", totalStarsRepo2);
 
       // Set total stars in state
-      setZoomedStars({ [selectedRepo]: totalStarsRepo1, [selectedRepo2]: totalStarsRepo2 });
+      setZoomedStars({ [currentRepo.current]: totalStarsRepo1, [currentRepo2.current]: totalStarsRepo2 });
 
       // Calculate percentages relative to the latest total stars for each repository
-      const latestTotalRepo1 = latestTotalsByRepo[selectedRepo] || 1; // Avoid division by zero
-      const latestTotalRepo2 = latestTotalsByRepo[selectedRepo2] || 1; // Avoid division by zero
+      const latestTotalRepo1 = latestTotalsByRepo[currentRepo.current] || 1; // Avoid division by zero
+      const latestTotalRepo2 = latestTotalsByRepo[currentRepo2.current] || 1; // Avoid division by zero
 
       const totalPercentageRepo1 = ((totalStarsRepo1 / latestTotalRepo1) * 100).toFixed(2);
       const totalPercentageRepo2 = ((totalStarsRepo2 / latestTotalRepo2) * 100).toFixed(2);
@@ -255,8 +258,8 @@ function CompareChart() {
 
       // Set percentages in state
       setZoomedStarsPercentageTotal({
-        [selectedRepo]: totalPercentageRepo1,
-        [selectedRepo2]: totalPercentageRepo2,
+        [currentRepo.current]: totalPercentageRepo1,
+        [currentRepo2.current]: totalPercentageRepo2,
       });
     }
   };
@@ -274,6 +277,7 @@ function CompareChart() {
 
     const repoParsed = parseGitHubRepoURL(selectedRepo);
     const repoParsed2 = parseGitHubRepoURL(selectedRepo2);
+
     navigate(
       `/compare/${repoParsed}/${repoParsed2}?start=${selectedTimeRange.start}&end=${selectedTimeRange.end}`,
       {
@@ -560,6 +564,11 @@ function CompareChart() {
     fetchAllStars(repoParsed, repoParsed2);
   };
 
+  const handleInputChange = async (value, setStateFunction) => {
+    console.log(value);
+    setStateFunction(value);
+  };
+
   return (
     <div>
       <div>
@@ -590,8 +599,7 @@ function CompareChart() {
         }}
         variant="body2"
       >
-        Now, it only works when the history of both repositories has been
-        fetched previously.
+        Only already fetched repositories are available for comparison
       </Typography>
       <div style={{ display: "flex", alignItems: "center" }}>
         <Autocomplete
@@ -617,8 +625,8 @@ function CompareChart() {
           )}
           value={selectedRepo}
           onChange={(e, v) => {
-            console.log(v?.label);
-            setSelectedRepo(v?.label);
+            currentRepo.current = v?.label;
+            setSelectedRepo(v?.label)
           }}
         />
         <Autocomplete
@@ -644,9 +652,8 @@ function CompareChart() {
           )}
           value={selectedRepo2}
           onChange={(e, v) => {
-            console.log(v?.label);
-            setSelectedRepo2(v?.label);
-          }}
+            currentRepo2.current = v?.label;
+            setSelectedRepo2(v?.label)}}
         />
         <div
           style={{ marginTop: "20px", display: "flex", alignItems: "center" }}
@@ -751,8 +758,8 @@ function CompareChart() {
             <input
               type="text"
               value={`${zoomedStars[repo] !== undefined
-                  ? `${formatNumber(zoomedStars[repo])} - ${zoomedStarsPercentageTotal[repo]}%`
-                  : "N/A"
+                ? `${formatNumber(zoomedStars[repo])} - ${zoomedStarsPercentageTotal[repo]}%`
+                : "N/A"
                 }`}
               readOnly
               style={{
