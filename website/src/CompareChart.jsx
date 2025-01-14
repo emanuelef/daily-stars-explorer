@@ -25,6 +25,10 @@ import ZuneTheme from "fusioncharts/themes/fusioncharts.theme.zune";
 import UmberTheme from "fusioncharts/themes/fusioncharts.theme.umber";
 import CopyToClipboardButton from "./CopyToClipboardButton";
 
+import {
+  formatNumber,
+} from "./utils";
+
 const HOST = import.meta.env.VITE_HOST;
 const PREDICTOR_HOST = "https://emafuma.mywire.org:8082";
 
@@ -140,6 +144,7 @@ function CompareChart() {
             start: ev.data.start,
             end: ev.data.end,
           });
+          handleZoom(ev.data.start, ev.data.end);
         }
       },
       rendered: function (e) {
@@ -192,6 +197,56 @@ function CompareChart() {
   });
 
   const navigate = useNavigate();
+
+  const [zoomedStars, setZoomedStars] = useState({});
+  const [zoomedStarsPercentageTotal, setZoomedStarsPercentageTotal] = useState({});
+
+  const handleZoom = (start, end) => {
+    if (ds && ds.dataSource && ds.dataSource.data) {
+      const zoomedData = ds.dataSource.data._data.filter(
+        (dataPoint) => dataPoint[0] >= start && dataPoint[0] <= end
+      );
+
+      // Calculate total stars for each repository during the zoomed period
+      const totalsByRepo = zoomedData.reduce((totals, dataPoint) => {
+        const repo = dataPoint[3]; // Repo name
+        const starsGained = dataPoint[1]; // Stars gained
+        if (!totals[repo]) {
+          totals[repo] = 0;
+        }
+        totals[repo] += starsGained;
+        return totals;
+      }, {});
+
+      console.log("Totals by Repository:", totalsByRepo);
+
+      // Extract totals for the selected repositories
+      const totalStarsRepo1 = totalsByRepo[selectedRepo] || 0;
+      const totalStarsRepo2 = totalsByRepo[selectedRepo2] || 0;
+
+      console.log("Total Stars Repo 1:", totalStarsRepo1);
+      console.log("Total Stars Repo 2:", totalStarsRepo2);
+
+      // Set total stars in state
+      setZoomedStars({ [selectedRepo]: totalStarsRepo1, [selectedRepo2]: totalStarsRepo2 });
+
+      // Calculate percentages relative to the overall dataset
+      const totalStarsOverall = ds.dataSource.data._data[ds.dataSource.data._data.length - 1][2];
+
+      const totalPercentageRepo1 = totalStarsOverall
+        ? ((totalStarsRepo1 / totalStarsOverall) * 100).toFixed(2)
+        : 0;
+      const totalPercentageRepo2 = totalStarsOverall
+        ? ((totalStarsRepo2 / totalStarsOverall) * 100).toFixed(2)
+        : 0;
+
+      // Set percentages in state
+      setZoomedStarsPercentageTotal({
+        [selectedRepo]: totalPercentageRepo1,
+        [selectedRepo2]: totalPercentageRepo2,
+      });
+    }
+  };
 
   const handleDateRangeCheckChange = (event) => {
     setCheckedDateRange(event.target.checked);
@@ -261,7 +316,7 @@ function CompareChart() {
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            "Daily Stars";
+          "Daily Stars";
         options.dataSource.yAxis[0].plot.type = "line";
         break;
       case "trend":
@@ -323,7 +378,7 @@ function CompareChart() {
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            "Trend";
+          "Trend";
         options.dataSource.yAxis[0].plot.type = "line";
         options.dataSource.subcaption = "Trend";
         break;
@@ -331,7 +386,7 @@ function CompareChart() {
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            "Daily Stars Average by Year";
+          "Daily Stars Average by Year";
 
         binning = YEARLY_BINNING;
         options.dataSource.yAxis[0].plot.type = "line";
@@ -340,7 +395,7 @@ function CompareChart() {
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            "Daily Stars Average by Month";
+          "Daily Stars Average by Month";
         binning = MONTHLY_BINNING;
         options.dataSource.yAxis[0].plot.type = "line";
         break;
@@ -348,7 +403,7 @@ function CompareChart() {
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            "Daily Stars Average by Week";
+          "Daily Stars Average by Week";
         binning = WEEKLY_BINNING;
         options.dataSource.yAxis[0].plot.type = "line";
         break;
@@ -660,6 +715,40 @@ function CompareChart() {
           />
         }
         <Typography variant="body2">Log Y-Axis</Typography>
+      </div>
+      <div style={{ marginTop: "10px", marginLeft: "10px" }}>
+        {Object.keys(zoomedStars).map((repo) => (
+          <div
+            key={repo}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              marginBottom: "10px",
+            }}
+          >
+            <label
+              style={{
+                color: "white",
+                marginRight: "10px",
+              }}
+            >
+              {`New Stars in Zoomed Period (${repo}):`}
+            </label>
+            <input
+              type="text"
+              value={`${formatNumber(zoomedStars[repo])} - ${zoomedStarsPercentageTotal[repo]}%`}
+              readOnly
+              style={{
+                color: "white",
+                backgroundColor: "black",
+                border: "1px solid #ccc",
+                borderRadius: "4px",
+                padding: "5px",
+                width: "200px",
+              }}
+            />
+          </div>
+        ))}
       </div>
       <div
         style={{
