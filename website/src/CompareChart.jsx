@@ -203,6 +203,9 @@ function CompareChart() {
 
   const handleZoom = (start, end) => {
     if (ds && ds.dataSource && ds.dataSource.data) {
+      console.log(ds.dataSource.data._data);
+
+      // Filter data points within the zoomed range
       const zoomedData = ds.dataSource.data._data.filter(
         (dataPoint) => dataPoint[0] >= start && dataPoint[0] <= end
       );
@@ -220,25 +223,35 @@ function CompareChart() {
 
       console.log("Totals by Repository:", totalsByRepo);
 
+      // Get the latest total stars for each repository from the full dataset
+      const latestTotalsByRepo = ds.dataSource.data._data.reduce((latestTotals, dataPoint) => {
+        const repo = dataPoint[3]; // Repo name
+        const totalStars = dataPoint[2]; // Total stars
+        latestTotals[repo] = totalStars; // Always overwrite to ensure the last valid is kept
+        return latestTotals;
+      }, {});
+
+      console.log("Latest Totals by Repository:", latestTotalsByRepo);
+
       // Extract totals for the selected repositories
       const totalStarsRepo1 = totalsByRepo[selectedRepo] || 0;
       const totalStarsRepo2 = totalsByRepo[selectedRepo2] || 0;
 
-      console.log("Total Stars Repo 1:", totalStarsRepo1);
-      console.log("Total Stars Repo 2:", totalStarsRepo2);
+      console.log("Total Stars Repo 1 (Zoomed):", totalStarsRepo1);
+      console.log("Total Stars Repo 2 (Zoomed):", totalStarsRepo2);
 
       // Set total stars in state
       setZoomedStars({ [selectedRepo]: totalStarsRepo1, [selectedRepo2]: totalStarsRepo2 });
 
-      // Calculate percentages relative to the overall dataset
-      const totalStarsOverall = ds.dataSource.data._data[ds.dataSource.data._data.length - 1][2];
+      // Calculate percentages relative to the latest total stars for each repository
+      const latestTotalRepo1 = latestTotalsByRepo[selectedRepo] || 1; // Avoid division by zero
+      const latestTotalRepo2 = latestTotalsByRepo[selectedRepo2] || 1; // Avoid division by zero
 
-      const totalPercentageRepo1 = totalStarsOverall
-        ? ((totalStarsRepo1 / totalStarsOverall) * 100).toFixed(2)
-        : 0;
-      const totalPercentageRepo2 = totalStarsOverall
-        ? ((totalStarsRepo2 / totalStarsOverall) * 100).toFixed(2)
-        : 0;
+      const totalPercentageRepo1 = ((totalStarsRepo1 / latestTotalRepo1) * 100).toFixed(2);
+      const totalPercentageRepo2 = ((totalStarsRepo2 / latestTotalRepo2) * 100).toFixed(2);
+
+      console.log("Percentage Repo 1:", totalPercentageRepo1);
+      console.log("Percentage Repo 2:", totalPercentageRepo2);
 
       // Set percentages in state
       setZoomedStarsPercentageTotal({
@@ -247,6 +260,7 @@ function CompareChart() {
       });
     }
   };
+
 
   const handleDateRangeCheckChange = (event) => {
     setCheckedDateRange(event.target.checked);
@@ -717,7 +731,7 @@ function CompareChart() {
         <Typography variant="body2">Log Y-Axis</Typography>
       </div>
       <div style={{ marginTop: "10px", marginLeft: "10px" }}>
-        {Object.keys(zoomedStars).map((repo) => (
+        {[selectedRepo, selectedRepo2].map((repo) => (
           <div
             key={repo}
             style={{
@@ -736,7 +750,10 @@ function CompareChart() {
             </label>
             <input
               type="text"
-              value={`${formatNumber(zoomedStars[repo])} - ${zoomedStarsPercentageTotal[repo]}%`}
+              value={`${zoomedStars[repo] !== undefined
+                  ? `${formatNumber(zoomedStars[repo])} - ${zoomedStarsPercentageTotal[repo]}%`
+                  : "N/A"
+                }`}
               readOnly
               style={{
                 color: "white",
@@ -750,6 +767,7 @@ function CompareChart() {
           </div>
         ))}
       </div>
+
       <div
         style={{
           marginLeft: "10px",
