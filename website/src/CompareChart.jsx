@@ -250,8 +250,8 @@ function CompareChart() {
       const latestTotalRepo1 = latestTotalsByRepo[currentRepo.current] || 1; // Avoid division by zero
       const latestTotalRepo2 = latestTotalsByRepo[currentRepo2.current] || 1; // Avoid division by zero
 
-      const totalPercentageRepo1 = ((totalStarsRepo1 / latestTotalRepo1) * 100).toFixed(2);
-      const totalPercentageRepo2 = ((totalStarsRepo2 / latestTotalRepo2) * 100).toFixed(2);
+      const totalPercentageRepo1 = ((totalStarsRepo1 / latestTotalRepo1) * 100).toFixed(1);
+      const totalPercentageRepo2 = ((totalStarsRepo2 / latestTotalRepo2) * 100).toFixed(1);
 
       console.log("Percentage Repo 1:", totalPercentageRepo1);
       console.log("Percentage Repo 2:", totalPercentageRepo2);
@@ -599,7 +599,7 @@ function CompareChart() {
         }}
         variant="body2"
       >
-        Only already fetched repositories are available for comparison
+        Only already fetched repositories are available for comparison, zoom to see the increase in selection
       </Typography>
       <div style={{ display: "flex", alignItems: "center" }}>
         <Autocomplete
@@ -614,9 +614,9 @@ function CompareChart() {
               {...params}
               style={{
                 marginTop: "20px",
-                marginRight: "20px",
+                marginRight: "10px",
                 marginLeft: "10px",
-                width: "500px",
+                width: "400px",
               }}
               label="Enter a GitHub repository"
               variant="outlined"
@@ -627,6 +627,22 @@ function CompareChart() {
           onChange={(e, v) => {
             currentRepo.current = v?.label;
             setSelectedRepo(v?.label)
+          }}
+        />
+        <TextField
+          style={{
+            marginTop: "20px",
+            marginRight: "5px",
+            width: "144px",
+          }}
+          size="small"
+          id="repo-increase"
+          label="Increase"
+          value={zoomedStars[selectedRepo] !== undefined
+            ? `${formatNumber(zoomedStars[selectedRepo])} ${zoomedStarsPercentageTotal[selectedRepo]}%`
+            : "N/A"}
+          InputProps={{
+            readOnly: true,
           }}
         />
         <Autocomplete
@@ -641,9 +657,9 @@ function CompareChart() {
               {...params}
               style={{
                 marginTop: "20px",
-                marginRight: "20px",
+                marginRight: "10px",
                 marginLeft: "10px",
-                width: "500px",
+                width: "400px",
               }}
               label="Enter a GitHub repository"
               variant="outlined"
@@ -654,6 +670,22 @@ function CompareChart() {
           onChange={(e, v) => {
             currentRepo2.current = v?.label;
             setSelectedRepo2(v?.label)
+          }}
+        />
+        <TextField
+          style={{
+            marginTop: "20px",
+            marginRight: "5px",
+            width: "144px",
+          }}
+          size="small"
+          id="repo2-increase"
+          label="Increase"
+          value={zoomedStars[selectedRepo2] !== undefined
+            ? `${formatNumber(zoomedStars[selectedRepo2])} ${zoomedStarsPercentageTotal[selectedRepo2]}%`
+            : "N/A"}
+          InputProps={{
+            readOnly: true,
           }}
         />
         <div
@@ -690,7 +722,7 @@ function CompareChart() {
           }}
         >
           <FormControl>
-            <InputLabel id="demo-simple-select-label">Theme</InputLabel>
+            <InputLabel id="theme-select-label">Theme</InputLabel>
             <Select
               labelId="theme"
               id="theme"
@@ -738,47 +770,7 @@ function CompareChart() {
         }
         <Typography variant="body2">Log Y-Axis</Typography>
       </div>
-      <div style={{ marginTop: "10px", marginLeft: "10px" }}>
-        {[selectedRepo, selectedRepo2].map((repo) => (
-          <div
-            key={repo}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              marginBottom: "10px",
-            }}
-          >
-            <label
-              style={{
-                color: "white",
-                marginRight: "10px",
-                width: "500px", // Set a fixed width for the label
-                display: "inline-block", // Make the label display inline-block
-              }}
-            >
-              {`${repo}`}
-            </label>
-            <input
-              type="text"
-              value={
-                zoomedStars[repo] !== undefined
-                  ? `+${formatNumber(zoomedStars[repo])} ${zoomedStarsPercentageTotal[repo]}%`
-                  : "N/A"
-              }
-              readOnly
-              style={{
-                color: "white",
-                backgroundColor: "black",
-                border: "1px solid #ccc",
-                borderRadius: "4px",
-                padding: "5px",
-                width: "200px", // Match the width of the label
-              }}
-            />
-          </div>
-        ))}
-      </div>
-
+      
       <div
         style={{
           marginLeft: "10px",
