@@ -72,7 +72,7 @@ function CopyToClipboardButton({ dateRange, aggregation }) {
           size="small"
           onClick={handleCopyToClipboard}
         >
-          Share History URL
+          Share URL
         </Button>
       </Tooltip>
       <Snackbar
