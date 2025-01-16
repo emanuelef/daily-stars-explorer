@@ -1,5 +1,5 @@
 /* eslint-disable no-case-declarations */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import TextField from "@mui/material/TextField";
 import FormControl from "@mui/material/FormControl";
@@ -24,6 +24,10 @@ import CandyTheme from "fusioncharts/themes/fusioncharts.theme.candy";
 import ZuneTheme from "fusioncharts/themes/fusioncharts.theme.zune";
 import UmberTheme from "fusioncharts/themes/fusioncharts.theme.umber";
 import CopyToClipboardButton from "./CopyToClipboardButton";
+
+import {
+  formatNumber,
+} from "./utils";
 
 const HOST = import.meta.env.VITE_HOST;
 const PREDICTOR_HOST = "https://emafuma.mywire.org:8082";
@@ -140,6 +144,7 @@ function CompareChart() {
             start: ev.data.start,
             end: ev.data.end,
           });
+          handleZoom(ev.data.start, ev.data.end);
         }
       },
       rendered: function (e) {
@@ -180,6 +185,9 @@ function CompareChart() {
   const [selectedRepo2, setSelectedRepo2] = useState(defaultRepo2);
   const [starsRepos, setStarsRepos] = useState([]);
 
+  const currentRepo = useRef(defaultRepo);
+  const currentRepo2 = useRef(defaultRepo2);
+
   const [checkedDateRange, setCheckedDateRange] = useState(false);
 
   const [checkedYAxisType, setCheckedYAxisType] = useState(false);
@@ -193,6 +201,70 @@ function CompareChart() {
 
   const navigate = useNavigate();
 
+  const [zoomedStars, setZoomedStars] = useState({});
+  const [zoomedStarsPercentageTotal, setZoomedStarsPercentageTotal] = useState({});
+
+  const handleZoom = (start, end) => {
+    if (ds && ds.dataSource && ds.dataSource.data) {
+      // Filter data points within the zoomed range
+      const zoomedData = ds.dataSource.data._data.filter(
+        (dataPoint) => dataPoint[0] >= start && dataPoint[0] <= end
+      );
+
+      // Calculate total stars for each repository during the zoomed period
+      const totalsByRepo = zoomedData.reduce((totals, dataPoint) => {
+        const repo = dataPoint[3]; // Repo name
+        const starsGained = dataPoint[1]; // Stars gained
+        if (!totals[repo]) {
+          totals[repo] = 0;
+        }
+        totals[repo] += starsGained;
+        return totals;
+      }, {});
+
+      console.log("Totals by Repository:", totalsByRepo);
+
+      // Get the latest total stars for each repository from the full dataset
+      const latestTotalsByRepo = ds.dataSource.data._data.reduce((latestTotals, dataPoint) => {
+        const repo = dataPoint[3]; // Repo name
+        const totalStars = dataPoint[2]; // Total stars
+        latestTotals[repo] = totalStars; // Always overwrite to ensure the last valid is kept
+        return latestTotals;
+      }, {});
+
+      console.log("Latest Totals by Repository:", latestTotalsByRepo);
+
+      console.log("Selected Repositories:", currentRepo.current, selectedRepo2);
+
+      // Extract totals for the selected repositories
+      const totalStarsRepo1 = totalsByRepo[currentRepo.current] || 0;
+      const totalStarsRepo2 = totalsByRepo[currentRepo2.current] || 0;
+
+      console.log("Total Stars Repo 1 (Zoomed):", totalStarsRepo1);
+      console.log("Total Stars Repo 2 (Zoomed):", totalStarsRepo2);
+
+      // Set total stars in state
+      setZoomedStars({ [currentRepo.current]: totalStarsRepo1, [currentRepo2.current]: totalStarsRepo2 });
+
+      // Calculate percentages relative to the latest total stars for each repository
+      const latestTotalRepo1 = latestTotalsByRepo[currentRepo.current] || 1; // Avoid division by zero
+      const latestTotalRepo2 = latestTotalsByRepo[currentRepo2.current] || 1; // Avoid division by zero
+
+      const totalPercentageRepo1 = ((totalStarsRepo1 / latestTotalRepo1) * 100).toFixed(1);
+      const totalPercentageRepo2 = ((totalStarsRepo2 / latestTotalRepo2) * 100).toFixed(1);
+
+      console.log("Percentage Repo 1:", totalPercentageRepo1);
+      console.log("Percentage Repo 2:", totalPercentageRepo2);
+
+      // Set percentages in state
+      setZoomedStarsPercentageTotal({
+        [currentRepo.current]: totalPercentageRepo1,
+        [currentRepo2.current]: totalPercentageRepo2,
+      });
+    }
+  };
+
+
   const handleDateRangeCheckChange = (event) => {
     setCheckedDateRange(event.target.checked);
   };
@@ -205,6 +277,7 @@ function CompareChart() {
 
     const repoParsed = parseGitHubRepoURL(selectedRepo);
     const repoParsed2 = parseGitHubRepoURL(selectedRepo2);
+
     navigate(
       `/compare/${repoParsed}/${repoParsed2}?start=${selectedTimeRange.start}&end=${selectedTimeRange.end}`,
       {
@@ -261,7 +334,7 @@ function CompareChart() {
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            "Daily Stars";
+          "Daily Stars";
         options.dataSource.yAxis[0].plot.type = "line";
         break;
       case "trend":
@@ -323,7 +396,7 @@ function CompareChart() {
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            "Trend";
+          "Trend";
         options.dataSource.yAxis[0].plot.type = "line";
         options.dataSource.subcaption = "Trend";
         break;
@@ -331,7 +404,7 @@ function CompareChart() {
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            "Daily Stars Average by Year";
+          "Daily Stars Average by Year";
 
         binning = YEARLY_BINNING;
         options.dataSource.yAxis[0].plot.type = "line";
@@ -340,7 +413,7 @@ function CompareChart() {
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            "Daily Stars Average by Month";
+          "Daily Stars Average by Month";
         binning = MONTHLY_BINNING;
         options.dataSource.yAxis[0].plot.type = "line";
         break;
@@ -348,7 +421,7 @@ function CompareChart() {
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            "Daily Stars Average by Week";
+          "Daily Stars Average by Week";
         binning = WEEKLY_BINNING;
         options.dataSource.yAxis[0].plot.type = "line";
         break;
@@ -491,6 +564,11 @@ function CompareChart() {
     fetchAllStars(repoParsed, repoParsed2);
   };
 
+  const handleInputChange = async (value, setStateFunction) => {
+    console.log(value);
+    setStateFunction(value);
+  };
+
   return (
     <div>
       <div>
@@ -521,8 +599,7 @@ function CompareChart() {
         }}
         variant="body2"
       >
-        Now, it only works when the history of both repositories has been
-        fetched previously.
+        Only already fetched repositories are available for comparison, zoom to see the increase in selection
       </Typography>
       <div style={{ display: "flex", alignItems: "center" }}>
         <Autocomplete
@@ -537,9 +614,9 @@ function CompareChart() {
               {...params}
               style={{
                 marginTop: "20px",
-                marginRight: "20px",
+                marginRight: "10px",
                 marginLeft: "10px",
-                width: "500px",
+                width: "400px",
               }}
               label="Enter a GitHub repository"
               variant="outlined"
@@ -548,8 +625,24 @@ function CompareChart() {
           )}
           value={selectedRepo}
           onChange={(e, v) => {
-            console.log(v?.label);
-            setSelectedRepo(v?.label);
+            currentRepo.current = v?.label;
+            setSelectedRepo(v?.label)
+          }}
+        />
+        <TextField
+          style={{
+            marginTop: "20px",
+            marginRight: "5px",
+            width: "144px",
+          }}
+          size="small"
+          id="repo-increase"
+          label="Increase"
+          value={zoomedStars[selectedRepo] !== undefined
+            ? `${formatNumber(zoomedStars[selectedRepo])} ${zoomedStarsPercentageTotal[selectedRepo]}%`
+            : "N/A"}
+          InputProps={{
+            readOnly: true,
           }}
         />
         <Autocomplete
@@ -564,9 +657,9 @@ function CompareChart() {
               {...params}
               style={{
                 marginTop: "20px",
-                marginRight: "20px",
+                marginRight: "10px",
                 marginLeft: "10px",
-                width: "500px",
+                width: "400px",
               }}
               label="Enter a GitHub repository"
               variant="outlined"
@@ -575,8 +668,24 @@ function CompareChart() {
           )}
           value={selectedRepo2}
           onChange={(e, v) => {
-            console.log(v?.label);
-            setSelectedRepo2(v?.label);
+            currentRepo2.current = v?.label;
+            setSelectedRepo2(v?.label)
+          }}
+        />
+        <TextField
+          style={{
+            marginTop: "20px",
+            marginRight: "5px",
+            width: "144px",
+          }}
+          size="small"
+          id="repo2-increase"
+          label="Increase"
+          value={zoomedStars[selectedRepo2] !== undefined
+            ? `${formatNumber(zoomedStars[selectedRepo2])} ${zoomedStarsPercentageTotal[selectedRepo2]}%`
+            : "N/A"}
+          InputProps={{
+            readOnly: true,
           }}
         />
         <div
@@ -613,7 +722,7 @@ function CompareChart() {
           }}
         >
           <FormControl>
-            <InputLabel id="demo-simple-select-label">Theme</InputLabel>
+            <InputLabel id="theme-select-label">Theme</InputLabel>
             <Select
               labelId="theme"
               id="theme"
@@ -661,6 +770,7 @@ function CompareChart() {
         }
         <Typography variant="body2">Log Y-Axis</Typography>
       </div>
+      
       <div
         style={{
           marginLeft: "10px",
