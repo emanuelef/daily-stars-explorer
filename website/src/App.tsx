@@ -8,6 +8,7 @@ import IssuesTimeSeriesChart from "./IssuesTimeSeriesChart";
 import PRsTimeSeriesChart from "./PRsTimeSeriesChart";
 import ForksTimeSeriesChart from "./ForksTimeSeriesChart";
 import CommitsTimeSeriesChart from "./CommitsTimeSeriesChart";
+import ContributorsTimeSeriesChart from "./ContributorsTimeSeriesChart";
 import InfoPage from "./InfoPage";
 
 import { Sidebar, Menu, MenuItem } from "react-pro-sidebar";
@@ -22,6 +23,7 @@ import BugReportRoundedIcon from "@mui/icons-material/BugReportRounded";
 import AltRouteOutlinedIcon from "@mui/icons-material/AltRouteOutlined";
 import CallMergeRoundedIcon from '@mui/icons-material/CallMergeRounded';
 import CommitRoundedIcon from '@mui/icons-material/CommitRounded';
+import Diversity3OutlinedIcon from '@mui/icons-material/Diversity3Outlined';
 
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -87,7 +89,8 @@ function App() {
                   useLocation().pathname.includes("/issues") ||
                   useLocation().pathname.includes("/forks") ||
                   useLocation().pathname.includes("/prs") ||
-                  useLocation().pathname.includes("/commits")
+                  useLocation().pathname.includes("/commits") ||
+                  useLocation().pathname.includes("/contributors")
                 )
               }
             >
@@ -149,6 +152,17 @@ function App() {
               Forks
             </MenuItem>
             <MenuItem
+              component={<Link to="/contributors" className="link" />}
+              icon={
+                <Tooltip title="Contributors Timeline" placement="right">
+                  <Diversity3OutlinedIcon />
+                </Tooltip>
+              }
+              active={useLocation().pathname.includes("/contributors")}
+            >
+              Contributors
+            </MenuItem>
+            <MenuItem
               component={<Link to="/table" className="link" />}
               icon={
                 <Tooltip title="Table" placement="right">
@@ -192,6 +206,8 @@ function App() {
             <Route path="/prs/:user/:repository" element={<PRsTimeSeriesChart />} />
             <Route path="/commits" element={<CommitsTimeSeriesChart />} />
             <Route path="/commits/:user/:repository" element={<CommitsTimeSeriesChart />} />
+            <Route path="/contributors" element={<ContributorsTimeSeriesChart />} />
+            <Route path="/contributors/:user/:repository" element={<ContributorsTimeSeriesChart />} />
           </Routes>
         </section>
       </div>
