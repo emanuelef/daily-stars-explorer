@@ -86,7 +86,7 @@ const FORCE_REFETCH_TOOLTIP =
   "Using cached data, force refetching the data from GitHub. This will take a while if the repo has a lot of stars.";
 
 const INFO_TOOLTIP =
-  "Stars are fetched until UTC midnight of the previous day. \
+  "Data is fetched until UTC midnight of the previous day. \
    You can zoom inside the graph by scrolling up and down or dragging the selectors in the underline graph. \
    Once fetched the history is kept for 7 days but it's possible to refetch again by checking the Force Refetch checkbox.";
 
@@ -137,10 +137,10 @@ function ContributorsTimeSeriesChart() {
       yAxis: [
         {
           plot: {
-            value: "Daily Contributors",
+            value: "Daily New Contributors",
             type: "line",
           },
-          title: "Daily Contributors",
+          title: "Daily New Contributors",
           aggregation: "average",
           referenceline: [],
           type: "", // can be log
@@ -313,12 +313,12 @@ function ContributorsTimeSeriesChart() {
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-          "Daily Contributors";
+          "Daily New Contributors";
         options.dataSource.yAxis[0].plot.type = "line";
         options.dataSource.subcaption = "";
         break;
       case "yearlyBinning":
-        textBinning = `Daily Contributors ${aggregation} by Year`;
+        textBinning = `Daily New Contributors ${aggregation} by Year`;
         if (aggregation == "sum") {
           textBinning = "Total Contributors by Year";
         }
@@ -594,7 +594,7 @@ function ContributorsTimeSeriesChart() {
               </IconButton>
             }
           >
-            Contributors are calculated as new Github users who had a PR merged
+            Contributors are calculated as new unique Github users who had a PR merged
           </Alert>
         )}
       </div>

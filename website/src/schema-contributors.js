@@ -5,7 +5,7 @@ const schema = [
     format: "%-d-%-m-%Y",
   },
   {
-    name: "Daily Contributors",
+    name: "Daily New Contributors",
     type: "number",
   },
   {
