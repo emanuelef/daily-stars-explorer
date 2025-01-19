@@ -10,6 +10,9 @@ import Button from "@mui/material/Button";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
+import Alert from "@mui/material/Alert";
+import IconButton from "@mui/material/IconButton";
+import CloseIcon from "@mui/icons-material/Close";
 import LoadingButton from "@mui/lab/LoadingButton";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import SendIcon from "@mui/icons-material/Send";
@@ -104,6 +107,10 @@ function ContributorsTimeSeriesChart() {
   if (user && repository) {
     defaultRepo = `${user}/${repository}`;
   }
+
+  const handleClose = () => {
+    setOpen(false);
+  };
 
   const chart_props = {
     type: "timeseries",
@@ -572,6 +579,25 @@ function ContributorsTimeSeriesChart() {
 
   return (
     <div>
+      <div>
+        {open && (
+          <Alert
+            severity="info"
+            action={
+              <IconButton
+                aria-label="close"
+                color="inherit"
+                size="small"
+                onClick={handleClose}
+              >
+                <CloseIcon fontSize="inherit" />
+              </IconButton>
+            }
+          >
+            Contributors are calculated as new Github users who had a PR merged
+          </Alert>
+        )}
+      </div>
       <ToastContainer
         position="top-center"
         autoClose={5000}
