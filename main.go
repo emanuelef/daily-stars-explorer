@@ -70,6 +70,10 @@ type CommitsWithStatsResponse struct {
 	DefaultBranch string                `json:"defaultBranch"`
 }
 
+type ContributorsWithStatsResponse struct {
+	Contributors []stats.NewContributorsPerDay `json:"contributors"`
+}
+
 func getEnv(key, fallback string) string {
 	value, exists := os.LookupEnv(key)
 	if !exists {
@@ -124,6 +128,7 @@ func main() {
 	cacheForks := cache.New[string, ForksWithStatsResponse]()
 	cachePRs := cache.New[string, PRsWithStatsResponse]()
 	cacheCommits := cache.New[string, CommitsWithStatsResponse]()
+	cacheContributors := cache.New[string, ContributorsWithStatsResponse]()
 
 	cacheHackerNews := cache.New[string, []news.Article]()
 	cacheReddit := cache.New[string, []news.ArticleData]()
@@ -134,6 +139,7 @@ func main() {
 	onGoingForks := make(map[string]bool)
 	onGoingPRs := make(map[string]bool)
 	onGoingCommits := make(map[string]bool)
+	onGoingContributors := make(map[string]bool)
 
 	ghStatClients := make(map[string]*repostats.ClientGQL)
 
@@ -897,6 +903,110 @@ func main() {
 
 		cacheCommits.Set(repo, res, cache.WithExpiration(durationUntilEndOfDay))
 		delete(onGoingCommits, repo)
+
+		return c.JSON(res)
+	})
+
+	app.Get("/allContributors", func(c *fiber.Ctx) error {
+		param := c.Query("repo")
+		randomIndex := rand.Intn(len(maps.Keys(ghStatClients)))
+		clientKey := c.Query("client", maps.Keys(ghStatClients)[randomIndex])
+		forceRefetch := c.Query("forceRefetch", "false") == "true"
+
+		client, ok := ghStatClients[clientKey]
+		if !ok {
+			return c.Status(404).SendString("Resource not found")
+		}
+
+		repo, err := url.QueryUnescape(param)
+		if err != nil {
+			return err
+		}
+
+		// needed because c.Query cannot be used as a map key
+		repo = fmt.Sprintf("%s", repo)
+		repo = strings.ToLower(repo)
+
+		ip := c.Get("X-Forwarded-For")
+
+		// If X-Forwarded-For is empty, fallback to RemoteIP
+		if ip == "" {
+			ip = c.IP()
+		}
+
+		userAgent := c.Get("User-Agent")
+		log.Printf("Contributors Request from IP: %s, Repo: %s User-Agent: %s\n", ip, repo, userAgent)
+
+		if strings.Contains(userAgent, "python-requests") {
+			return c.Status(404).SendString("Custom 404 Error: Resource not found")
+		}
+
+		span := trace.SpanFromContext(c.UserContext())
+		span.SetAttributes(attribute.String("github.repo", repo))
+		span.SetAttributes(attribute.String("caller.ip", ip))
+
+		if forceRefetch {
+			cacheContributors.Delete(repo)
+		}
+
+		if res, hit := cacheContributors.Get(repo); hit {
+			return c.JSON(res)
+		}
+
+		// if another request is already getting the data, skip and rely on SSE updates
+		if _, hit := onGoingContributors[repo]; hit {
+			return c.SendStatus(fiber.StatusNoContent)
+		}
+
+		onGoingContributors[repo] = true
+
+		updateChannel := make(chan int)
+		var allContributors []stats.NewContributorsPerDay
+
+		eg, ctx := errgroup.WithContext(ctx)
+
+		eg.Go(func() error {
+			allContributors, err = client.GetNewContributorsHistory(ctx, repo, updateChannel)
+			if err != nil {
+				return err
+			}
+			return nil
+		})
+
+		for progress := range updateChannel {
+			// fmt.Printf("Progress: %d\n", progress)
+
+			wg := &sync.WaitGroup{}
+
+			for _, s := range currentSessions.Sessions {
+				wg.Add(1)
+				go func(cs *session.Session) {
+					defer wg.Done()
+					if cs.Repo == repo {
+						cs.StateChannel <- progress
+					}
+				}(s)
+			}
+			wg.Wait()
+		}
+
+		if err := eg.Wait(); err != nil {
+			delete(onGoingContributors, repo)
+			return err
+		}
+
+		// defer close(updateChannel)
+
+		res := ContributorsWithStatsResponse{
+			Contributors: allContributors,
+		}
+
+		now := time.Now()
+		nextDay := now.UTC().Truncate(24 * time.Hour).Add(DAY_CACHED * 24 * time.Hour)
+		durationUntilEndOfDay := nextDay.Sub(now)
+
+		cacheContributors.Set(repo, res, cache.WithExpiration(durationUntilEndOfDay))
+		delete(onGoingContributors, repo)
 
 		return c.JSON(res)
 	})
