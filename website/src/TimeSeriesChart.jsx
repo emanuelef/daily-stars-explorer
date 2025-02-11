@@ -94,7 +94,7 @@ const formatDate = (originalDate) => {
 };
 
 const FORCE_REFETCH_TOOLTIP =
-  "Using cached data, force refetching the data from GitHub. This will take a while if the repo has a lot of stars.";
+  "Using cached data, force refetching the data from GitHub by checking and push on Fetch again. This will take a while if the repo has a lot of stars.";
 
 const INFO_TOOLTIP =
   "Stars are fetched until UTC midnight of the previous day. \
