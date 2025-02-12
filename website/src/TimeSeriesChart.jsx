@@ -94,12 +94,12 @@ const formatDate = (originalDate) => {
 };
 
 const FORCE_REFETCH_TOOLTIP =
-  "Using cached data, force refetching the data from GitHub by checking and push on Fetch again. This will take a while if the repo has a lot of stars.";
+  "Using cached data, force refetching the data from GitHub by checking and press on Fetch again. This will take a while if the repo has a lot of stars.";
 
 const INFO_TOOLTIP =
   "Stars are fetched until UTC midnight of the previous day. \
    You can zoom inside the graph by scrolling up and down or dragging the selectors in the underline graph. \
-   Once fetched the history is kept for 7 days but it's possible to refetch again by checking the Update checkbox.";
+   Once fetched the history is kept for 7 days but it's possible to refetch again by checking the Update checkbox and press on Fetch again.";
 
 const INCLUDE_DATE_RANGE =
   "When checked the URL to share will include the current time range selected";
