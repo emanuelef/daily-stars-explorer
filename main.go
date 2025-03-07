@@ -144,7 +144,9 @@ func main() {
 	ghStatClients := make(map[string]*repostats.ClientGQL)
 
 	ghStatClients["PAT"] = NewClientWithPAT(os.Getenv("PAT"))
-	ghStatClients["PAT2"] = NewClientWithPAT(os.Getenv("PAT2"))
+	if pat2 := os.Getenv("PAT2"); pat2 != "" {
+		ghStatClients["PAT2"] = NewClientWithPAT(pat2)
+	}
 
 	app := fiber.New()
 
@@ -1021,18 +1023,15 @@ func main() {
 			log.Fatalf("Error getting limits %v", err)
 		}
 
-		client, ok = ghStatClients["PAT2"]
-		if !ok {
-			return c.Status(404).SendString("Resource not found")
-		}
+		if client, ok = ghStatClients["PAT2"]; ok {
+			tmpResult, err := client.GetCurrentLimits(ctx)
+			if err != nil {
+				log.Fatalf("Error getting limits %v", err)
+			}
 
-		tmpResult, err := client.GetCurrentLimits(ctx)
-		if err != nil {
-			log.Fatalf("Error getting limits %v", err)
+			result.Remaining += tmpResult.Remaining
+			result.Limit += tmpResult.Limit
 		}
-
-		result.Remaining += tmpResult.Remaining
-		result.Limit += tmpResult.Limit
 
 		return c.JSON(result)
 	})
