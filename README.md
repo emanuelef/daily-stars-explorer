@@ -23,6 +23,25 @@ In [Factors contributing to daily stars](./website/src/info.md#factors-contribut
 
 There's a [version hosted](https://emanuelef.github.io/daily-stars-explorer/#/helm/helm) that is using my PAT.
 
+## Run locally using Docker image
+
+If you want to run locally you can use the docker image available in `ghcr`. 
+
+Requirements:
+- Docker
+- GitHub account to generate a [Personal Access Token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) (PAT) to call GH APIs
+- A `.env` file and you can refer to [.env.example](.env.example).  
+  
+Only `PAT` is required, the others are needed if you want to visualise the feeds from different providers.  
+`PAT` can be generated with no access to any of your repos, is just needed to call GraphQL APIs on public reposistories.  
+
+```bash
+docker run --rm --name daily-stars-explorer --env-file .env -p 8080:8080 ghcr.io/emanuelef/daily-stars-explorer:latest
+```
+
+Then access the UI at `localhost:8080`.  
+Note: If you've previously run the application and encounter errors accessing the `/assets` path, hard refresh your browser to ensure the latest version of the UI is loaded. This can usually be done by pressing Ctrl+Shift+R (Windows/Linux) or Cmd+Shift+R (macOS).  
+
 ## Demo
 
 [Demo Video](https://www.loom.com/share/b1728c0305e74a8ebf1e23c419c84549?sid=3bdcbbf6-d205-4157-bed5-825d4ba5f5e3)
@@ -38,12 +57,6 @@ https://emanuelef.github.io/daily-stars-explorer/#/kubernetes/kubernetes
 https://github.com/emanuelef/daily-stars-explorer/assets/48717/9b14f989-ffc2-4b54-a17c-03284f0327f5
 
 https://emanuelef.github.io/daily-stars-explorer/#/compare
-
-## Run in Docker
-
-```bash
-docker run --name daily-stars-explorer --restart=always --env-file .env -d -p 8080:8080 ghcr.io/emanuelef/daily-stars-explorer:latest
-```
 
 ## Articles
 
