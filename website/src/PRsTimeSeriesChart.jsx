@@ -179,9 +179,9 @@ function PRsTimeSeriesChart() {
         }
 
         // Convert data to CSV format
-        let csvContent = "date,day-prs,total-prs\n";
+        let csvContent = "date,daily-opened,daily-merged,daily-closed,total-opened,total-merged,total-closed\n";
         data.prs.forEach(pr => {
-          csvContent += `${pr[0]},${pr[1]},${pr[2]}\n`;
+          csvContent += `${pr[0]},${pr[1]},${pr[2]},${pr[3]},${pr[4]},${pr[5]},${pr[6]}\n`;
         });
 
         // Create and download CSV file
