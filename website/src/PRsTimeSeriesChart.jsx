@@ -167,6 +167,60 @@ function PRsTimeSeriesChart() {
 
   const currentSSE = useRef(null);
 
+  const downloadCSV = () => {
+    const repoParsed = parseGitHubRepoURL(selectedRepo);
+    const downloadUrl = `${HOST}/allPRs?repo=${repoParsed}`;
+
+    fetch(downloadUrl)
+      .then((response) => response.json())
+      .then((data) => {
+        if (!data.prs || !Array.isArray(data.prs)) {
+          throw new Error("Invalid prs data format");
+        }
+
+        // Convert data to CSV format
+        let csvContent = "date,day-prs,total-prs\n";
+        data.prs.forEach(pr => {
+          csvContent += `${pr[0]},${pr[1]},${pr[2]}\n`;
+        });
+
+        // Create and download CSV file
+        const blob = new Blob([csvContent], { type: "text/csv" });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${repoParsed.replace("/", "_")}-prs-history.csv`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+      })
+      .catch((error) => {
+        console.error("Error downloading CSV:", error);
+      });
+  };
+
+  const downloadJSON = () => {
+    const repoParsed = parseGitHubRepoURL(selectedRepo);
+    const downloadUrl = `${HOST}/allPRs?repo=${repoParsed}`;
+
+    fetch(downloadUrl)
+      .then((response) => response.json())
+      .then((data) => {
+        const prsContent = JSON.stringify(data.prs);
+        const blob = new Blob([prsContent], { type: "application/json" });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${repoParsed.replace("/", "_")}-prs-history.json`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+      })
+      .catch((error) => {
+        console.error("Error downloading JSON:", error);
+      });
+  };
+
   const handleDateRangeCheckChange = (event) => {
     setCheckedDateRange(event.target.checked);
   };
@@ -620,6 +674,30 @@ function PRsTimeSeriesChart() {
         >
           Open GH repo
         </Button>
+
+        <Button
+          style={{
+            marginLeft: "10px",
+          }}
+          size="small"
+          variant="contained"
+          onClick={downloadCSV}
+        >
+          Download CSV
+        </Button>
+        <br />
+        <Button
+          style={{
+            marginLeft: "10px",
+            marginRight: "10px",
+          }}
+          size="small"
+          variant="contained"
+          onClick={downloadJSON}
+        >
+          Download Json
+        </Button>
+
         <div
           style={{
             marginTop: "5px",

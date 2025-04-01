@@ -199,6 +199,60 @@ function CommitsTimeSeriesChart() {
     setCheckedDateRange(event.target.checked);
   };
 
+  const downloadCSV = () => {
+    const repoParsed = parseGitHubRepoURL(selectedRepo);
+    const downloadUrl = `${HOST}/allCommits?repo=${repoParsed}`;
+
+    fetch(downloadUrl)
+      .then((response) => response.json())
+      .then((data) => {
+        if (!data.commits || !Array.isArray(data.commits)) {
+          throw new Error("Invalid commits data format");
+        }
+
+        // Convert data to CSV format
+        let csvContent = "date,day-commits,total-commits\n";
+        data.commits.forEach(commit => {
+          csvContent += `${commit[0]},${commit[1]},${commit[2]}\n`;
+        });
+
+        // Create and download CSV file
+        const blob = new Blob([csvContent], { type: "text/csv" });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${repoParsed.replace("/", "_")}-commits-history.csv`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+      })
+      .catch((error) => {
+        console.error("Error downloading CSV:", error);
+      });
+  };
+
+  const downloadJSON = () => {
+    const repoParsed = parseGitHubRepoURL(selectedRepo);
+    const downloadUrl = `${HOST}/allCommits?repo=${repoParsed}`;
+
+    fetch(downloadUrl)
+      .then((response) => response.json())
+      .then((data) => {
+        const commitsContent = JSON.stringify(data.commits);
+        const blob = new Blob([commitsContent], { type: "application/json" });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${repoParsed.replace("/", "_")}-commits-history.json`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+      })
+      .catch((error) => {
+        console.error("Error downloading JSON:", error);
+      });
+  };
+
   const handleYAxisTypeCheckChange = (event) => {
     setCheckedYAxisType(event.target.checked);
     const options = { ...ds };
@@ -749,6 +803,30 @@ function CommitsTimeSeriesChart() {
         >
           Open GH repo
         </Button>
+
+        <Button
+          style={{
+            marginLeft: "10px",
+          }}
+          size="small"
+          variant="contained"
+          onClick={downloadCSV}
+        >
+          Download CSV
+        </Button>
+        <br />
+        <Button
+          style={{
+            marginLeft: "10px",
+            marginRight: "10px",
+          }}
+          size="small"
+          variant="contained"
+          onClick={downloadJSON}
+        >
+          Download Json
+        </Button>
+
         <div
           style={{
             marginTop: "5px",
