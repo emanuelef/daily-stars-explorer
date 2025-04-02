@@ -194,6 +194,61 @@ function ForksTimeSeriesChart() {
 
   const currentSSE = useRef(null);
 
+  const downloadCSV = () => {
+    const repoParsed = parseGitHubRepoURL(selectedRepo);
+    const downloadUrl = `${HOST}/allForks?repo=${repoParsed}`;
+
+    fetch(downloadUrl)
+      .then((response) => response.json())
+      .then((data) => {
+        if (!data.forks || !Array.isArray(data.forks)) {
+          throw new Error("Invalid forks data format");
+        }
+
+        // Convert data to CSV format
+        let csvContent = "date,day-forks,total-forks\n";
+        data.forks.forEach(fork => {
+          csvContent += `${fork[0]},${fork[1]},${fork[2]}\n`;
+        });
+
+        // Create and download CSV file
+        const blob = new Blob([csvContent], { type: "text/csv" });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${repoParsed.replace("/", "_")}-forks-history.csv`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+      })
+      .catch((error) => {
+        console.error("Error downloading CSV:", error);
+      });
+  };
+
+  const downloadJSON = () => {
+    const repoParsed = parseGitHubRepoURL(selectedRepo);
+    const downloadUrl = `${HOST}/allForks?repo=${repoParsed}`;
+
+    fetch(downloadUrl)
+      .then((response) => response.json())
+      .then((data) => {
+        const forksContent = JSON.stringify(data.forks);
+        const blob = new Blob([forksContent], { type: "application/json" });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${repoParsed.replace("/", "_")}-forks-history.json`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+      })
+      .catch((error) => {
+        console.error("Error downloading JSON:", error);
+      });
+  };
+
+
   const handleDateRangeCheckChange = (event) => {
     setCheckedDateRange(event.target.checked);
   };
@@ -226,7 +281,7 @@ function ForksTimeSeriesChart() {
     options.dataSource.yAxis[0].plot.value =
       schema[1].name =
       options.dataSource.yAxis[0].title =
-        text;
+      text;
 
     setds(options);
   };
@@ -306,7 +361,7 @@ function ForksTimeSeriesChart() {
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            "Daily Forks";
+          "Daily Forks";
         options.dataSource.yAxis[0].plot.type = "line";
         options.dataSource.subcaption = "";
         break;
@@ -319,7 +374,7 @@ function ForksTimeSeriesChart() {
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            textBinning;
+          textBinning;
 
         binning = YEARLY_BINNING;
         options.dataSource.yAxis[0].plot.type = "column";
@@ -334,7 +389,7 @@ function ForksTimeSeriesChart() {
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            textBinning;
+          textBinning;
         binning = MONTHLY_BINNING;
         options.dataSource.yAxis[0].plot.type = "column";
         options.dataSource.yAxis[0].aggregation = aggregation;
@@ -347,7 +402,7 @@ function ForksTimeSeriesChart() {
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            textBinning;
+          textBinning;
         binning = WEEKLY_BINNING;
         options.dataSource.yAxis[0].plot.type = "column";
         options.dataSource.yAxis[0].aggregation = aggregation;
@@ -356,7 +411,7 @@ function ForksTimeSeriesChart() {
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            "Normalized";
+          "Normalized";
 
         const [median, highPercentile] = calculatePercentiles(
           starHistory
@@ -388,7 +443,7 @@ function ForksTimeSeriesChart() {
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            "LOESS";
+          "LOESS";
         appliedTransformationResult = addLOESS(starHistory, 0.08);
         options.dataSource.yAxis[0].plot.type = "line";
 
@@ -402,7 +457,7 @@ function ForksTimeSeriesChart() {
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            "Running Average";
+          "Running Average";
         appliedTransformationResult = addRunningAverage(starHistory, 120);
         options.dataSource.yAxis[0].plot.type = "line";
         break;
@@ -410,7 +465,7 @@ function ForksTimeSeriesChart() {
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
-            "Running Median";
+          "Running Median";
         appliedTransformationResult = addRunningMedian(starHistory, 120);
         options.dataSource.yAxis[0].plot.type = "line";
         break;
@@ -549,8 +604,7 @@ function ForksTimeSeriesChart() {
         end: Date.now(),
       });
       setAge(
-        `${years && years !== 0 ? `${years}y ` : ""}${
-          months && months !== 0 ? `${months}m ` : ""
+        `${years && years !== 0 ? `${years}y ` : ""}${months && months !== 0 ? `${months}m ` : ""
         }${days && days !== 0 ? `${days}d ` : ""}`
       );
     }
@@ -720,7 +774,7 @@ function ForksTimeSeriesChart() {
           </FormControl>
         </div>
 
-   {/*      <CopyToClipboardButton
+        {/*      <CopyToClipboardButton
           style={{
             marginLeft: "10px",
             marginRight: "30px",
@@ -748,6 +802,30 @@ function ForksTimeSeriesChart() {
         >
           Open GH repo
         </Button>
+
+        <Button
+          style={{
+            marginLeft: "10px",
+          }}
+          size="small"
+          variant="contained"
+          onClick={downloadCSV}
+        >
+          Download CSV
+        </Button>
+        <br />
+        <Button
+          style={{
+            marginLeft: "10px",
+            marginRight: "10px",
+          }}
+          size="small"
+          variant="contained"
+          onClick={downloadJSON}
+        >
+          Download Json
+        </Button>
+
         <div
           style={{
             marginTop: "5px",
@@ -765,7 +843,7 @@ function ForksTimeSeriesChart() {
           </GitHubButton>
         </div>
       </div>
-{/*       <EstimatedTimeProgress
+      {/*       <EstimatedTimeProgress
         text="Estimated Time Left"
         totalTime={estimatedTime}
       />
