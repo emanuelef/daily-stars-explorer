@@ -25,7 +25,7 @@ There's a [version hosted](https://emanuelef.github.io/daily-stars-explorer/#/he
 
 ## Run locally using Docker image
 
-If you want to run locally you can use the docker image available in `ghcr`. 
+If you want to run locally or self-host you can use the docker image available in `ghcr`. 
 
 Requirements:
 - Docker
