@@ -51,6 +51,8 @@ Note: If you've previously run the application and encounter errors accessing th
 cp .env.example .env   # Create your environment file
 go run main.go
 ```
+An `.env` file is needed as described in the previous section.
+The backend runs on port 8080.
 
 ### Frontend Web
 
@@ -59,8 +61,6 @@ cd website
 npm install
 npm start
 ```
-
-The frontend runs on port 3000 and expects the Go backend to be running.
 
 ## Demo
 
