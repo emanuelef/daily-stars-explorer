@@ -23,7 +23,7 @@ In [Factors contributing to daily stars](./website/src/info.md#factors-contribut
 
 There's a [version hosted](https://emanuelef.github.io/daily-stars-explorer/#/helm/helm) that is using my PAT.
 
-## Run locally using Docker image
+## Run locally or self-host using Docker image
 
 If you want to run locally or self-host you can use the docker image available in `ghcr`. 
 
@@ -41,6 +41,26 @@ docker run --rm --name daily-stars-explorer --env-file .env -p 8080:8080 ghcr.io
 
 Then access the UI at `localhost:8080`.  
 Note: If you've previously run the application and encounter errors accessing the `/assets` path, hard refresh your browser to ensure the latest version of the UI is loaded. This can usually be done by pressing Ctrl+Shift+R (Windows/Linux) or Cmd+Shift+R (macOS).  
+
+## Run locally
+
+### Backend in Go
+
+```sh
+# Make sure you have Go installed
+cp .env.example .env   # Create your environment file
+go run main.go
+```
+An `.env` file is needed as described in the previous section.
+The backend runs on port 8080.
+
+### Frontend Web
+
+```sh
+cd website
+npm install
+npm start
+```
 
 ## Demo
 
