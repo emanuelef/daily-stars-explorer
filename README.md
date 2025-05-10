@@ -21,7 +21,9 @@ In [Factors contributing to daily stars](./website/src/info.md#factors-contribut
 
 ## Hosted version
 
-There's a [version hosted](https://emanuelef.github.io/daily-stars-explorer/#/helm/helm) that is using my PAT.
+There's a [version hosted](https://emanuelef.github.io/daily-stars-explorer/#/helm/helm) that is using my PAT.  
+A new project was created to make this more mobile friendly and can be found [here](https://emanuelef.github.io/daily-stars-mobile).
+
 
 ## Run locally or self-host using Docker image
 
