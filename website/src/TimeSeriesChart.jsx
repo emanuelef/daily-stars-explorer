@@ -6,6 +6,7 @@ import FormControl from "@mui/material/FormControl";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Typography from "@mui/material/Typography";
 import Tooltip from "@mui/material/Tooltip";
+import Autocomplete from "@mui/material/Autocomplete";
 import Checkbox from "@mui/material/Checkbox";
 import Button from "@mui/material/Button";
 import InputLabel from "@mui/material/InputLabel";
@@ -268,6 +269,23 @@ function TimeSeriesChart() {
   const [checkedDateRange, setCheckedDateRange] = useState(false);
 
   const currentSSE = useRef(null);
+
+  const [starsRepos, setStarsRepos] = useState([]);
+
+  // Fetch available repos on mount (like in CompareChart)
+  useEffect(() => {
+    const fetchRepos = async () => {
+      try {
+        const response = await fetch(`${HOST}/allStarsKeys`);
+        if (!response.ok) throw new Error("Failed to fetch repos");
+        const data = await response.json();
+        setStarsRepos(data.sort());
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchRepos();
+  }, []);
 
   const handleDateRangeCheckChange = (event) => {
     setCheckedDateRange(event.target.checked);
@@ -1101,28 +1119,102 @@ function TimeSeriesChart() {
     setStateFunction(inputText);
   };
 
+  const handleClickWithRepo = async (repo) => {
+    const repoParsed = parseGitHubRepoURL(repo);
+
+    navigate(`/${repoParsed}`, {
+      replace: false,
+    });
+
+    if (repoParsed === null) {
+      return;
+    }
+
+    setLoading(true);
+
+    const res = await fetchTotalStars(repoParsed);
+
+    if (res) {
+      setTotalStars(res.stars);
+      setCreationDate(res.createdAt);
+
+      const { years, months, days } = intervalToDuration({
+        start: parseISO(res.createdAt),
+        end: Date.now(),
+      });
+      setAge(
+        `${years && years !== 0 ? `${years}y ` : ""}${months && months !== 0 ? `${months}m ` : ""
+        }${days && days !== 0 ? `${days}d ` : ""}`
+      );
+    }
+
+    const status = await fetchStatus(repoParsed);
+
+    setProgressValue(0);
+    setMaxProgress(0);
+
+    if (!status.onGoing) {
+      fetchAllStars(repoParsed);
+    }
+
+    if (!status.cached) {
+      let timeEstimate = res ? res.stars / 610 : 0;
+      timeEstimate = Math.max(1, Math.ceil(timeEstimate));
+      setEstimatedTime(timeEstimate);
+    }
+
+    const callsNeeded = Math.floor(res.stars / 100);
+    setMaxProgress(callsNeeded);
+    startSSEUpates(repoParsed, callsNeeded, status.onGoing);
+  };
+
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center" }}>
-        <TextField
-          style={{
-            marginTop: "20px",
-            marginRight: "20px",
-            marginLeft: "10px",
-            width: "400px",
-          }}
-          label="Enter a GitHub repository"
-          variant="outlined"
+        <Autocomplete
+          freeSolo
+          disablePortal
+          id="combo-box-repo"
           size="small"
-          value={selectedRepo}
-          onChange={(e) => handleInputChange(e, setSelectedRepo)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              handleClick();
+          options={starsRepos.map((el) => ({ label: el }))}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              style={{
+                marginTop: "20px",
+                marginRight: "20px",
+                marginLeft: "10px",
+                width: "400px",
+              }}
+              label="Enter a GitHub repository"
+              variant="outlined"
+              size="small"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleClickWithRepo(e.target.value);
+                }
+              }}
+            />
+          )}
+          value={
+            starsRepos.includes(selectedRepo)
+              ? { label: selectedRepo }
+              : selectedRepo
+              ? { label: selectedRepo }
+              : null
+          }
+          onChange={(e, v, reason) => {
+            const repo = typeof v === "string" ? v : v?.label || "";
+            setSelectedRepo(repo);
+            if (reason === "selectOption" || reason === "createOption") {
+              handleClickWithRepo(repo);
             }
           }}
+          onInputChange={(e, v, reason) => {
+            if (reason === "input") setSelectedRepo(v);
+          }}
         />
-
         <FormControl style={{
           marginTop: "20px",
           marginRight: "10px",
