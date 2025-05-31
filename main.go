@@ -496,7 +496,6 @@ func main() {
 		lastDaysStr := c.Query("lastDays", "30") // Default to 30 days if not provided
 		randomIndex := rand.Intn(len(maps.Keys(ghStatClients)))
 		clientKey := c.Query("client", maps.Keys(ghStatClients)[randomIndex])
-		forceRefetch := c.Query("forceRefetch", "false") == "true"
 
 		client, ok := ghStatClients[clientKey]
 		if !ok {
@@ -532,57 +531,12 @@ func main() {
 		span.SetAttributes(attribute.String("github.repo", repo))
 		span.SetAttributes(attribute.String("caller.ip", ip))
 
-		cacheKey := fmt.Sprintf("%s:%d", repo, lastDays)
-
-		if forceRefetch {
-			cacheStars.Delete(cacheKey)
-		}
-
-		if res, hit := cacheStars.Get(cacheKey); hit {
-			return c.JSON(res)
-		}
-
-		// If another request is already getting the data, skip and rely on SSE updates
-		if _, hit := onGoingStars[cacheKey]; hit {
-			return c.SendStatus(fiber.StatusNoContent)
-		}
-
-		onGoingStars[cacheKey] = true
-
-		updateChannel := make(chan int)
+		// No cache and no update channel for recentStars
 		var recentStars []stats.StarsPerDay
-
-		eg, ctx := errgroup.WithContext(ctx)
-
-		eg.Go(func() error {
-			recentStars, err = client.GetRecentStarsHistoryTwoWays(ctx, repo, lastDays, updateChannel)
-			if err != nil {
-				return err
-			}
-			return nil
-		})
-
-		for progress := range updateChannel {
-			wg := &sync.WaitGroup{}
-
-			for _, s := range currentSessions.Sessions {
-				wg.Add(1)
-				go func(cs *session.Session) {
-					defer wg.Done()
-					if cs.Repo == repo {
-						cs.StateChannel <- progress
-					}
-				}(s)
-			}
-			wg.Wait()
-		}
-
-		if err := eg.Wait(); err != nil {
-			delete(onGoingStars, cacheKey)
+		recentStars, err = client.GetRecentStarsHistoryTwoWays(ctx, repo, lastDays, nil)
+		if err != nil {
 			return err
 		}
-
-		defer close(updateChannel)
 
 		maxPeriods, maxPeaks, err := repostats.FindMaxConsecutivePeriods(recentStars, 10)
 		if err != nil {
@@ -597,13 +551,6 @@ func main() {
 			MaxPeriods:    maxPeriods,
 			MaxPeaks:      maxPeaks,
 		}
-
-		now := time.Now()
-		nextDay := now.UTC().Truncate(24 * time.Hour).Add(DAY_CACHED * 24 * time.Hour)
-		durationUntilEndOfDay := nextDay.Sub(now)
-
-		cacheStars.Set(cacheKey, res, cache.WithExpiration(durationUntilEndOfDay))
-		delete(onGoingStars, cacheKey)
 
 		return c.JSON(res)
 	})
