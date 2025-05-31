@@ -647,6 +647,23 @@ function TimeSeriesChart() {
       console.log("Array is empty.");
     }
 
+    // Add the current total stars count as the latest point if we have data
+    if (starHistory.length > 0 && totalStars > 0) {
+      // Create today's date in the format DD-MM-YYYY
+      const today = new Date();
+      const formattedToday = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
+      
+      // Get the previous day's total stars (if available)
+      const prevTotalStars = starHistory.length > 0 ? starHistory[starHistory.length - 1][2] : 0;
+      
+      // Calculate daily stars (difference between current total and previous total)
+      const todayDailyStars = Math.max(0, totalStars - prevTotalStars);
+      
+      // Add the new data point with today's date, calculated daily stars, and current total stars
+      starHistory.push([formattedToday, todayDailyStars, totalStars]);
+      console.log("Added today's data point:", formattedToday, todayDailyStars, totalStars);
+    }
+
     let appliedTransformationResult = starHistory;
     let binning = {};
 
