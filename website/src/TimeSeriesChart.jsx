@@ -1556,6 +1556,13 @@ function TimeSeriesChart() {
                 end: lastDate,
               });
 
+              if (chartRef.current && chartRef.current.chartObj) {
+                chartRef.current.chartObj.setTimeSelection({
+                  start: firstDate,
+                  end: lastDate,
+                });
+              }
+
               // Update the "New Stars in Zoomed Period" display
               handleZoom(firstDate, lastDate);
             }
@@ -1576,7 +1583,7 @@ function TimeSeriesChart() {
         }}
       >
         {ds != null && ds != chart_props && ds && ds.dataSource.data && (
-          <ReactFC {...ds} />
+          <ReactFC ref={chartRef} {...ds} />
         )}
       </div>
     </div>
