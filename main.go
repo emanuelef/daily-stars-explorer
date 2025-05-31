@@ -491,6 +491,111 @@ func main() {
 		return c.JSON(res)
 	})
 
+	app.Get("/recentStars", func(c *fiber.Ctx) error {
+		param := c.Query("repo")
+		lastDaysStr := c.Query("lastDays", "30") // Default to 30 days if not provided
+		randomIndex := rand.Intn(len(maps.Keys(ghStatClients)))
+		clientKey := c.Query("client", maps.Keys(ghStatClients)[randomIndex])
+
+		client, ok := ghStatClients[clientKey]
+		if !ok {
+			return c.Status(404).SendString("Resource not found")
+		}
+
+		repo, err := url.QueryUnescape(param)
+		if err != nil {
+			return err
+		}
+
+		repo = fmt.Sprintf("%s", repo)
+		repo = strings.ToLower(repo)
+
+		lastDays, err := strconv.Atoi(lastDaysStr)
+		if err != nil || lastDays <= 0 {
+			return c.Status(400).SendString("Invalid lastDays parameter")
+		}
+
+		ip := c.Get("X-Forwarded-For")
+		if ip == "" {
+			ip = c.IP()
+		}
+
+		userAgent := c.Get("User-Agent")
+		log.Printf("Request from IP: %s, Repo: %s, LastDays: %d, User-Agent: %s\n", ip, repo, lastDays, userAgent)
+
+		if strings.Contains(userAgent, "python-requests") {
+			return c.Status(404).SendString("Custom 404 Error: Resource not found")
+		}
+
+		span := trace.SpanFromContext(c.UserContext())
+		span.SetAttributes(attribute.String("github.repo", repo))
+		span.SetAttributes(attribute.String("caller.ip", ip))
+
+		// 1. Fetch recent daily stars (no cumulative) for the last N days
+		recentStars, err := client.GetRecentStarsHistoryTwoWays(ctx, repo, lastDays, nil)
+		if err != nil {
+			return err
+		}
+
+		// 2. Get cached stars for this repo (if any)
+		var cachedStars []stats.StarsPerDay
+		var cachedRes StarsWithStatsResponse
+		var found bool
+		if cachedRes, found = cacheStars.Get(repo); found {
+			cachedStars = cachedRes.Stars
+		}
+
+		// 3. Build a map of cached days for quick lookup
+		cachedDays := make(map[string]stats.StarsPerDay)
+		for _, entry := range cachedStars {
+			dayStr := time.Time(entry.Day).Format("02-01-2006")
+			cachedDays[dayStr] = entry
+		}
+
+		// 4. Find the last cumulative value in the cache (if any)
+		var lastCumulative int
+		if len(cachedStars) > 0 {
+			lastCumulative = cachedStars[len(cachedStars)-1].TotalStars
+		}
+
+		// 5. Append only new days, calculating cumulative
+		var newEntries []stats.StarsPerDay
+		for _, entry := range recentStars {
+			dayStr := time.Time(entry.Day).Format("02-01-2006")
+			if _, exists := cachedDays[dayStr]; !exists {
+				lastCumulative += entry.Stars
+				newEntry := entry
+				newEntry.TotalStars = lastCumulative
+				newEntries = append(newEntries, newEntry)
+			}
+		}
+
+		// 6. Merge and update cache if there are new entries
+		mergedStars := append(cachedStars, newEntries...)
+		maxPeriods, maxPeaks, err := repostats.FindMaxConsecutivePeriods(mergedStars, 10)
+		if err != nil {
+			return err
+		}
+		newLastNDays := repostats.NewStarsLastDays(mergedStars, 10)
+
+		res := StarsWithStatsResponse{
+			Stars:         mergedStars,
+			NewLast10Days: newLastNDays,
+			MaxPeriods:    maxPeriods,
+			MaxPeaks:      maxPeaks,
+		}
+
+		if len(newEntries) > 0 {
+			// Update cache only if there are new days
+			now := time.Now()
+			nextDay := now.UTC().Truncate(24 * time.Hour).Add(DAY_CACHED * 24 * time.Hour)
+			durationUntilEndOfDay := nextDay.Sub(now)
+			cacheStars.Set(repo, res, cache.WithExpiration(durationUntilEndOfDay))
+		}
+
+		return c.JSON(res)
+	})
+
 	app.Get("/allIssues", func(c *fiber.Ctx) error {
 		param := c.Query("repo")
 		randomIndex := rand.Intn(len(maps.Keys(ghStatClients)))
@@ -1203,6 +1308,42 @@ func main() {
 		}))
 
 		return nil
+	})
+
+	app.Get("/deleteRecentStarsCache", func(c *fiber.Ctx) error {
+		param := c.Query("repo")
+		nStr := c.Query("days", "0")
+		if param == "" {
+			return c.Status(400).SendString("Missing repo parameter")
+		}
+		n, err := strconv.Atoi(nStr)
+		if err != nil || n <= 0 {
+			return c.Status(400).SendString("Invalid days parameter")
+		}
+		repo, err := url.QueryUnescape(param)
+		if err != nil {
+			return err
+		}
+		repo = fmt.Sprintf("%s", repo)
+		repo = strings.ToLower(repo)
+
+		// Get the cache entry
+		cached, found := cacheStars.Get(repo)
+		if !found {
+			return c.Status(404).SendString("No cache for this repo")
+		}
+
+		// Remove the last n days from the cached stars slice
+		if n >= len(cached.Stars) {
+			cached.Stars = []stats.StarsPerDay{}
+		} else {
+			cached.Stars = cached.Stars[:len(cached.Stars)-n]
+		}
+
+		// Update the cache entry
+		cacheStars.Set(repo, cached)
+
+		return c.SendString(fmt.Sprintf("Removed last %d days from cache for repo %s.", n, repo))
 	})
 
 	host := getEnv("HOST", "0.0.0.0")

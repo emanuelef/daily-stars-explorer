@@ -6,6 +6,7 @@ import FormControl from "@mui/material/FormControl";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Typography from "@mui/material/Typography";
 import Tooltip from "@mui/material/Tooltip";
+import Autocomplete from "@mui/material/Autocomplete";
 import Checkbox from "@mui/material/Checkbox";
 import Button from "@mui/material/Button";
 import InputLabel from "@mui/material/InputLabel";
@@ -114,6 +115,17 @@ const isToday = (dateString) => {
   );
 };
 
+const isYesterday = (dateString) => {
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const [day, month, year] = dateString.split("-").map(Number);
+  return (
+    yesterday.getDate() === day &&
+    yesterday.getMonth() + 1 === month && // Adding 1 to month because JavaScript months are 0-indexed
+    yesterday.getFullYear() === year
+  );
+};
+
 function TimeSeriesChart() {
   let defaultRepo = "helm/helm";
   const { user, repository } = useParams();
@@ -205,6 +217,7 @@ function TimeSeriesChart() {
     events: {
       selectionChange: function (ev) {
         if (ev && ev.data) {
+          console.log("Selection changed:", ev.data);
           setSelectedTimeRange({
             start: ev.data.start,
             end: ev.data.end,
@@ -247,6 +260,7 @@ function TimeSeriesChart() {
 
   const currentHNnews = useRef({});
   const currentPeaks = useRef([]);
+  const chartRef = useRef(null);
 
   const [feed, setFeed] = useState("none");
   const [theme, setTheme] = useState("candy");
@@ -268,6 +282,23 @@ function TimeSeriesChart() {
   const [checkedDateRange, setCheckedDateRange] = useState(false);
 
   const currentSSE = useRef(null);
+
+  const [starsRepos, setStarsRepos] = useState([]);
+
+  // Fetch available repos on mount (like in CompareChart)
+  useEffect(() => {
+    const fetchRepos = async () => {
+      try {
+        const response = await fetch(`${HOST}/allStarsKeys`);
+        if (!response.ok) throw new Error("Failed to fetch repos");
+        const data = await response.json();
+        setStarsRepos(data.sort());
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchRepos();
+  }, []);
 
   const handleDateRangeCheckChange = (event) => {
     setCheckedDateRange(event.target.checked);
@@ -612,19 +643,46 @@ function TimeSeriesChart() {
     return filteredResults;
   };
 
-  const updateGraph = async (starHistory) => {
+  const updateGraph = async (starHistory, currentTotalStars = 0) => {
     // check if last element is today
     if (starHistory.length > 1) {
       const lastElement = starHistory[starHistory.length - 1];
-      console.log(lastElement[0]);
-      console.log(starHistory);
       const isLastElementToday = isToday(lastElement[0]);
-      starHistory.pop(); // remove last element as the current day is not complete
-      console.log("isLastElementToday", isLastElementToday);
+      if (isLastElementToday) {
+        starHistory.pop(); // remove last element only if it's today
+      }
       setShowForceRefetch(!isLastElementToday);
       setForceRefetch(false);
     } else {
       console.log("Array is empty.");
+    }
+
+    // Use the passed currentTotalStars value instead of relying on the totalStars state
+    const effectiveTotalStars = currentTotalStars || totalStars;
+
+    // Add the current total stars count as the latest point ONLY if the history is complete until yesterday
+    if (starHistory.length > 0 && effectiveTotalStars > 0) {
+      // Check if the last date in the star history is yesterday
+      const lastDateInHistory = starHistory[starHistory.length - 1][0];
+      const isHistoryCompleteUntilYesterday = isYesterday(lastDateInHistory);
+      
+      if (isHistoryCompleteUntilYesterday) {
+        // Create today's date in the format DD-MM-YYYY
+        const today = new Date();
+        const formattedToday = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
+        
+        // Get the previous day's total stars (if available)
+        const prevTotalStars = starHistory[starHistory.length - 1][2];
+        
+        // Calculate daily stars (difference between current total and previous total)
+        const todayDailyStars = Math.max(0, effectiveTotalStars - prevTotalStars);
+        
+        // Add the new data point with today's date, calculated daily stars, and current total stars
+        starHistory.push([formattedToday, todayDailyStars, effectiveTotalStars]);
+        console.log("Added today's data point:", formattedToday, todayDailyStars, effectiveTotalStars);
+      } else {
+        console.log("Star history is not complete until yesterday. Not adding current day's data point.");
+      }
     }
 
     let appliedTransformationResult = starHistory;
@@ -874,36 +932,80 @@ function TimeSeriesChart() {
     setds(options);
   };
 
-  const fetchAllStars = async (repo, ignoreForceRefetch = false) => {
-    console.log(repo);
-
+  const fetchAllStars = async (repo, ignoreForceRefetch = false, currentTotalStars = 0) => {
     setCurrentStarsHistory([]);
     setStarsLast10d("");
 
-    let fetchUrl = `${HOST}/allStars?repo=${repo}`;
+    // 1. Check status first
+    const status = await fetchStatus(repo);
 
+    if (status.onGoing) {
+      // If fetching is ongoing, do NOT call recentStars, just wait for SSE
+      return;
+    }
+
+    let fetchUrl = `${HOST}/allStars?repo=${repo}`;
     if (forceRefetch && !ignoreForceRefetch) {
       fetchUrl += "&forceRefetch=true";
     }
 
     fetch(fetchUrl)
       .then((response) => {
-        // Check if the response status indicates success (e.g., 200 OK)
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
-        // Attempt to parse the response as JSON
         return response.json();
       })
       .then((data) => {
         setLoading(false);
-        console.log(data);
         const starHistory = data.stars;
-
         setCurrentStarsHistory(starHistory);
         setStarsLast10d(data.newLast10Days);
 
-        updateGraph(starHistory);
+        const totalStarsToUse = currentTotalStars || (data.stars && data.stars.length > 0 ? data.stars[data.stars.length - 1][2] : 0);
+
+        // Check if yesterday is present
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const formattedYesterday = `${String(yesterday.getDate()).padStart(2, '0')}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${yesterday.getFullYear()}`;
+        const hasYesterday = starHistory.some(d => d[0] === formattedYesterday);
+
+        if (status.cached && !hasYesterday) {
+          // Find the last date in the cached history
+          let lastCachedDate = null;
+          if (starHistory.length > 0) {
+            lastCachedDate = starHistory[starHistory.length - 1][0]; // format: dd-mm-yyyy
+          }
+
+          // Calculate days missing from last cached date to yesterday
+          let daysMissing = 7; // fallback
+          if (lastCachedDate) {
+            const [d, m, y] = lastCachedDate.split("-").map(Number);
+            const lastDateObj = new Date(y, m - 1, d);
+            const diffMs = yesterday - lastDateObj;
+            daysMissing = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+          }
+
+          setLoading(true); // <--- Show spinner while fetching recentStars
+
+          fetch(`${HOST}/recentStars?repo=${repo}&lastDays=${daysMissing}`)
+            .then(res => res.json())
+            .then(recentData => {
+              const existingDays = new Set(starHistory.map(d => d[0]));
+              const merged = [
+                ...starHistory,
+                ...recentData.stars.filter(d => !existingDays.has(d[0]))
+              ];
+              setCurrentStarsHistory(merged);
+              updateGraph(merged, totalStarsToUse);
+              setLoading(false); // <--- Hide spinner after fetch
+            })
+            .catch(() => {
+              setLoading(false); // <--- Hide spinner on error
+            });
+        } else {
+          updateGraph(starHistory, totalStarsToUse);
+        }
 
         const maxPeriods = data.maxPeriods.map((period) => ({
           start: period.StartDay,
@@ -930,15 +1032,6 @@ function TimeSeriesChart() {
         options.dataSource.caption = { text: `Stars ${repo}` };
 
         options.dataSource.xAxis.timemarker = currentPeaks.current;
-
-        /*         options.dataSource.datamarker = [{
-                  value: "Daily Stars",
-                  time: "11-11-2023",
-                  identifier: "H",
-                  timeformat: "%d-%m-%Y",
-                  tooltext:
-                    "Test"
-                }] */
 
         setds(options);
       })
@@ -1061,6 +1154,7 @@ function TimeSeriesChart() {
     const res = await fetchTotalStars(repoParsed);
     // console.log(res);
 
+    let freshTotalStars = 0;
     if (res) {
       setTotalStars(res.stars);
       setCreationDate(res.createdAt);
@@ -1070,9 +1164,9 @@ function TimeSeriesChart() {
         end: Date.now(),
       });
       setAge(
-        `${years && years !== 0 ? `${years}y ` : ""}${months && months !== 0 ? `${months}m ` : ""
-        }${days && days !== 0 ? `${days}d ` : ""}`
+        `${years && years !== 0 ? `${years}y ` : ""}${months && months !== 0 ? `${months}m ` : ""}${days && days !== 0 ? `${days}d ` : ""}`
       );
+      freshTotalStars = res.stars;
     }
 
     const status = await fetchStatus(repoParsed);
@@ -1082,7 +1176,8 @@ function TimeSeriesChart() {
     setMaxProgress(0);
 
     if (!status.onGoing) {
-      fetchAllStars(repoParsed);
+      // Always pass the freshly fetched total stars value
+      fetchAllStars(repoParsed, false, freshTotalStars);
     }
 
     if (!status.cached) {
@@ -1101,28 +1196,104 @@ function TimeSeriesChart() {
     setStateFunction(inputText);
   };
 
+  const handleClickWithRepo = async (repo) => {
+    const repoParsed = parseGitHubRepoURL(repo);
+
+    navigate(`/${repoParsed}`, {
+      replace: false,
+    });
+
+    if (repoParsed === null) {
+      return;
+    }
+
+    setLoading(true);
+
+    const res = await fetchTotalStars(repoParsed);
+
+    let freshTotalStars = 0;
+    if (res) {
+      setTotalStars(res.stars);
+      setCreationDate(res.createdAt);
+
+      const { years, months, days } = intervalToDuration({
+        start: parseISO(res.createdAt),
+        end: Date.now(),
+      });
+      setAge(
+        `${years && years !== 0 ? `${years}y ` : ""}${months && months !== 0 ? `${months}m ` : ""}${days && days !== 0 ? `${days}d ` : ""}`
+      );
+      freshTotalStars = res.stars;
+    }
+
+    const status = await fetchStatus(repoParsed);
+
+    setProgressValue(0);
+    setMaxProgress(0);
+
+    if (!status.onGoing) {
+      // Always pass the freshly fetched total stars value
+      fetchAllStars(repoParsed, false, freshTotalStars);
+    }
+
+    if (!status.cached) {
+      let timeEstimate = res ? res.stars / 610 : 0;
+      timeEstimate = Math.max(1, Math.ceil(timeEstimate));
+      setEstimatedTime(timeEstimate);
+    }
+
+    const callsNeeded = Math.floor(res.stars / 100);
+    setMaxProgress(callsNeeded);
+    startSSEUpates(repoParsed, callsNeeded, status.onGoing);
+  };
+
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center" }}>
-        <TextField
-          style={{
-            marginTop: "20px",
-            marginRight: "20px",
-            marginLeft: "10px",
-            width: "400px",
-          }}
-          label="Enter a GitHub repository"
-          variant="outlined"
+        <Autocomplete
+          freeSolo
+          disablePortal
+          id="combo-box-repo"
           size="small"
-          value={selectedRepo}
-          onChange={(e) => handleInputChange(e, setSelectedRepo)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              handleClick();
+          options={starsRepos.map((el) => ({ label: el }))}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              style={{
+                marginTop: "20px",
+                marginRight: "20px",
+                marginLeft: "10px",
+                width: "400px",
+              }}
+              label="Enter a GitHub repository"
+              variant="outlined"
+              size="small"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleClickWithRepo(e.target.value);
+                }
+              }}
+            />
+          )}
+          value={
+            starsRepos.includes(selectedRepo)
+              ? { label: selectedRepo }
+              : selectedRepo
+              ? { label: selectedRepo }
+              : null
+          }
+          onChange={(e, v, reason) => {
+            const repo = typeof v === "string" ? v : v?.label || "";
+            setSelectedRepo(repo);
+            if (reason === "selectOption" || reason === "createOption") {
+              handleClickWithRepo(repo);
             }
           }}
+          onInputChange={(e, v, reason) => {
+            if (reason === "input") setSelectedRepo(v);
+          }}
         />
-
         <FormControl style={{
           marginTop: "20px",
           marginRight: "10px",
@@ -1434,6 +1605,48 @@ function TimeSeriesChart() {
             width: "130px",
           }}
         />
+        <Button
+          style={{
+            marginLeft: "10px",
+            marginRight: "10px",
+          }}
+          size="small"
+          variant="contained"
+          onClick={() => {
+            if (
+              ds &&
+              ds.dataSource &&
+              ds.dataSource.data &&
+              ds.dataSource.data._data &&
+              ds.dataSource.data._data.length > 0
+            ) {
+              const dataArr = ds.dataSource.data._data;
+              const lastIdx = dataArr.length - 1;
+              const lastDate = dataArr[lastIdx][0];
+              const firstDate = dataArr[Math.max(0, lastIdx - 29)][0];
+
+              console.log("Zooming to last 30 days:", firstDate, lastDate);
+
+              // Update the selected time range state
+              setSelectedTimeRange({
+                start: firstDate,
+                end: lastDate,
+              });
+
+              if (chartRef.current && chartRef.current.chartObj) {
+                chartRef.current.chartObj.setTimeSelection({
+                  start: firstDate,
+                  end: lastDate,
+                });
+              }
+
+              // Update the "New Stars in Zoomed Period" display
+              handleZoom(firstDate, lastDate);
+            }
+          }}
+        >
+          Last 30 days
+        </Button>
       </div>
       <EstimatedTimeProgress
         text="Estimated Time Left"
@@ -1447,7 +1660,7 @@ function TimeSeriesChart() {
         }}
       >
         {ds != null && ds != chart_props && ds && ds.dataSource.data && (
-          <ReactFC {...ds} />
+          <ReactFC ref={chartRef} {...ds} />
         )}
       </div>
     </div>
