@@ -1310,6 +1310,42 @@ func main() {
 		return nil
 	})
 
+	app.Get("/deleteRecentStarsCache", func(c *fiber.Ctx) error {
+		param := c.Query("repo")
+		nStr := c.Query("days", "0")
+		if param == "" {
+			return c.Status(400).SendString("Missing repo parameter")
+		}
+		n, err := strconv.Atoi(nStr)
+		if err != nil || n <= 0 {
+			return c.Status(400).SendString("Invalid days parameter")
+		}
+		repo, err := url.QueryUnescape(param)
+		if err != nil {
+			return err
+		}
+		repo = fmt.Sprintf("%s", repo)
+		repo = strings.ToLower(repo)
+
+		// Get the cache entry
+		cached, found := cacheStars.Get(repo)
+		if !found {
+			return c.Status(404).SendString("No cache for this repo")
+		}
+
+		// Remove the last n days from the cached stars slice
+		if n >= len(cached.Stars) {
+			cached.Stars = []stats.StarsPerDay{}
+		} else {
+			cached.Stars = cached.Stars[:len(cached.Stars)-n]
+		}
+
+		// Update the cache entry
+		cacheStars.Set(repo, cached)
+
+		return c.SendString(fmt.Sprintf("Removed last %d days from cache for repo %s.", n, repo))
+	})
+
 	host := getEnv("HOST", "0.0.0.0")
 	port := getEnv("PORT", "8080")
 	hostAddress := fmt.Sprintf("%s:%s", host, port)
