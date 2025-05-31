@@ -933,7 +933,7 @@ function TimeSeriesChart() {
     setds(options);
   };
 
-  const fetchAllStars = async (repo, ignoreForceRefetch = false) => {
+  const fetchAllStars = async (repo, ignoreForceRefetch = false, currentTotalStars = 0) => {
     console.log(repo);
 
     setCurrentStarsHistory([]);
@@ -947,11 +947,9 @@ function TimeSeriesChart() {
 
     fetch(fetchUrl)
       .then((response) => {
-        // Check if the response status indicates success (e.g., 200 OK)
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
-        // Attempt to parse the response as JSON
         return response.json();
       })
       .then((data) => {
@@ -962,9 +960,9 @@ function TimeSeriesChart() {
         setCurrentStarsHistory(starHistory);
         setStarsLast10d(data.newLast10Days);
 
-        // Pass the current total stars value directly to updateGraph
-        // instead of relying on the totalStars state
-        updateGraph(starHistory, totalStars || data.stars[data.stars.length - 1][2]);
+        // Always use the passed currentTotalStars value, fallback to data if not provided
+        const totalStarsToUse = currentTotalStars || (data.stars && data.stars.length > 0 ? data.stars[data.stars.length - 1][2] : 0);
+        updateGraph(starHistory, totalStarsToUse);
 
         const maxPeriods = data.maxPeriods.map((period) => ({
           start: period.StartDay,
@@ -1113,6 +1111,7 @@ function TimeSeriesChart() {
     const res = await fetchTotalStars(repoParsed);
     // console.log(res);
 
+    let freshTotalStars = 0;
     if (res) {
       setTotalStars(res.stars);
       setCreationDate(res.createdAt);
@@ -1122,9 +1121,9 @@ function TimeSeriesChart() {
         end: Date.now(),
       });
       setAge(
-        `${years && years !== 0 ? `${years}y ` : ""}${months && months !== 0 ? `${months}m ` : ""
-        }${days && days !== 0 ? `${days}d ` : ""}`
+        `${years && years !== 0 ? `${years}y ` : ""}${months && months !== 0 ? `${months}m ` : ""}${days && days !== 0 ? `${days}d ` : ""}`
       );
+      freshTotalStars = res.stars;
     }
 
     const status = await fetchStatus(repoParsed);
@@ -1134,7 +1133,8 @@ function TimeSeriesChart() {
     setMaxProgress(0);
 
     if (!status.onGoing) {
-      fetchAllStars(repoParsed);
+      // Always pass the freshly fetched total stars value
+      fetchAllStars(repoParsed, false, freshTotalStars);
     }
 
     if (!status.cached) {
@@ -1168,6 +1168,7 @@ function TimeSeriesChart() {
 
     const res = await fetchTotalStars(repoParsed);
 
+    let freshTotalStars = 0;
     if (res) {
       setTotalStars(res.stars);
       setCreationDate(res.createdAt);
@@ -1177,9 +1178,9 @@ function TimeSeriesChart() {
         end: Date.now(),
       });
       setAge(
-        `${years && years !== 0 ? `${years}y ` : ""}${months && months !== 0 ? `${months}m ` : ""
-        }${days && days !== 0 ? `${days}d ` : ""}`
+        `${years && years !== 0 ? `${years}y ` : ""}${months && months !== 0 ? `${months}m ` : ""}${days && days !== 0 ? `${days}d ` : ""}`
       );
+      freshTotalStars = res.stars;
     }
 
     const status = await fetchStatus(repoParsed);
@@ -1188,7 +1189,8 @@ function TimeSeriesChart() {
     setMaxProgress(0);
 
     if (!status.onGoing) {
-      fetchAllStars(repoParsed);
+      // Always pass the freshly fetched total stars value
+      fetchAllStars(repoParsed, false, freshTotalStars);
     }
 
     if (!status.cached) {
