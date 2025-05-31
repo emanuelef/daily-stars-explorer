@@ -115,6 +115,17 @@ const isToday = (dateString) => {
   );
 };
 
+const isYesterday = (dateString) => {
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const [day, month, year] = dateString.split("-").map(Number);
+  return (
+    yesterday.getDate() === day &&
+    yesterday.getMonth() + 1 === month && // Adding 1 to month because JavaScript months are 0-indexed
+    yesterday.getFullYear() === year
+  );
+};
+
 function TimeSeriesChart() {
   let defaultRepo = "helm/helm";
   const { user, repository } = useParams();
@@ -632,7 +643,7 @@ function TimeSeriesChart() {
     return filteredResults;
   };
 
-  const updateGraph = async (starHistory) => {
+  const updateGraph = async (starHistory, currentTotalStars = 0) => {
     // check if last element is today
     if (starHistory.length > 1) {
       const lastElement = starHistory[starHistory.length - 1];
@@ -647,21 +658,32 @@ function TimeSeriesChart() {
       console.log("Array is empty.");
     }
 
-    // Add the current total stars count as the latest point if we have data
-    if (starHistory.length > 0 && totalStars > 0) {
-      // Create today's date in the format DD-MM-YYYY
-      const today = new Date();
-      const formattedToday = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
+    // Use the passed currentTotalStars value instead of relying on the totalStars state
+    const effectiveTotalStars = currentTotalStars || totalStars;
+
+    // Add the current total stars count as the latest point ONLY if the history is complete until yesterday
+    if (starHistory.length > 0 && effectiveTotalStars > 0) {
+      // Check if the last date in the star history is yesterday
+      const lastDateInHistory = starHistory[starHistory.length - 1][0];
+      const isHistoryCompleteUntilYesterday = isYesterday(lastDateInHistory);
       
-      // Get the previous day's total stars (if available)
-      const prevTotalStars = starHistory.length > 0 ? starHistory[starHistory.length - 1][2] : 0;
-      
-      // Calculate daily stars (difference between current total and previous total)
-      const todayDailyStars = Math.max(0, totalStars - prevTotalStars);
-      
-      // Add the new data point with today's date, calculated daily stars, and current total stars
-      starHistory.push([formattedToday, todayDailyStars, totalStars]);
-      console.log("Added today's data point:", formattedToday, todayDailyStars, totalStars);
+      if (isHistoryCompleteUntilYesterday) {
+        // Create today's date in the format DD-MM-YYYY
+        const today = new Date();
+        const formattedToday = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
+        
+        // Get the previous day's total stars (if available)
+        const prevTotalStars = starHistory[starHistory.length - 1][2];
+        
+        // Calculate daily stars (difference between current total and previous total)
+        const todayDailyStars = Math.max(0, effectiveTotalStars - prevTotalStars);
+        
+        // Add the new data point with today's date, calculated daily stars, and current total stars
+        starHistory.push([formattedToday, todayDailyStars, effectiveTotalStars]);
+        console.log("Added today's data point:", formattedToday, todayDailyStars, effectiveTotalStars);
+      } else {
+        console.log("Star history is not complete until yesterday. Not adding current day's data point.");
+      }
     }
 
     let appliedTransformationResult = starHistory;
@@ -940,7 +962,9 @@ function TimeSeriesChart() {
         setCurrentStarsHistory(starHistory);
         setStarsLast10d(data.newLast10Days);
 
-        updateGraph(starHistory);
+        // Pass the current total stars value directly to updateGraph
+        // instead of relying on the totalStars state
+        updateGraph(starHistory, totalStars || data.stars[data.stars.length - 1][2]);
 
         const maxPeriods = data.maxPeriods.map((period) => ({
           start: period.StartDay,
@@ -967,15 +991,6 @@ function TimeSeriesChart() {
         options.dataSource.caption = { text: `Stars ${repo}` };
 
         options.dataSource.xAxis.timemarker = currentPeaks.current;
-
-        /*         options.dataSource.datamarker = [{
-                  value: "Daily Stars",
-                  time: "11-11-2023",
-                  identifier: "H",
-                  timeformat: "%d-%m-%Y",
-                  tooltext:
-                    "Test"
-                }] */
 
         setds(options);
       })
