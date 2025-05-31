@@ -491,6 +491,123 @@ func main() {
 		return c.JSON(res)
 	})
 
+	app.Get("/recentStars", func(c *fiber.Ctx) error {
+		param := c.Query("repo")
+		lastDaysStr := c.Query("lastDays", "30") // Default to 30 days if not provided
+		randomIndex := rand.Intn(len(maps.Keys(ghStatClients)))
+		clientKey := c.Query("client", maps.Keys(ghStatClients)[randomIndex])
+		forceRefetch := c.Query("forceRefetch", "false") == "true"
+
+		client, ok := ghStatClients[clientKey]
+		if !ok {
+			return c.Status(404).SendString("Resource not found")
+		}
+
+		repo, err := url.QueryUnescape(param)
+		if err != nil {
+			return err
+		}
+
+		repo = fmt.Sprintf("%s", repo)
+		repo = strings.ToLower(repo)
+
+		lastDays, err := strconv.Atoi(lastDaysStr)
+		if err != nil || lastDays <= 0 {
+			return c.Status(400).SendString("Invalid lastDays parameter")
+		}
+
+		ip := c.Get("X-Forwarded-For")
+		if ip == "" {
+			ip = c.IP()
+		}
+
+		userAgent := c.Get("User-Agent")
+		log.Printf("Request from IP: %s, Repo: %s, LastDays: %d, User-Agent: %s\n", ip, repo, lastDays, userAgent)
+
+		if strings.Contains(userAgent, "python-requests") {
+			return c.Status(404).SendString("Custom 404 Error: Resource not found")
+		}
+
+		span := trace.SpanFromContext(c.UserContext())
+		span.SetAttributes(attribute.String("github.repo", repo))
+		span.SetAttributes(attribute.String("caller.ip", ip))
+
+		cacheKey := fmt.Sprintf("%s:%d", repo, lastDays)
+
+		if forceRefetch {
+			cacheStars.Delete(cacheKey)
+		}
+
+		if res, hit := cacheStars.Get(cacheKey); hit {
+			return c.JSON(res)
+		}
+
+		// If another request is already getting the data, skip and rely on SSE updates
+		if _, hit := onGoingStars[cacheKey]; hit {
+			return c.SendStatus(fiber.StatusNoContent)
+		}
+
+		onGoingStars[cacheKey] = true
+
+		updateChannel := make(chan int)
+		var recentStars []stats.StarsPerDay
+
+		eg, ctx := errgroup.WithContext(ctx)
+
+		eg.Go(func() error {
+			recentStars, err = client.GetRecentStarsHistoryTwoWays(ctx, repo, lastDays, updateChannel)
+			if err != nil {
+				return err
+			}
+			return nil
+		})
+
+		for progress := range updateChannel {
+			wg := &sync.WaitGroup{}
+
+			for _, s := range currentSessions.Sessions {
+				wg.Add(1)
+				go func(cs *session.Session) {
+					defer wg.Done()
+					if cs.Repo == repo {
+						cs.StateChannel <- progress
+					}
+				}(s)
+			}
+			wg.Wait()
+		}
+
+		if err := eg.Wait(); err != nil {
+			delete(onGoingStars, cacheKey)
+			return err
+		}
+
+		defer close(updateChannel)
+
+		maxPeriods, maxPeaks, err := repostats.FindMaxConsecutivePeriods(recentStars, 10)
+		if err != nil {
+			return err
+		}
+
+		newLastNDays := repostats.NewStarsLastDays(recentStars, 10)
+
+		res := StarsWithStatsResponse{
+			Stars:         recentStars,
+			NewLast10Days: newLastNDays,
+			MaxPeriods:    maxPeriods,
+			MaxPeaks:      maxPeaks,
+		}
+
+		now := time.Now()
+		nextDay := now.UTC().Truncate(24 * time.Hour).Add(DAY_CACHED * 24 * time.Hour)
+		durationUntilEndOfDay := nextDay.Sub(now)
+
+		cacheStars.Set(cacheKey, res, cache.WithExpiration(durationUntilEndOfDay))
+		delete(onGoingStars, cacheKey)
+
+		return c.JSON(res)
+	})
+
 	app.Get("/allIssues", func(c *fiber.Ctx) error {
 		param := c.Query("repo")
 		randomIndex := rand.Intn(len(maps.Keys(ghStatClients)))
