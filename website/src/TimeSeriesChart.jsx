@@ -206,6 +206,7 @@ function TimeSeriesChart() {
     events: {
       selectionChange: function (ev) {
         if (ev && ev.data) {
+          console.log("Selection changed:", ev.data);
           setSelectedTimeRange({
             start: ev.data.start,
             end: ev.data.end,
@@ -248,6 +249,7 @@ function TimeSeriesChart() {
 
   const currentHNnews = useRef({});
   const currentPeaks = useRef([]);
+  const chartRef = useRef(null);
 
   const [feed, setFeed] = useState("none");
   const [theme, setTheme] = useState("candy");
@@ -1526,6 +1528,41 @@ function TimeSeriesChart() {
             width: "130px",
           }}
         />
+        <Button
+          style={{
+            marginLeft: "10px",
+            marginRight: "10px",
+          }}
+          size="small"
+          variant="contained"
+          onClick={() => {
+            if (
+              ds &&
+              ds.dataSource &&
+              ds.dataSource.data &&
+              ds.dataSource.data._data &&
+              ds.dataSource.data._data.length > 0
+            ) {
+              const dataArr = ds.dataSource.data._data;
+              const lastIdx = dataArr.length - 1;
+              const lastDate = dataArr[lastIdx][0];
+              const firstDate = dataArr[Math.max(0, lastIdx - 29)][0];
+
+              console.log("Zooming to last 30 days:", firstDate, lastDate);
+
+              // Update the selected time range state
+              setSelectedTimeRange({
+                start: firstDate,
+                end: lastDate,
+              });
+
+              // Update the "New Stars in Zoomed Period" display
+              handleZoom(firstDate, lastDate);
+            }
+          }}
+        >
+          Last 30 days
+        </Button>
       </div>
       <EstimatedTimeProgress
         text="Estimated Time Left"
