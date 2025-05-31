@@ -647,11 +647,10 @@ function TimeSeriesChart() {
     // check if last element is today
     if (starHistory.length > 1) {
       const lastElement = starHistory[starHistory.length - 1];
-      console.log(lastElement[0]);
-      console.log(starHistory);
       const isLastElementToday = isToday(lastElement[0]);
-      starHistory.pop(); // remove last element as the current day is not complete
-      console.log("isLastElementToday", isLastElementToday);
+      if (isLastElementToday) {
+        starHistory.pop(); // remove last element only if it's today
+      }
       setShowForceRefetch(!isLastElementToday);
       setForceRefetch(false);
     } else {
@@ -934,13 +933,18 @@ function TimeSeriesChart() {
   };
 
   const fetchAllStars = async (repo, ignoreForceRefetch = false, currentTotalStars = 0) => {
-    console.log(repo);
-
     setCurrentStarsHistory([]);
     setStarsLast10d("");
 
-    let fetchUrl = `${HOST}/allStars?repo=${repo}`;
+    // 1. Check status first
+    const status = await fetchStatus(repo);
 
+    if (status.onGoing) {
+      // If fetching is ongoing, do NOT call recentStars, just wait for SSE
+      return;
+    }
+
+    let fetchUrl = `${HOST}/allStars?repo=${repo}`;
     if (forceRefetch && !ignoreForceRefetch) {
       fetchUrl += "&forceRefetch=true";
     }
@@ -954,15 +958,54 @@ function TimeSeriesChart() {
       })
       .then((data) => {
         setLoading(false);
-        console.log(data);
         const starHistory = data.stars;
-
         setCurrentStarsHistory(starHistory);
         setStarsLast10d(data.newLast10Days);
 
-        // Always use the passed currentTotalStars value, fallback to data if not provided
         const totalStarsToUse = currentTotalStars || (data.stars && data.stars.length > 0 ? data.stars[data.stars.length - 1][2] : 0);
-        updateGraph(starHistory, totalStarsToUse);
+
+        // Check if yesterday is present
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const formattedYesterday = `${String(yesterday.getDate()).padStart(2, '0')}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${yesterday.getFullYear()}`;
+        const hasYesterday = starHistory.some(d => d[0] === formattedYesterday);
+
+        if (status.cached && !hasYesterday) {
+          // Find the last date in the cached history
+          let lastCachedDate = null;
+          if (starHistory.length > 0) {
+            lastCachedDate = starHistory[starHistory.length - 1][0]; // format: dd-mm-yyyy
+          }
+
+          // Calculate days missing from last cached date to yesterday
+          let daysMissing = 7; // fallback
+          if (lastCachedDate) {
+            const [d, m, y] = lastCachedDate.split("-").map(Number);
+            const lastDateObj = new Date(y, m - 1, d);
+            const diffMs = yesterday - lastDateObj;
+            daysMissing = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+          }
+
+          setLoading(true); // <--- Show spinner while fetching recentStars
+
+          fetch(`${HOST}/recentStars?repo=${repo}&lastDays=${daysMissing}`)
+            .then(res => res.json())
+            .then(recentData => {
+              const existingDays = new Set(starHistory.map(d => d[0]));
+              const merged = [
+                ...starHistory,
+                ...recentData.stars.filter(d => !existingDays.has(d[0]))
+              ];
+              setCurrentStarsHistory(merged);
+              updateGraph(merged, totalStarsToUse);
+              setLoading(false); // <--- Hide spinner after fetch
+            })
+            .catch(() => {
+              setLoading(false); // <--- Hide spinner on error
+            });
+        } else {
+          updateGraph(starHistory, totalStarsToUse);
+        }
 
         const maxPeriods = data.maxPeriods.map((period) => ({
           start: period.StartDay,
