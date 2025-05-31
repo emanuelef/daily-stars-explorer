@@ -531,25 +531,66 @@ func main() {
 		span.SetAttributes(attribute.String("github.repo", repo))
 		span.SetAttributes(attribute.String("caller.ip", ip))
 
-		// No cache and no update channel for recentStars
-		var recentStars []stats.StarsPerDay
-		recentStars, err = client.GetRecentStarsHistoryTwoWays(ctx, repo, lastDays, nil)
+		// 1. Fetch recent daily stars (no cumulative) for the last N days
+		recentStars, err := client.GetRecentStarsHistoryTwoWays(ctx, repo, lastDays, nil)
 		if err != nil {
 			return err
 		}
 
-		maxPeriods, maxPeaks, err := repostats.FindMaxConsecutivePeriods(recentStars, 10)
+		// 2. Get cached stars for this repo (if any)
+		var cachedStars []stats.StarsPerDay
+		var cachedRes StarsWithStatsResponse
+		var found bool
+		if cachedRes, found = cacheStars.Get(repo); found {
+			cachedStars = cachedRes.Stars
+		}
+
+		// 3. Build a map of cached days for quick lookup
+		cachedDays := make(map[string]stats.StarsPerDay)
+		for _, entry := range cachedStars {
+			dayStr := time.Time(entry.Day).Format("02-01-2006")
+			cachedDays[dayStr] = entry
+		}
+
+		// 4. Find the last cumulative value in the cache (if any)
+		var lastCumulative int
+		if len(cachedStars) > 0 {
+			lastCumulative = cachedStars[len(cachedStars)-1].TotalStars
+		}
+
+		// 5. Append only new days, calculating cumulative
+		var newEntries []stats.StarsPerDay
+		for _, entry := range recentStars {
+			dayStr := time.Time(entry.Day).Format("02-01-2006")
+			if _, exists := cachedDays[dayStr]; !exists {
+				lastCumulative += entry.Stars
+				newEntry := entry
+				newEntry.TotalStars = lastCumulative
+				newEntries = append(newEntries, newEntry)
+			}
+		}
+
+		// 6. Merge and update cache if there are new entries
+		mergedStars := append(cachedStars, newEntries...)
+		maxPeriods, maxPeaks, err := repostats.FindMaxConsecutivePeriods(mergedStars, 10)
 		if err != nil {
 			return err
 		}
-
-		newLastNDays := repostats.NewStarsLastDays(recentStars, 10)
+		newLastNDays := repostats.NewStarsLastDays(mergedStars, 10)
 
 		res := StarsWithStatsResponse{
-			Stars:         recentStars,
+			Stars:         mergedStars,
 			NewLast10Days: newLastNDays,
 			MaxPeriods:    maxPeriods,
 			MaxPeaks:      maxPeaks,
+		}
+
+		if len(newEntries) > 0 {
+			// Update cache only if there are new days
+			now := time.Now()
+			nextDay := now.UTC().Truncate(24 * time.Hour).Add(DAY_CACHED * 24 * time.Hour)
+			durationUntilEndOfDay := nextDay.Sub(now)
+			cacheStars.Set(repo, res, cache.WithExpiration(durationUntilEndOfDay))
 		}
 
 		return c.JSON(res)
