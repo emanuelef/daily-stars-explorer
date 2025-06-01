@@ -996,13 +996,8 @@ function TimeSeriesChart() {
       .then((response) => {
         if (!response.ok) {
           setLoading(false);
-          if (response.status === 404) {
-            setError(`Repository '${repo}' not found. Please check if the repository exists on GitHub.`);
-            setShowError(true);
-          } else {
-            setError(`Error fetching repository data: ${response.status}. Please try again later.`);
-            setShowError(true);
-          }
+          // Don't show errors for allStars API call - it will be retried automatically
+          // Silent fail - the data will be fetched again later if needed
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
         // Clear any existing errors on successful API call
@@ -1100,10 +1095,10 @@ function TimeSeriesChart() {
         setds(options);
       })
       .catch((e) => {
-        console.error(`An error occurred: ${e}`);
+        console.error(`An error occurred in fetchAllStars: ${e}`);
         setLoading(false);
-        setError("Failed to fetch repository data. Please try again later.");
-        setShowError(true);
+        // Don't show errors for allStars API call - it will be retried automatically
+        // if this is part of the automatic retry process
       });
   };
 
@@ -1184,8 +1179,12 @@ function TimeSeriesChart() {
 
       sse.onerror = (err) => {
         console.log("on error", err);
-        setError("Error connecting to the server for live updates. Data updates may be delayed.");
-        setShowError(true);
+        // Only show error if the SSE connection fails after some time (not on initial load)
+        // This prevents showing errors that are part of the normal retry process
+        if (currentSSE.current && currentSSE.current.readyState === 2) { // CLOSED state
+          setError("Error connecting to the server for live updates. Data updates may be delayed.");
+          setShowError(true);
+        }
         setLoading(false);
       };
 
@@ -1218,8 +1217,11 @@ function TimeSeriesChart() {
       });
     } catch (error) {
       console.error("Error setting up SSE connection:", error);
-      setError("Failed to establish connection for live updates.");
-      setShowError(true);
+      // Only show an error for SSE connection issues when it's not part of the initial load/retry process
+      if (!onGoing) {
+        setError("Failed to establish connection for live updates.");
+        setShowError(true);
+      }
       setLoading(false);
     }
   };
