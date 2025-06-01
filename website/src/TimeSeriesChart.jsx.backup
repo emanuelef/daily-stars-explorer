@@ -128,14 +128,6 @@ const isYesterday = (dateString) => {
   );
 };
 
-// Convert a date to the dd-mm-yyyy format needed for chart markers
-const formatDateForMarker = (dateObject) => {
-  const day = String(dateObject.getDate()).padStart(2, '0');
-  const month = String(dateObject.getMonth() + 1).padStart(2, '0'); // Months are zero-indexed
-  const year = dateObject.getFullYear();
-  return `${day}-${month}-${year}`;
-};
-
 // Filter results for Hacker News feed
 const filterHNResults = (results, repoName) => {
   const uniqueUrls = new Set(); // To track URLs that have already been added
@@ -325,21 +317,6 @@ function TimeSeriesChart() {
   const [checkedYAxisType, setCheckedYAxisType] = useState(false);
   const [checkedDateRange, setCheckedDateRange] = useState(false);
 
-  // Fetch available repos on mount (like in CompareChart)
-  useEffect(() => {
-    const fetchRepos = async () => {
-      try {
-        const response = await fetch(`${HOST}/allStarsKeys`);
-        if (!response.ok) throw new Error("Failed to fetch repos");
-        const data = await response.json();
-        setStarsRepos(data.sort());
-      } catch (e) {
-        console.error(e);
-      }
-    };
-    fetchRepos();
-  }, []);
-
   // Handle zoom selection in the chart
   const handleZoom = (start, end) => {
     if (ds && ds.dataSource && ds.dataSource.data && ds.dataSource.data._data) {
@@ -358,6 +335,21 @@ function TimeSeriesChart() {
       );
     }
   };
+
+  // Fetch available repos on mount (like in CompareChart)
+  useEffect(() => {
+    const fetchRepos = async () => {
+      try {
+        const response = await fetch(`${HOST}/allStarsKeys`);
+        if (!response.ok) throw new Error("Failed to fetch repos");
+        const data = await response.json();
+        setStarsRepos(data.sort());
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchRepos();
+  }, []);
 
   const handleDateRangeCheckChange = (event) => {
     setCheckedDateRange(event.target.checked);
@@ -408,159 +400,167 @@ function TimeSeriesChart() {
     setForceRefetch(event.target.checked);
   };
 
-  // Generic function to process feed items and create a date-mapped object
-  const processFeedItems = (items, dateField, urlField) => {
-    const dateMap = {};
-    
-    items.forEach(item => {
-      const date = new Date(item[dateField]);
-      const formattedDate = formatDateForMarker(date);
-      
-      dateMap[formattedDate] = {
-        HNURL: item[urlField]
-      };
-    });
-    
-    return dateMap;
-  };
+  // Convert a date to the dd-mm-yyyy format needed for chart markers
+const formatDateForMarker = (dateObject) => {
+  const day = String(dateObject.getDate()).padStart(2, '0');
+  const month = String(dateObject.getMonth() + 1).padStart(2, '0'); // Months are zero-indexed
+  const year = dateObject.getFullYear();
+  return `${day}-${month}-${year}`;
+};
 
-  // Generic function to create chart markers from feed items
-  const createFeedMarkers = (items, dateField, getLabel, maxItems = 40, markerColor = "#FF6600") => {
-    return items.slice(0, maxItems).map(item => {
-      const date = new Date(item[dateField]);
-      const formattedDate = formatDateForMarker(date);
-      
-      return {
-        start: formattedDate,
-        label: getLabel(item),
-        timeformat: "%d-%m-%Y",
-        style: {
-          marker: {
-            fill: markerColor,
-          },
+// Generic function to process feed items and create a date-mapped object
+const processFeedItems = (items, dateField, urlField) => {
+  const dateMap = {};
+  
+  items.forEach(item => {
+    const date = new Date(item[dateField]);
+    const formattedDate = formatDateForMarker(date);
+    
+    dateMap[formattedDate] = {
+      HNURL: item[urlField]
+    };
+  });
+  
+  return dateMap;
+};
+
+// Generic function to create chart markers from feed items
+const createFeedMarkers = (items, dateField, getLabel, maxItems = 40, markerColor = "#FF6600") => {
+  return items.slice(0, maxItems).map(item => {
+    const date = new Date(item[dateField]);
+    const formattedDate = formatDateForMarker(date);
+    
+    return {
+      start: formattedDate,
+      label: getLabel(item),
+      timeformat: "%d-%m-%Y",
+      style: {
+        marker: {
+          fill: markerColor,
         },
+      },
+    };
+  });
+};
+
+// Fetch HackerNews feed
+const fetchHNFeed = async (options) => {
+  try {
+    const repoParsedTmp = parseGitHubRepoURL(selectedRepo);
+    let repoName = repoParsedTmp.split("/")[1];
+
+    // Fetch HN posts with both repo name and full path
+    const [hackernewsRepoName, hackernewsWithUser] = await Promise.all([
+      fetchHN(repoName),
+      fetchHN(repoParsedTmp),
+    ]);
+
+    // Filter results to avoid duplicates
+    const hackernews = filterHNResults([
+      ...hackernewsRepoName,
+      ...hackernewsWithUser,
+    ], repoName);
+
+    // Process HN items
+    const mapHN = {};
+    hackernews.forEach(item => {
+      const date = new Date(item.CreatedAt);
+      const formattedDate = formatDateForMarker(date);
+      mapHN[formattedDate] = {
+        URL: item.URL,
+        HNURL: item.HNURL
       };
     });
-  };
+    
+    // Update the reference for click handling
+    currentHNnews.current = mapHN;
 
-  // Fetch HackerNews feed
-  const fetchHNFeed = async (options) => {
-    try {
-      const repoParsedTmp = parseGitHubRepoURL(selectedRepo);
-      let repoName = repoParsedTmp.split("/")[1];
+    // Create markers for the chart
+    const news = createFeedMarkers(
+      hackernews, 
+      'CreatedAt', 
+      item => `${item.Title}<br>Points: ${item.Points}<br>Comments: ${item.NumComments}`
+    );
 
-      // Fetch HN posts with both repo name and full path
-      const [hackernewsRepoName, hackernewsWithUser] = await Promise.all([
-        fetchHN(repoName),
-        fetchHN(repoParsedTmp),
-      ]);
+    // Update chart with markers
+    options.dataSource.xAxis.timemarker = [...news, ...currentPeaks.current];
+  } catch (error) {
+    console.error("Error fetching Hacker News feed:", error);
+    toast.error("Failed to fetch Hacker News data", {
+      position: toast.POSITION.BOTTOM_CENTER,
+    });
+    // Ensure we still show peaks even if feed fails
+    options.dataSource.xAxis.timemarker = [...currentPeaks.current];
+  }
+};
 
-      // Filter results to avoid duplicates
-      const hackernews = filterHNResults([
-        ...hackernewsRepoName,
-        ...hackernewsWithUser,
-      ], repoName);
+// Fetch Reddit feed
+const fetchRedditFeed = async (options) => {
+  try {
+    // Get repository name without owner
+    const repoName = parseGitHubRepoURL(selectedRepo).split("/")[1];
+    
+    // Fetch Reddit posts
+    const redditPosts = await fetchReddit(repoName);
+    
+    // Process Reddit items and update reference for click handling
+    currentHNnews.current = processFeedItems(redditPosts, 'created', 'url');
 
-      // Process HN items
-      const mapHN = {};
-      hackernews.forEach(item => {
-        const date = new Date(item.CreatedAt);
-        const formattedDate = formatDateForMarker(date);
-        mapHN[formattedDate] = {
-          URL: item.URL,
-          HNURL: item.HNURL
-        };
-      });
-      
-      // Update the reference for click handling
-      currentHNnews.current = mapHN;
+    // Create markers for chart
+    const reddit = createFeedMarkers(
+      redditPosts, 
+      'created', 
+      item => `${item.title}<br>Ups: ${item.ups}<br>Comments: ${item.num_comments}`
+    );
 
-      // Create markers for the chart
-      const news = createFeedMarkers(
-        hackernews, 
-        'CreatedAt', 
-        item => `${item.Title}<br>Points: ${item.Points}<br>Comments: ${item.NumComments}`
-      );
+    // Update chart with markers
+    options.dataSource.xAxis.timemarker = [...reddit, ...currentPeaks.current];
+  } catch (error) {
+    console.error("Error fetching Reddit feed:", error);
+    toast.error("Failed to fetch Reddit data", {
+      position: toast.POSITION.BOTTOM_CENTER,
+    });
+    // Ensure we still show peaks even if feed fails
+    options.dataSource.xAxis.timemarker = [...currentPeaks.current];
+  }
+};
 
-      // Update chart with markers
-      options.dataSource.xAxis.timemarker = [...news, ...currentPeaks.current];
-    } catch (error) {
-      console.error("Error fetching Hacker News feed:", error);
-      toast.error("Failed to fetch Hacker News data", {
-        position: toast.POSITION.BOTTOM_CENTER,
-      });
-      // Ensure we still show peaks even if feed fails
-      options.dataSource.xAxis.timemarker = [...currentPeaks.current];
-    }
-  };
+// Fetch YouTube feed
+const fetchYoutubeFeed = async (options) => {
+  try {
+    // Get repository name without owner
+    const repoName = parseGitHubRepoURL(selectedRepo).split("/")[1];
+    
+    // Fetch YouTube posts
+    let ytPosts = await fetchYT(repoName);
+    
+    // Filter to only include videos with the repo name in the title
+    ytPosts = ytPosts.filter(item => 
+      item.title.toLowerCase().includes(repoName.toLowerCase())
+    );
+    
+    // Process YouTube items and update reference for click handling
+    currentHNnews.current = processFeedItems(ytPosts, 'published_at', 'video_url');
 
-  // Fetch Reddit feed
-  const fetchRedditFeed = async (options) => {
-    try {
-      // Get repository name without owner
-      const repoName = parseGitHubRepoURL(selectedRepo).split("/")[1];
-      
-      // Fetch Reddit posts
-      const redditPosts = await fetchReddit(repoName);
-      
-      // Process Reddit items and update reference for click handling
-      currentHNnews.current = processFeedItems(redditPosts, 'created', 'url');
+    // Create markers for chart (showing more YouTube videos since they're typically shorter)
+    const youtube = createFeedMarkers(
+      ytPosts, 
+      'published_at', 
+      item => `${item.title}<br>Views: ${formatNumber(item.view_count)}`,
+      100 // Show more YouTube videos
+    );
 
-      // Create markers for chart
-      const reddit = createFeedMarkers(
-        redditPosts, 
-        'created', 
-        item => `${item.title}<br>Ups: ${item.ups}<br>Comments: ${item.num_comments}`
-      );
-
-      // Update chart with markers
-      options.dataSource.xAxis.timemarker = [...reddit, ...currentPeaks.current];
-    } catch (error) {
-      console.error("Error fetching Reddit feed:", error);
-      toast.error("Failed to fetch Reddit data", {
-        position: toast.POSITION.BOTTOM_CENTER,
-      });
-      // Ensure we still show peaks even if feed fails
-      options.dataSource.xAxis.timemarker = [...currentPeaks.current];
-    }
-  };
-
-  // Fetch YouTube feed
-  const fetchYoutubeFeed = async (options) => {
-    try {
-      // Get repository name without owner
-      const repoName = parseGitHubRepoURL(selectedRepo).split("/")[1];
-      
-      // Fetch YouTube posts
-      let ytPosts = await fetchYT(repoName);
-      
-      // Filter to only include videos with the repo name in the title
-      ytPosts = ytPosts.filter(item => 
-        item.title.toLowerCase().includes(repoName.toLowerCase())
-      );
-      
-      // Process YouTube items and update reference for click handling
-      currentHNnews.current = processFeedItems(ytPosts, 'published_at', 'video_url');
-
-      // Create markers for chart (showing more YouTube videos since they're typically shorter)
-      const youtube = createFeedMarkers(
-        ytPosts, 
-        'published_at', 
-        item => `${item.title}<br>Views: ${formatNumber(item.view_count)}`,
-        100 // Show more YouTube videos
-      );
-
-      // Update chart with markers
-      options.dataSource.xAxis.timemarker = [...youtube, ...currentPeaks.current];
-    } catch (error) {
-      console.error("Error fetching YouTube feed:", error);
-      toast.error("Failed to fetch YouTube data", {
-        position: toast.POSITION.BOTTOM_CENTER,
-      });
-      // Ensure we still show peaks even if feed fails
-      options.dataSource.xAxis.timemarker = [...currentPeaks.current];
-    }
-  };
+    // Update chart with markers
+    options.dataSource.xAxis.timemarker = [...youtube, ...currentPeaks.current];
+  } catch (error) {
+    console.error("Error fetching YouTube feed:", error);
+    toast.error("Failed to fetch YouTube data", {
+      position: toast.POSITION.BOTTOM_CENTER,
+    });
+    // Ensure we still show peaks even if feed fails
+    options.dataSource.xAxis.timemarker = [...currentPeaks.current];
+  }
+};
 
   // API fetch functions
   const fetchTotalStars = async (repo) => {
@@ -711,7 +711,7 @@ function TimeSeriesChart() {
     // Use the passed currentTotalStars value instead of relying on the totalStars state
     const effectiveTotalStars = currentTotalStars || totalStars;
 
-    // Add the current total stars count as the latest point ONLY if the history is complete until yesterday
+        // Add the current total stars count as the latest point ONLY if the history is complete until yesterday
     if (starHistory.length > 0 && effectiveTotalStars > 0) {
       // Check if the last date in the star history is yesterday
       const lastDateInHistory = starHistory[starHistory.length - 1][0];
@@ -1085,7 +1085,7 @@ function TimeSeriesChart() {
               fill: "#30EE47",
             },
           },
-        })) : [];
+        }));
 
         currentPeaks.current = maxPeriods.concat(maxPeaks);
 
