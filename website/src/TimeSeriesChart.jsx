@@ -257,6 +257,8 @@ function TimeSeriesChart() {
   const [showForceRefetch, setShowForceRefetch] = useState(false);
   const [forceRefetch, setForceRefetch] = useState(false);
   const [checkedYAxisType, setCheckedYAxisType] = useState(false);
+  const [error, setError] = useState("");
+  const [showError, setShowError] = useState(false);
 
   const currentHNnews = useRef({});
   const currentPeaks = useRef([]);
@@ -593,16 +595,23 @@ function TimeSeriesChart() {
 
       if (!response.ok) {
         setLoading(false);
-        toast.error("Internal Server Error. Please try again later.", {
-          position: toast.POSITION.BOTTOM_CENTER,
-        });
+        if (response.status === 404) {
+          setError(`Repository '${repo}' not found. Please check if the repository exists on GitHub.`);
+          setShowError(true);
+        } else {
+          setError("Internal Server Error. Please try again later.");
+          setShowError(true);
+        }
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
+      // Clear any existing errors on successful API call
+      setShowError(false);
       const data = await response.json();
       return data;
     } catch (error) {
       console.error(`An error occurred: ${error}`);
       setLoading(false);
+      return null;
     }
   };
 
@@ -611,12 +620,24 @@ function TimeSeriesChart() {
       const response = await fetch(`${HOST}/status?repo=${repo}`);
 
       if (!response.ok) {
+        setLoading(false);
+        if (response.status === 404) {
+          setError(`Repository '${repo}' not found. Please check if the repository exists on GitHub.`);
+          setShowError(true);
+        } else {
+          setError("Error checking repository status. Please try again later.");
+          setShowError(true);
+        }
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
+      // Clear any existing errors on successful API call
+      setShowError(false);
       const data = await response.json();
       return data;
     } catch (error) {
       console.error(`An error occurred: ${error}`);
+      setLoading(false);
+      return { cached: false, onGoing: false };
     }
   };
 
@@ -955,6 +976,12 @@ function TimeSeriesChart() {
     // 1. Check status first
     const status = await fetchStatus(repo);
 
+    // If status fetch failed, exit early
+    if (!status) {
+      setLoading(false);
+      return;
+    }
+
     if (status.onGoing) {
       // If fetching is ongoing, do NOT call recentStars, just wait for SSE
       return;
@@ -968,8 +995,18 @@ function TimeSeriesChart() {
     fetch(fetchUrl)
       .then((response) => {
         if (!response.ok) {
+          setLoading(false);
+          if (response.status === 404) {
+            setError(`Repository '${repo}' not found. Please check if the repository exists on GitHub.`);
+            setShowError(true);
+          } else {
+            setError(`Error fetching repository data: ${response.status}. Please try again later.`);
+            setShowError(true);
+          }
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
+        // Clear any existing errors on successful API call
+        setShowError(false);
         return response.json();
       })
       .then((data) => {
@@ -1005,7 +1042,13 @@ function TimeSeriesChart() {
           setLoading(true); // <--- Show spinner while fetching recentStars
 
           fetch(`${HOST}/recentStars?repo=${repo}&lastDays=${daysMissing}`)
-            .then(res => res.json())
+            .then(res => {
+              if (res.ok) {
+                // Clear any existing errors on successful API call
+                setShowError(false);
+              }
+              return res.json();
+            })
             .then(recentData => {
               const existingDays = new Set(starHistory.map(d => d[0]));
               const merged = [
@@ -1016,8 +1059,13 @@ function TimeSeriesChart() {
               updateGraph(merged, totalStarsToUse);
               setLoading(false); // <--- Hide spinner after fetch
             })
-            .catch(() => {
+            .catch((error) => {
+              console.error("Error fetching recent stars:", error);
               setLoading(false); // <--- Hide spinner on error
+              setError("Failed to fetch recent star data. Using cached data instead.");
+              setShowError(true);
+              // Fall back to using the cached data we already have
+              updateGraph(starHistory, totalStarsToUse);
             });
         } else {
           updateGraph(starHistory, totalStarsToUse);
@@ -1054,6 +1102,8 @@ function TimeSeriesChart() {
       .catch((e) => {
         console.error(`An error occurred: ${e}`);
         setLoading(false);
+        setError("Failed to fetch repository data. Please try again later.");
+        setShowError(true);
       });
   };
 
@@ -1062,7 +1112,12 @@ function TimeSeriesChart() {
     const downloadUrl = `${HOST}/allStarsCsv?repo=${repoParsed}`;
 
     fetch(downloadUrl)
-      .then((response) => response.blob())
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.blob();
+      })
       .then((blob) => {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
@@ -1074,6 +1129,8 @@ function TimeSeriesChart() {
       })
       .catch((error) => {
         console.error("Error downloading CSV:", error);
+        setError("Failed to download CSV. Please try again later.");
+        setShowError(true);
       });
   };
 
@@ -1082,7 +1139,12 @@ function TimeSeriesChart() {
     const downloadUrl = `${HOST}/allStars?repo=${repoParsed}`;
 
     fetch(downloadUrl)
-      .then((response) => response.json())
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+      })
       .then((data) => {
         const starsContent = JSON.stringify(data.stars);
         const blob = new Blob([starsContent], { type: "application/json" });
@@ -1096,6 +1158,8 @@ function TimeSeriesChart() {
       })
       .catch((error) => {
         console.error("Error downloading JSON:", error);
+        setError("Failed to download JSON. Please try again later.");
+        setShowError(true);
       });
   };
 
@@ -1113,41 +1177,51 @@ function TimeSeriesChart() {
 
   const startSSEUpates = (repo, callsNeeded, onGoing) => {
     console.log(repo, callsNeeded, onGoing);
-    const sse = new EventSource(`${HOST}/sse?repo=${repo}`);
-    closeSSE();
-    currentSSE.current = sse;
+    try {
+      const sse = new EventSource(`${HOST}/sse?repo=${repo}`);
+      closeSSE();
+      currentSSE.current = sse;
 
-    sse.onerror = (err) => {
-      console.log("on error", err);
-    };
-
-    // The onmessage handler is called if no event name is specified for a message.
-    sse.onmessage = (msg) => {
-      console.log("on message", msg);
-    };
-
-    sse.onopen = (...args) => {
-      console.log("on open", args);
-    };
-
-    sse.addEventListener("current-value", (event) => {
-      const parsedData = JSON.parse(event.data);
-      const currentValue = parsedData.data;
-      setProgressValue(currentValue);
-
-      // console.log("currentValue", currentValue, callsNeeded);
-
-      if (currentValue === callsNeeded) {
-        console.log("CLOSE SSE");
-        closeSSE();
-        //if (onGoing) {
-        setTimeout(() => {
-          fetchAllStars(repo, true);
-        }, 1600);
-        //}
+      sse.onerror = (err) => {
+        console.log("on error", err);
+        setError("Error connecting to the server for live updates. Data updates may be delayed.");
+        setShowError(true);
         setLoading(false);
-      }
-    });
+      };
+
+      // The onmessage handler is called if no event name is specified for a message.
+      sse.onmessage = (msg) => {
+        console.log("on message", msg);
+      };
+
+      sse.onopen = (...args) => {
+        console.log("on open", args);
+      };
+
+      sse.addEventListener("current-value", (event) => {
+        const parsedData = JSON.parse(event.data);
+        const currentValue = parsedData.data;
+        setProgressValue(currentValue);
+
+        // console.log("currentValue", currentValue, callsNeeded);
+
+        if (currentValue === callsNeeded) {
+          console.log("CLOSE SSE");
+          closeSSE();
+          //if (onGoing) {
+          setTimeout(() => {
+            fetchAllStars(repo, true);
+          }, 1600);
+          //}
+          setLoading(false);
+        }
+      });
+    } catch (error) {
+      console.error("Error setting up SSE connection:", error);
+      setError("Failed to establish connection for live updates.");
+      setShowError(true);
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -1157,13 +1231,19 @@ function TimeSeriesChart() {
   const handleClick = async () => {
     const repoParsed = parseGitHubRepoURL(selectedRepo);
 
+    if (repoParsed === null) {
+      setError("Invalid GitHub repository format. Please use owner/repo format or a valid GitHub URL.");
+      setShowError(true);
+      setLoading(false);
+      return;
+    }
+
+    // Clear any previous errors when starting a valid fetch
+    setShowError(false);
+    
     navigate(`/${repoParsed}`, {
       replace: false,
     });
-
-    if (repoParsed === null) {
-      return;
-    }
 
     setLoading(true);
 
@@ -1183,10 +1263,20 @@ function TimeSeriesChart() {
         `${years && years !== 0 ? `${years}y ` : ""}${months && months !== 0 ? `${months}m ` : ""}${days && days !== 0 ? `${days}d ` : ""}`
       );
       freshTotalStars = res.stars;
+    } else {
+      // If we couldn't fetch total stars, stop the loading process
+      setLoading(false);
+      return;
     }
 
     const status = await fetchStatus(repoParsed);
     console.log(status);
+
+    // If status is undefined or couldn't be fetched properly, exit early
+    if (!status) {
+      setLoading(false);
+      return;
+    }
 
     setProgressValue(0);
     setMaxProgress(0);
@@ -1215,13 +1305,19 @@ function TimeSeriesChart() {
   const handleClickWithRepo = async (repo) => {
     const repoParsed = parseGitHubRepoURL(repo);
 
+    if (repoParsed === null) {
+      setError("Invalid GitHub repository format. Please use owner/repo format or a valid GitHub URL.");
+      setShowError(true);
+      setLoading(false);
+      return;
+    }
+
+    // Clear any previous errors when starting a valid fetch
+    setShowError(false);
+    
     navigate(`/${repoParsed}`, {
       replace: false,
     });
-
-    if (repoParsed === null) {
-      return;
-    }
 
     setLoading(true);
 
@@ -1240,9 +1336,19 @@ function TimeSeriesChart() {
         `${years && years !== 0 ? `${years}y ` : ""}${months && months !== 0 ? `${months}m ` : ""}${days && days !== 0 ? `${days}d ` : ""}`
       );
       freshTotalStars = res.stars;
+    } else {
+      // If we couldn't fetch total stars, stop the loading process
+      setLoading(false);
+      return;
     }
 
     const status = await fetchStatus(repoParsed);
+
+    // If status is undefined or couldn't be fetched properly, exit early
+    if (!status) {
+      setLoading(false);
+      return;
+    }
 
     setProgressValue(0);
     setMaxProgress(0);
@@ -1263,8 +1369,40 @@ function TimeSeriesChart() {
     startSSEUpates(repoParsed, callsNeeded, status.onGoing);
   };
 
+  useEffect(() => {
+    if (showError) {
+      // Auto-dismiss error after 6 seconds
+      const timer = setTimeout(() => {
+        setShowError(false);
+      }, 6000);
+      
+      // Clean up the timer when the component unmounts or showError changes
+      return () => clearTimeout(timer);
+    }
+  }, [showError]);
+
   return (
     <div>
+      {showError && (
+        <Alert
+          severity="error"
+          action={
+            <IconButton
+              aria-label="close"
+              color="inherit"
+              size="small"
+              onClick={() => {
+                setShowError(false);
+              }}
+            >
+              <CloseIcon fontSize="inherit" />
+            </IconButton>
+          }
+          sx={{ mb: 2 }}
+        >
+          {error}
+        </Alert>
+      )}
       <div style={{ display: "flex", alignItems: "center" }}>
         <Autocomplete
           freeSolo
