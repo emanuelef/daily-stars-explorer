@@ -651,9 +651,25 @@ function TimeSeriesChart() {
       if (isLastElementToday) {
         starHistory.pop(); // remove last element only if it's today
       }
-      setShowForceRefetch(!isLastElementToday);
+      // ---  ---
+      let showUpdate = false;
+      if (starHistory.length > 0) {
+        const lastDate = starHistory[starHistory.length - 1][0];
+        const today = new Date();
+        const yesterday = new Date();
+        yesterday.setDate(today.getDate() - 1);
+        const [d, m, y] = lastDate.split("-").map(Number);
+        const lastDateObj = new Date(y, m - 1, d);
+        // If last date is before yesterday (i.e., < yesterday at 00:00), show Update
+        if (lastDateObj < new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate())) {
+          showUpdate = true;
+        }
+      }
+      setShowForceRefetch(showUpdate);
       setForceRefetch(false);
     } else {
+      setShowForceRefetch(false);
+      setForceRefetch(false);
       console.log("Array is empty.");
     }
 
