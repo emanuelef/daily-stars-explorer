@@ -1,6 +1,7 @@
 import { useState } from "react";
 import "./App.css";
 import "./index.css";
+import { AnimatePresence, motion } from "framer-motion";
 
 import MainPage from "./MainPage";
 import TimeSeriesChart from "./TimeSeriesChart";
@@ -54,7 +55,7 @@ function App() {
           style={{
             position: "fixed",
             top: 750,
-            left:100,
+            left: 100,
             zIndex: 1200,
             background: darkMode ? "#333" : "#ddd",
             color: darkMode ? "#fff" : "#111",
