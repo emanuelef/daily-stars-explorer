@@ -1742,7 +1742,7 @@ function TimeSeriesChart() {
       >
         <label
           style={{
-            color: "white",
+            //color: "white",
             marginRight: "10px",
           }}
         >
@@ -1753,8 +1753,7 @@ function TimeSeriesChart() {
           value={`${formatNumber(zoomedStars)} - ${zoomedStarsPercentageTotal}%`}
           readOnly
           style={{
-            color: "white",
-            backgroundColor: "black",
+
             border: "1px solid #ccc",
             borderRadius: "4px",
             padding: "5px",

@@ -26,3 +26,22 @@ h1 {
 h2 {
   color: #165a72;
 }
+.light-theme {
+  background: #ffffff;
+  color: #1e1e1e;
+  transition: all 0.4s ease;
+}
+
+
+.dark-theme {
+  background: linear-gradient(to right, #232526, #414345);
+  color: #f0f0f0;
+  transition: all 0.4s ease;
+}
+.light-theme .zoom-stars-label {
+  color: #000000;
+}
+
+.dark-theme .zoom-stars-label {
+  color: #ffffff;
+}

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import "./App.css";
+import "./index.css";
 
 import MainPage from "./MainPage";
 import TimeSeriesChart from "./TimeSeriesChart";
@@ -21,27 +22,48 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import SsidChartRoundedIcon from "@mui/icons-material/SsidChartRounded";
 import BugReportRoundedIcon from "@mui/icons-material/BugReportRounded";
 import AltRouteOutlinedIcon from "@mui/icons-material/AltRouteOutlined";
-import CallMergeRoundedIcon from '@mui/icons-material/CallMergeRounded';
-import CommitRoundedIcon from '@mui/icons-material/CommitRounded';
-import Diversity3OutlinedIcon from '@mui/icons-material/Diversity3Outlined';
+import CallMergeRoundedIcon from "@mui/icons-material/CallMergeRounded";
+import CommitRoundedIcon from "@mui/icons-material/CommitRounded";
+import Diversity3OutlinedIcon from "@mui/icons-material/Diversity3Outlined";
+import DarkModeIcon from "@mui/icons-material/DarkMode";
+import LightModeIcon from "@mui/icons-material/LightMode";
 
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import Tooltip from "@mui/material/Tooltip";
-
-const darkTheme = createTheme({
-  palette: {
-    mode: "dark",
-  },
-});
+import IconButton from "@mui/material/IconButton";
 
 function App() {
   const [collapsed, setCollapsed] = useState(true);
+  const [darkMode, setDarkMode] = useState(true);
+  const location = useLocation();
+
+  const theme = createTheme({
+    palette: {
+      mode: darkMode ? "dark" : "light",
+    },
+  });
 
   return (
-    <ThemeProvider theme={darkTheme}>
+    <ThemeProvider theme={theme}>
       <CssBaseline />
-      <div className="app-container">
+      <div className={darkMode ? "app-container dark-theme" : "app-container light-theme"}>
+        {/* Theme Toggle */}
+        <IconButton
+          onClick={() => setDarkMode(!darkMode)}
+          style={{
+            position: "fixed",
+            top: 750,
+            left:100,
+            zIndex: 1200,
+            background: darkMode ? "#333" : "#ddd",
+            color: darkMode ? "#fff" : "#111",
+            transition: "all 0.3s ease",
+          }}
+        >
+          {darkMode ? <LightModeIcon /> : <DarkModeIcon />}
+        </IconButton>
+
         <Sidebar
           className="sidebar"
           collapsed={collapsed}
@@ -74,118 +96,55 @@ function App() {
             >
               <h2 style={{ color: "black" }}>Stars Explorer</h2>
             </MenuItem>
-            <MenuItem
-              component={<Link to="/starstimeline/:id" className="link" />}
-              icon={
-                <Tooltip title="Stars Timeline" placement="right">
-                  <QueryStatsRoundedIcon />
-                </Tooltip>
-              }
-              active={
-                !(
-                  useLocation().pathname.includes("/compare") ||
-                  useLocation().pathname.includes("/table") ||
-                  useLocation().pathname.includes("/info") ||
-                  useLocation().pathname.includes("/issues") ||
-                  useLocation().pathname.includes("/forks") ||
-                  useLocation().pathname.includes("/prs") ||
-                  useLocation().pathname.includes("/commits") ||
-                  useLocation().pathname.includes("/contributors")
-                )
-              }
-            >
-              Repo Star History
-            </MenuItem>
-            <MenuItem
-              component={<Link to="/compare" className="link" />}
-              icon={
-                <Tooltip title="Compare" placement="right">
-                  <SsidChartRoundedIcon />
-                </Tooltip>
-              }
-              active={useLocation().pathname.includes("/compare")}
-            >
-              Compare
-            </MenuItem>
-            <MenuItem
-              component={<Link to="/commits" className="link" />}
-              icon={
-                <Tooltip title="Commits Timeline" placement="right">
-                  <CommitRoundedIcon />
-                </Tooltip>
-              }
-              active={useLocation().pathname.includes("/commits")}
-            >
-              Commits
-            </MenuItem>
-            <MenuItem
-              component={<Link to="/prs" className="link" />}
-              icon={
-                <Tooltip title="PRs Timeline" placement="right">
-                  <CallMergeRoundedIcon />
-                </Tooltip>
-              }
-              active={useLocation().pathname.includes("/prs")}
-            >
-              PRs
-            </MenuItem>
-            <MenuItem
-              component={<Link to="/issues" className="link" />}
-              icon={
-                <Tooltip title="Issues Timeline" placement="right">
-                  <BugReportRoundedIcon />
-                </Tooltip>
-              }
-              active={useLocation().pathname.includes("/issues")}
-            >
-              Issues
-            </MenuItem>
-            <MenuItem
-              component={<Link to="/forks" className="link" />}
-              icon={
-                <Tooltip title="Forks Timeline" placement="right">
-                  <AltRouteOutlinedIcon />
-                </Tooltip>
-              }
-              active={useLocation().pathname.includes("/forks")}
-            >
-              Forks
-            </MenuItem>
-            <MenuItem
-              component={<Link to="/contributors" className="link" />}
-              icon={
-                <Tooltip title="Contributors Timeline" placement="right">
-                  <Diversity3OutlinedIcon />
-                </Tooltip>
-              }
-              active={useLocation().pathname.includes("/contributors")}
-            >
-              Contributors
-            </MenuItem>
-            <MenuItem
-              component={<Link to="/table" className="link" />}
-              icon={
-                <Tooltip title="Table" placement="right">
-                  <TableViewRounded />
-                </Tooltip>
-              }
-              active={useLocation().pathname === "/table"}
-            >
-              Table
-            </MenuItem>
-            <MenuItem
-              component={<Link to="/info" className="link" />}
-              icon={
-                <Tooltip title="Info" placement="right">
-                  <InfoOutlinedIcon />
-                </Tooltip>
-              }
-              active={useLocation().pathname === "/info"}
-            >
-              Info
-            </MenuItem>
+
+            <MenuItem component={<Link to="/starstimeline/:id" className="link" />}
+              icon={<Tooltip title="Stars Timeline"><QueryStatsRoundedIcon /></Tooltip>}
+              active={!["/compare", "/table", "/info", "/issues", "/forks", "/prs", "/commits", "/contributors"]
+                .some(path => location.pathname.includes(path))}
+            >Repo Star History</MenuItem>
+
+            <MenuItem component={<Link to="/compare" className="link" />}
+              icon={<Tooltip title="Compare"><SsidChartRoundedIcon /></Tooltip>}
+              active={location.pathname.includes("/compare")}
+            >Compare</MenuItem>
+
+            <MenuItem component={<Link to="/commits" className="link" />}
+              icon={<Tooltip title="Commits"><CommitRoundedIcon /></Tooltip>}
+              active={location.pathname.includes("/commits")}
+            >Commits</MenuItem>
+
+            <MenuItem component={<Link to="/prs" className="link" />}
+              icon={<Tooltip title="PRs"><CallMergeRoundedIcon /></Tooltip>}
+              active={location.pathname.includes("/prs")}
+            >PRs</MenuItem>
+
+            <MenuItem component={<Link to="/issues" className="link" />}
+              icon={<Tooltip title="Issues"><BugReportRoundedIcon /></Tooltip>}
+              active={location.pathname.includes("/issues")}
+            >Issues</MenuItem>
+
+            <MenuItem component={<Link to="/forks" className="link" />}
+              icon={<Tooltip title="Forks"><AltRouteOutlinedIcon /></Tooltip>}
+              active={location.pathname.includes("/forks")}
+            >Forks</MenuItem>
+
+            <MenuItem component={<Link to="/contributors" className="link" />}
+              icon={<Tooltip title="Contributors"><Diversity3OutlinedIcon /></Tooltip>}
+              active={location.pathname.includes("/contributors")}
+            >Contributors</MenuItem>
+
+            <MenuItem component={<Link to="/table" className="link" />}
+              icon={<Tooltip title="Table"><TableViewRounded /></Tooltip>}
+              active={location.pathname === "/table"}
+            >Table</MenuItem>
+
+            <MenuItem component={<Link to="/info" className="link" />}
+              icon={<Tooltip title="Info"><InfoOutlinedIcon /></Tooltip>}
+              active={location.pathname === "/info"}
+            >Info</MenuItem>
           </Menu>
         </Sidebar>
+
         <section className="content">
           <Routes>
             <Route path="/" element={<TimeSeriesChart />} />
@@ -193,10 +152,7 @@ function App() {
             <Route path="/table" element={<MainPage />} />
             <Route path="/starstimeline/:id" element={<TimeSeriesChart />} />
             <Route path="/compare" element={<CompareChart />} />
-            <Route
-              path="/compare/:user/:repository/:secondUser/:secondRepository"
-              element={<CompareChart />}
-            />
+            <Route path="/compare/:user/:repository/:secondUser/:secondRepository" element={<CompareChart />} />
             <Route path="/info" element={<InfoPage />} />
             <Route path="/issues" element={<IssuesTimeSeriesChart />} />
             <Route path="/issues/:user/:repository" element={<IssuesTimeSeriesChart />} />
