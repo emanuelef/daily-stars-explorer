@@ -1051,7 +1051,10 @@ function TimeSeriesChart() {
                 ...recentData.stars.filter(d => !existingDays.has(d[0]))
               ];
               setCurrentStarsHistory(merged);
-              updateGraph(merged, totalStarsToUse);
+              
+              // Important change here: Update the graph with data AND title together
+              updateGraphWithTitle(merged, repo, totalStarsToUse);
+              
               setLoading(false); // <--- Hide spinner after fetch
             })
             .catch((error) => {
@@ -1060,39 +1063,14 @@ function TimeSeriesChart() {
               setError("Failed to fetch recent star data. Using cached data instead.");
               setShowError(true);
               // Fall back to using the cached data we already have
-              updateGraph(starHistory, totalStarsToUse);
+              
+              // Important change here: Update the graph with data AND title together
+              updateGraphWithTitle(starHistory, repo, totalStarsToUse);
             });
         } else {
-          updateGraph(starHistory, totalStarsToUse);
+          // Important change here: Update the graph with data AND title together
+          updateGraphWithTitle(starHistory, repo, totalStarsToUse);
         }
-
-        const maxPeriods = data.maxPeriods.map((period) => ({
-          start: period.StartDay,
-          end: period.EndDay,
-          label: `${period.TotalStars} is the highest number of new stars in a 10 day period`,
-          timeformat: "%d-%m-%Y",
-          type: "full",
-        }));
-
-        const maxPeaks = data.maxPeaks.map((peak) => ({
-          start: peak.Day,
-          timeformat: "%d-%m-%Y",
-          label: `${peak.Stars} is the maximum number of new stars in one day`,
-          style: {
-            marker: {
-              fill: "#30EE47",
-            },
-          },
-        }));
-
-        currentPeaks.current = maxPeriods.concat(maxPeaks);
-
-        const options = { ...ds };
-        options.dataSource.caption = { text: `Stars ${repo}` };
-
-        options.dataSource.xAxis.timemarker = currentPeaks.current;
-
-        setds(options);
       })
       .catch((e) => {
         console.error(`An error occurred in fetchAllStars: ${e}`);
@@ -1100,6 +1078,18 @@ function TimeSeriesChart() {
         // Don't show errors for allStars API call - it will be retried automatically
         // if this is part of the automatic retry process
       });
+  };
+
+  // New function that combines updating graph data and title
+  const updateGraphWithTitle = (starHistory, repo, currentTotalStars = 0) => {
+    // First update the graph data
+    updateGraph(starHistory, currentTotalStars);
+    
+    // Then update the title
+    const options = { ...ds };
+    options.dataSource.caption = { text: `Stars ${repo}` };
+    options.dataSource.xAxis.timemarker = currentPeaks.current;
+    setds(options);
   };
 
   const downloadCSV = () => {
