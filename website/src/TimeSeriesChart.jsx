@@ -1010,6 +1010,26 @@ function TimeSeriesChart() {
         setCurrentStarsHistory(starHistory);
         setStarsLast10d(data.newLast10Days);
 
+        // Process max periods and peaks data for the chart markers
+        const maxPeriods = data.maxPeriods.map((period) => ({
+          start: period.StartDay,
+          end: period.EndDay,
+          label: `${period.TotalStars} is the highest number of new stars in a 10 day period`,
+          timeformat: "%d-%m-%Y",
+          type: "full",
+        }));
+        const maxPeaks = data.maxPeaks.map((peak) => ({
+          start: peak.Day,
+          timeformat: "%d-%m-%Y",
+          label: `${peak.Stars} is the maximum number of new stars in one day`,
+          style: {
+            marker: {
+              fill: "#30EE47",
+            },
+          },
+        }));
+        currentPeaks.current = maxPeriods.concat(maxPeaks);
+
         const totalStarsToUse = currentTotalStars || (data.stars && data.stars.length > 0 ? data.stars[data.stars.length - 1][2] : 0);
 
         // Check if yesterday is present
