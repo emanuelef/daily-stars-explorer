@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import { Link } from "react-router-dom";
 import info from "./info.md";
+import { motion } from "framer-motion";
+
 
 const InfoPage = () => {
   const [markdownContent, setMarkdownContent] = useState("");
@@ -24,13 +26,19 @@ const InfoPage = () => {
     ),
   };
 
-  return (
-    <div style={{ margin: "20px 20px" }}>
-      <ReactMarkdown components={customRenderer}>
-        {markdownContent}
-      </ReactMarkdown>
-    </div>
-  );
+return (
+  <motion.div
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -10 }}
+    transition={{ duration: 0.3 }}
+    style={{ margin: "20px 20px" }}
+  >
+    <ReactMarkdown components={customRenderer}>
+      {markdownContent}
+    </ReactMarkdown>
+  </motion.div>
+);
 };
 
 export default InfoPage;
