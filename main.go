@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -545,33 +546,48 @@ func main() {
 			cachedStars = cachedRes.Stars
 		}
 
-		// 3. Build a map of cached days for quick lookup
-		cachedDays := make(map[string]stats.StarsPerDay)
+		// 3. Create a map to hold all stars data (both cached and recent)
+		mergedMap := make(map[string]stats.StarsPerDay)
+
+		// First add all cached stars to the map
 		for _, entry := range cachedStars {
 			dayStr := time.Time(entry.Day).Format("02-01-2006")
-			cachedDays[dayStr] = entry
+			mergedMap[dayStr] = entry
 		}
 
-		// 4. Find the last cumulative value in the cache (if any)
-		var lastCumulative int
-		if len(cachedStars) > 0 {
-			lastCumulative = cachedStars[len(cachedStars)-1].TotalStars
-		}
-
-		// 5. Append only new days, calculating cumulative
-		var newEntries []stats.StarsPerDay
+		// Then add or update with recent stars
+		var hasNewEntries bool
 		for _, entry := range recentStars {
 			dayStr := time.Time(entry.Day).Format("02-01-2006")
-			if _, exists := cachedDays[dayStr]; !exists {
-				lastCumulative += entry.Stars
-				newEntry := entry
-				newEntry.TotalStars = lastCumulative
-				newEntries = append(newEntries, newEntry)
+			_, exists := mergedMap[dayStr]
+			if !exists {
+				hasNewEntries = true
+			}
+			// Always add the recent entry (overwriting if it exists)
+			// We'll recalculate totals later
+			mergedMap[dayStr] = entry
+		}
+
+		// 4. Convert map back to slice and sort by date
+		var mergedStars []stats.StarsPerDay
+		for _, entry := range mergedMap {
+			mergedStars = append(mergedStars, entry)
+		}
+
+		// Sort by date
+		sort.Slice(mergedStars, func(i, j int) bool {
+			return time.Time(mergedStars[i].Day).Before(time.Time(mergedStars[j].Day))
+		})
+
+		// 5. Recalculate cumulative totals
+		if len(mergedStars) > 0 {
+			runningTotal := 0
+			for i := range mergedStars {
+				runningTotal += mergedStars[i].Stars
+				mergedStars[i].TotalStars = runningTotal
 			}
 		}
 
-		// 6. Merge and update cache if there are new entries
-		mergedStars := append(cachedStars, newEntries...)
 		maxPeriods, maxPeaks, err := repostats.FindMaxConsecutivePeriods(mergedStars, 10)
 		if err != nil {
 			return err
@@ -585,7 +601,7 @@ func main() {
 			MaxPeaks:      maxPeaks,
 		}
 
-		if len(newEntries) > 0 {
+		if hasNewEntries {
 			// Update cache only if there are new days
 			now := time.Now()
 			nextDay := now.UTC().Truncate(24 * time.Hour).Add(DAY_CACHED * 24 * time.Hour)
