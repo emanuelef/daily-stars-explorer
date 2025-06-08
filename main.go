@@ -546,27 +546,31 @@ func main() {
 			cachedStars = cachedRes.Stars
 		}
 
+		// --- PATCH: Only add recent days strictly after the last cached day ---
+		// Find the last cached day (if any)
+		var lastCachedDay time.Time
+		if len(cachedStars) > 0 {
+			lastCachedDay = time.Time(cachedStars[len(cachedStars)-1].Day)
+		}
+
 		// 3. Create a map to hold all stars data (both cached and recent)
 		mergedMap := make(map[string]stats.StarsPerDay)
-
-		// First add all cached stars to the map
 		for _, entry := range cachedStars {
 			dayStr := time.Time(entry.Day).Format("02-01-2006")
 			mergedMap[dayStr] = entry
 		}
 
-		// Then add or update with recent stars
+		// Only add recent entries with date strictly after lastCachedDay
 		var hasNewEntries bool
 		for _, entry := range recentStars {
-			dayStr := time.Time(entry.Day).Format("02-01-2006")
-			_, exists := mergedMap[dayStr]
-			if !exists {
+			entryDay := time.Time(entry.Day)
+			if lastCachedDay.IsZero() || entryDay.After(lastCachedDay) {
+				dayStr := entryDay.Format("02-01-2006")
+				mergedMap[dayStr] = entry
 				hasNewEntries = true
 			}
-			// Always add the recent entry (overwriting if it exists)
-			// We'll recalculate totals later
-			mergedMap[dayStr] = entry
 		}
+		// --- END PATCH ---
 
 		// 4. Convert map back to slice and sort by date
 		var mergedStars []stats.StarsPerDay
