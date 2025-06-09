@@ -1217,11 +1217,9 @@ function TimeSeriesChart() {
         if (currentValue === callsNeeded) {
           console.log("CLOSE SSE");
           closeSSE();
-          //if (onGoing) {
           setTimeout(() => {
-            fetchAllStars(repo, true);
-          }, 1600);
-          //}
+            handleClick(); // Simulate user clicking Fetch after 2 seconds
+          }, 2000);
           setLoading(false);
         }
       });
