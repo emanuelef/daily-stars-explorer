@@ -468,6 +468,15 @@ func main() {
 
 		defer close(updateChannel)
 
+		// Remove incomplete (today's) day before creating response and caching in /allStars ---
+		if len(allStars) > 0 {
+			todayStr := time.Now().Format("02-01-2006")
+			lastDayStr := time.Time(allStars[len(allStars)-1].Day).Format("02-01-2006")
+			if lastDayStr == todayStr {
+				allStars = allStars[:len(allStars)-1] // remove incomplete day
+			}
+		}
+
 		maxPeriods, maxPeaks, err := repostats.FindMaxConsecutivePeriods(allStars, 10)
 		if err != nil {
 			return err
@@ -548,10 +557,7 @@ func main() {
 
 		// --- PATCH: Only add recent days strictly after the last cached day ---
 		// Find the last cached day (if any)
-		var lastCachedDay time.Time
-		if len(cachedStars) > 0 {
-			lastCachedDay = time.Time(cachedStars[len(cachedStars)-1].Day)
-		}
+		// var lastCachedDay time.Time // no longer needed
 
 		// 3. Create a map to hold all stars data (both cached and recent)
 		mergedMap := make(map[string]stats.StarsPerDay)
@@ -560,14 +566,22 @@ func main() {
 			mergedMap[dayStr] = entry
 		}
 
-		// Only add recent entries with date strictly after lastCachedDay
+		// --- PATCH: Do not add today when merging recentStars ---
+		todayStr := time.Now().Format("02-01-2006")
 		var hasNewEntries bool
 		for _, entry := range recentStars {
-			entryDay := time.Time(entry.Day)
-			if lastCachedDay.IsZero() || entryDay.After(lastCachedDay) {
-				dayStr := entryDay.Format("02-01-2006")
-				mergedMap[dayStr] = entry
-				hasNewEntries = true
+			entryDayStr := time.Time(entry.Day).Format("02-01-2006")
+			if entryDayStr == todayStr {
+				continue // skip today
+			}
+			if _, exists := mergedMap[entryDayStr]; exists {
+				hasNewEntries = true // treat as new if we update the value
+			}
+			mergedMap[entryDayStr] = entry
+			if !hasNewEntries {
+				if _, exists := mergedMap[entryDayStr]; !exists {
+					hasNewEntries = true
+				}
 			}
 		}
 		// --- END PATCH ---
