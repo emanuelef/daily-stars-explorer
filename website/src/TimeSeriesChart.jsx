@@ -126,6 +126,18 @@ const isYesterday = (dateString) => {
   );
 };
 
+// Helper function to calculate stars in the last 10 days from star history
+const calculateStarsLast10Days = (starHistory) => {
+  if (!starHistory || starHistory.length === 0) return 0;
+  
+  // Take up to the last 10 days of data
+  const daysToConsider = Math.min(10, starHistory.length);
+  const last10Days = starHistory.slice(-daysToConsider);
+  
+  // Sum the daily stars (index 1 contains daily stars count)
+  return last10Days.reduce((sum, day) => sum + day[1], 0);
+};
+
 function TimeSeriesChart() {
   let defaultRepo = "helm/helm";
   const { user, repository } = useParams();
@@ -717,6 +729,11 @@ function TimeSeriesChart() {
         // Add the new data point with today's date, calculated daily stars, and current total stars
         starHistory.push([formattedToday, todayDailyStars, effectiveTotalStars]);
         console.log("Added today's data point:", formattedToday, todayDailyStars, effectiveTotalStars);
+        
+        // Update the starsLast10d value to include today's stars
+        const updatedLast10DaysStars = calculateStarsLast10Days(starHistory);
+        setStarsLast10d(updatedLast10DaysStars.toString());
+        console.log("Updated last 10 days stars count:", updatedLast10DaysStars);
       } else {
         console.log("Star history is not complete until yesterday. Not adding current day's data point.");
       }
@@ -1008,6 +1025,8 @@ function TimeSeriesChart() {
         setLoading(false);
         const starHistory = data.stars;
         setCurrentStarsHistory(starHistory);
+        
+        // Set starsLast10d from server response
         setStarsLast10d(data.newLast10Days);
 
         // Process max periods and peaks data for the chart markers
@@ -1217,9 +1236,22 @@ function TimeSeriesChart() {
         if (currentValue === callsNeeded) {
           console.log("CLOSE SSE");
           closeSSE();
-          setTimeout(() => {
-            handleClick(); // Simulate user clicking Fetch after 2 seconds
+          
+          // Get the current star history and update it with today's data if needed
+          const repo = parseGitHubRepoURL(selectedRepo);
+          setTimeout(async () => {
+            // Fetch the current total stars
+            const res = await fetchTotalStars(repo);
+            if (res) {
+              const freshTotalStars = res.stars;
+              // Use fetchAllStars with the current total stars to ensure it's properly updated
+              fetchAllStars(repo, false, freshTotalStars);
+            } else {
+              // Fallback to handleClick if we couldn't fetch total stars
+              handleClick();
+            }
           }, 2000);
+          
           setLoading(false);
         }
       });
