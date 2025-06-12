@@ -601,6 +601,96 @@ function TimeSeriesChart() {
     }
   };
 
+  const fetchReleasesFeed = async (options) => {
+    try {
+      setLoading(true);
+      const repo = parseGitHubRepoURL(selectedRepo);
+      const response = await fetch(`${HOST}/allReleases?repo=${repo}`);
+
+      if (!response.ok) {
+        setLoading(false);
+        toast.error("Error fetching releases. Please try again later.", {
+          position: toast.POSITION.BOTTOM_CENTER,
+        });
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      setLoading(false);
+
+      const releases = await response.json();
+      const mapReleases = {};
+
+      // Create a map of releases by date
+      releases.forEach(release => {
+        // Format the date from PublishedAt field as DD-MM-YYYY
+        const date = new Date(release.publishedAt);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        const formattedDate = `${day}-${month}-${year}`;
+
+        mapReleases[formattedDate] = {
+          HNURL: release.url, // Using HNURL as it's the field used for opening links
+          name: release.name,
+          tagName: release.tagName,
+          isPrerelease: release.isPrerelease,
+          isDraft: release.isDraft
+        };
+      });
+
+      currentHNnews.current = mapReleases;
+
+      // Create timeline markers for releases
+      const releaseMarkers = releases.map(release => {
+        const date = new Date(release.publishedAt);
+        const formattedDate = `${String(date.getDate()).padStart(2, '0')}-${String(date.getMonth() + 1).padStart(2, '0')}-${date.getFullYear()}`;
+        
+        let label = `Release: ${release.tagName}`;
+        if (release.name && release.name.trim() !== "") {
+          label += `<br>${release.name}`;
+        }
+        
+        // Add status information to the label
+        if (release.isPrerelease) {
+          label += "<br>(Pre-release)";
+        } else if (release.isDraft) {
+          label += "<br>(Draft)";
+        }
+        
+        // Choose marker color based on release type
+        let markerColor = "#1976d2"; // Default blue for regular releases
+        if (release.isPrerelease) {
+          markerColor = "#ff9800"; // Orange for pre-releases
+        } else if (release.isDraft) {
+          markerColor = "#9e9e9e"; // Gray for drafts
+        }
+        
+        return {
+          start: formattedDate,
+          label: label,
+          timeformat: "%d-%m-%Y",
+          type: "full", // Make it a full line instead of just a marker
+          style: {
+            marker: {
+              fill: markerColor,
+              stroke: markerColor,
+            },
+            line: {
+              stroke: markerColor,
+              "stroke-width": "1",
+              "stroke-opacity": "0.6",
+            }
+          },
+        };
+      });
+
+      options.dataSource.xAxis.timemarker = [...releaseMarkers, ...currentPeaks.current];
+    } catch (error) {
+      console.error(`Error fetching releases: ${error}`);
+      setLoading(false);
+      options.dataSource.xAxis.timemarker = currentPeaks.current;
+    }
+  };
+
   const fetchTotalStars = async (repo) => {
     try {
       const response = await fetch(`${HOST}/totalStars?repo=${repo}`);
@@ -950,6 +1040,9 @@ function TimeSeriesChart() {
         break;
       case "youtube":
         await fetchYoutubeFeed(options);
+        break;
+      case "releases":
+        await fetchReleasesFeed(options);
         break;
       case "none":
         options.dataSource.xAxis.timemarker = currentPeaks.current;
@@ -1506,6 +1599,7 @@ function TimeSeriesChart() {
             onChange={handleFeedChange}
           >
             <MenuItem value={"none"}>None</MenuItem>
+            <MenuItem value={"releases"}>Releases</MenuItem>
             <MenuItem value={"hacker"}>HNews</MenuItem>
             <MenuItem value={"reddit"}>Reddit</MenuItem>
             <MenuItem value={"youtube"}>YouTube</MenuItem>
