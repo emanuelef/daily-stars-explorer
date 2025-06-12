@@ -134,6 +134,7 @@ func main() {
 	cacheHackerNews := cache.New[string, []news.Article]()
 	cacheReddit := cache.New[string, []news.ArticleData]()
 	cacheYouTube := cache.New[string, []news.YTVideoMetadata]()
+	cacheReleases := cache.New[string, []stats.ReleaseInfo]()
 
 	onGoingStars := make(map[string]bool)
 	onGoingIssues := make(map[string]bool)
@@ -187,6 +188,7 @@ func main() {
 	app.Use("/youtube", rateLimiterFeed)
 	app.Use("/reddit", rateLimiterFeed)
 	app.Use("/hackernews", rateLimiterFeed)
+	app.Use("/allReleases", rateLimiter)
 	app.Use(recover.New())
 	app.Use(cors.New())
 	app.Use(compress.New())
@@ -294,6 +296,67 @@ func main() {
 		return c.JSON(articles)
 	})
 
+	app.Get("/allReleases", func(c *fiber.Ctx) error {
+		param := c.Query("repo")
+		randomIndex := rand.Intn(len(maps.Keys(ghStatClients)))
+		clientKey := c.Query("client", maps.Keys(ghStatClients)[randomIndex])
+		forceRefetch := c.Query("forceRefetch", "false") == "true"
+
+		client, ok := ghStatClients[clientKey]
+		if !ok {
+			return c.Status(404).SendString("Resource not found")
+		}
+
+		repo, err := url.QueryUnescape(param)
+		if err != nil {
+			return err
+		}
+
+		// needed because c.Query cannot be used as a map key
+		repo = fmt.Sprintf("%s", repo)
+		repo = strings.ToLower(repo)
+
+		ip := c.Get("X-Forwarded-For")
+		if ip == "" {
+			ip = c.IP()
+		}
+
+		userAgent := c.Get("User-Agent")
+		log.Printf("Request from IP: %s, Repo: %s, User-Agent: %s\n", ip, repo, userAgent)
+
+		if strings.Contains(userAgent, "python-requests") {
+			return c.Status(404).SendString("Custom 404 Error: Resource not found")
+		}
+
+		span := trace.SpanFromContext(c.UserContext())
+		span.SetAttributes(attribute.String("github.repo", repo))
+		span.SetAttributes(attribute.String("caller.ip", ip))
+
+		cacheKey := repo + "_releases"
+
+		if forceRefetch {
+			cacheReleases.Delete(cacheKey)
+		}
+
+		if res, hit := cacheReleases.Get(cacheKey); hit {
+			return c.JSON(res)
+		}
+
+		releases, err := client.GetAllReleasesFeed(ctx, repo)
+		if err != nil {
+			log.Printf("Error fetching releases: %v", err)
+			return c.Status(404).SendString("Custom 404 Error: Resource not found")
+		}
+
+		now := time.Now()
+		nextDay := now.UTC().Truncate(24 * time.Hour).Add(DAY_CACHED * 24 * time.Hour)
+		durationUntilEndOfDay := nextDay.Sub(now)
+
+		cacheReleases.Set(cacheKey, releases, cache.WithExpiration(durationUntilEndOfDay))
+
+		return c.JSON(releases)
+	})
+
 	app.Get("/stats", func(c *fiber.Ctx) error {
 		param := c.Query("repo")
 
@@ -346,6 +409,10 @@ func main() {
 
 	app.Get("/allStarsKeys", func(c *fiber.Ctx) error {
 		return c.JSON(cacheStars.Keys())
+	})
+
+	app.Get("/allReleasesKeys", func(c *fiber.Ctx) error {
+		return c.JSON(cacheReleases.Keys())
 	})
 
 	app.Get("/totalStars", func(c *fiber.Ctx) error {

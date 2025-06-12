@@ -4,7 +4,7 @@ go 1.24.4
 
 require (
 	github.com/Code-Hex/go-generics-cache v1.5.1
-	github.com/emanuelef/github-repo-activity-stats v0.2.54
+	github.com/emanuelef/github-repo-activity-stats v0.2.56
 	github.com/gofiber/contrib/otelfiber v1.0.10
 	github.com/gofiber/fiber/v2 v2.52.8
 	github.com/joho/godotenv v1.5.1

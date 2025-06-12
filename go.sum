@@ -12,8 +12,8 @@ github.com/cenkalti/backoff/v5 v5.0.2 h1:rIfFVxEf1QsI7E1ZHfp/B4DF/6QBAUhmgkxc0H7
 github.com/cenkalti/backoff/v5 v5.0.2/go.mod h1:rkhZdG3JZukswDf7f0cwqPNk4K0sa+F97BxZthm/crw=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/emanuelef/github-repo-activity-stats v0.2.54 h1:jEuDwfC3Zd2fmtXbVYt4xAQukMFSrjvptXkLmL8iaEA=
-github.com/emanuelef/github-repo-activity-stats v0.2.54/go.mod h1:rBQ5i9Pg9/46LOxETTjOpMxy6s+d5kCL72aIvOQMxP4=
+github.com/emanuelef/github-repo-activity-stats v0.2.56 h1:9OiGoZGn1PzYI7S5fMR/mmOoixy+oW/t7ZVtYO+z/ZE=
+github.com/emanuelef/github-repo-activity-stats v0.2.56/go.mod h1:CULZ7mfsO4We3/8SQecH8yWYYDz4W5CkPY1/i7MzYOo=
 github.com/felixge/httpsnoop v1.0.4 h1:NFTV2Zj1bL4mc9sqWACXbQFVBBg2W3GPvqp8/ESS2Wg=
 github.com/felixge/httpsnoop v1.0.4/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
 github.com/go-logr/logr v1.2.2/go.mod h1:jdQByPbusPIv2/zmleS9BjJVeZ6kBagPoEUsqbVz/1A=
