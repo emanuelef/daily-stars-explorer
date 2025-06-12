@@ -29,6 +29,7 @@ import UmberTheme from "fusioncharts/themes/fusioncharts.theme.umber";
 import GitHubButton from "react-github-btn";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+
 import {
   addRunningMedian,
   addRunningAverage,

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Grid, Paper, Typography } from '@mui/material';
+import { motion } from "framer-motion";
 
 const ColouredBoxGrid = ({ number, title, color }) => {
   return (
@@ -20,6 +21,12 @@ const ColouredBoxGrid = ({ number, title, color }) => {
 
 const ColouredBoxGridesGrid = ({ data }) => {
   return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: 0.3 }}
+    >
     <Grid container spacing={2}>
       {data.map((item, index) => (
         <Grid item xs={12} sm={6} md={4} lg={3} key={index}>
@@ -27,6 +34,8 @@ const ColouredBoxGridesGrid = ({ data }) => {
         </Grid>
       ))}
     </Grid>
+    </motion.div>
+
   );
 };
 
