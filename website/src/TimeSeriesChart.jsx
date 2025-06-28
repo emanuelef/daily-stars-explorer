@@ -1,5 +1,9 @@
 /* eslint-disable no-case-declarations */
 import { useState, useEffect, useRef } from "react";
+import DownloadIcon from "@mui/icons-material/Download";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import CircularProgress from "@mui/material/CircularProgress";
+import { motion, AnimatePresence } from "framer-motion";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import TextField from "@mui/material/TextField";
 import FormControl from "@mui/material/FormControl";
@@ -1704,168 +1708,159 @@ function TimeSeriesChart() {
           }}
         />
       </div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          marginTop: "10px",
-          marginLeft: "10px",
-          marginBottom: "10px",
-        }}
+      
+<div
+  style={{
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    flexWrap: "wrap",
+    rowGap: "12px",
+    columnGap: "clamp(12px, 2vw, 24px)",
+    padding: "8px 0px",
+    margin: "12px 8px",
+    transition: "all 0.3s ease-in-out"
+  }}
+>
+  {/* Left area */}
+  <div style={{ display: "flex", alignItems: "center", gap: "clamp(10px, 2vw, 20px)", flexWrap: "wrap" }}>
+    <FormControl size="small">
+      <InputLabel id="theme-label">Theme</InputLabel>
+      <Select
+        labelId="theme-label"
+        value={theme}
+        onChange={handleThemeChange}
+        label="Theme"
       >
-        <div
-          style={{
-            width: "110px",
-          }}
-        >
-          <FormControl>
-            <InputLabel id="style-select-drop">Theme</InputLabel>
-            <Select
-              labelId="theme"
-              id="theme"
-              value={theme}
-              size="small"
-              label="Theme"
-              onChange={handleThemeChange}
-            >
-              <MenuItem value={"fusion"}>Fusion</MenuItem>
-              <MenuItem value={"candy"}>Candy</MenuItem>
-              <MenuItem value={"gammel"}>Gammel</MenuItem>
-              <MenuItem value={"zune"}>Zune</MenuItem>
-              <MenuItem value={"umber"}>Umber</MenuItem>
-            </Select>
-          </FormControl>
-        </div>
+        <MenuItem value="fusion">Fusion</MenuItem>
+        <MenuItem value="candy">Candy</MenuItem>
+        <MenuItem value="gammel">Gammel</MenuItem>
+        <MenuItem value="zune">Zune</MenuItem>
+        <MenuItem value="umber">Umber</MenuItem>
+      </Select>
+    </FormControl>
 
-        <FormControl
-          style={{
-            width: "180px",
-            marginRight: "10px",
-          }}
-        >
-          <InputLabel id="transformation-select-drop">Transform</InputLabel>
-          <Select
-            labelId="transformation"
-            id="transformation"
-            value={transformation}
-            size="small"
-            label="Transform"
-            onChange={handleTransformationChange}
-          >
-            <MenuItem value={"none"}>None</MenuItem>
-            <MenuItem value={"trend"}>Trend</MenuItem>
-            <MenuItem value={"yearlyBinning"}>Yearly Binning</MenuItem>
-            <MenuItem value={"monthlyBinning"}>Monthly Binning</MenuItem>
-            <MenuItem value={"weeklyBinning"}>Weekly Binning</MenuItem>
-            <MenuItem value={"normalize"}>Normalize</MenuItem>
-            <MenuItem value={"loess"}>LOESS</MenuItem>
-            <MenuItem value={"runningAverage"}>Running Average</MenuItem>
-            <MenuItem value={"runningMedian"}>Running Median</MenuItem>
-            <MenuItem value={"firstOrderDerivative"}>Derivative</MenuItem>
-            <MenuItem value={"secondOrderDerivative"}>
-              Second Derivative
-            </MenuItem>
-          </Select>
-        </FormControl>
-        {transformation.includes("Binning") && (
-          <FormControl
-            style={{
-              width: "100px",
-              marginRight: "2px",
-            }}
-          >
-            <InputLabel id="aggregation-select-drop">Aggregate</InputLabel>
-            <Select
-              labelId="aggregation"
-              id="aggregation"
-              value={aggregation}
-              size="small"
-              label="Aggregate"
-              onChange={handleAggregationChange}
-            >
-              <MenuItem value={"average"}>Mean</MenuItem>
-              <MenuItem value={"sum"}>Total</MenuItem>
-              <MenuItem value={"max"}>Max</MenuItem>
-              <MenuItem value={"min"}>Min</MenuItem>
-            </Select>
-          </FormControl>
-        )}
-        {
+    <FormControl size="small">
+      <InputLabel id="transform-label">Transform</InputLabel>
+      <Select
+        labelId="transform-label"
+        value={transformation}
+        onChange={handleTransformationChange}
+        label="Transform"
+      >
+        <MenuItem value="none">None</MenuItem>
+        <MenuItem value="trend">Trend</MenuItem>
+        <MenuItem value="yearlyBinning">Yearly Binning</MenuItem>
+        <MenuItem value="monthlyBinning">Monthly Binning</MenuItem>
+        <MenuItem value="weeklyBinning">Weekly Binning</MenuItem>
+        <MenuItem value="normalize">Normalize</MenuItem>
+        <MenuItem value="loess">LOESS</MenuItem>
+        <MenuItem value="runningAverage">Running Average</MenuItem>
+        <MenuItem value="runningMedian">Running Median</MenuItem>
+        <MenuItem value="firstOrderDerivative">Derivative</MenuItem>
+        <MenuItem value="secondOrderDerivative">Second Derivative</MenuItem>
+      </Select>
+    </FormControl>
+
+    <Tooltip title="Logarithmic Y Axis">
+      <FormControlLabel
+        control={
           <Checkbox
             checked={checkedYAxisType}
             onChange={handleYAxisTypeCheckChange}
-            inputProps={{ "aria-label": "controlled" }}
           />
         }
-        <Typography variant="body2">Log Y-Axis</Typography>
+        label="Log Y-Axis"
+      />
+    </Tooltip>
+  </div>
 
-        <Button
-          style={{
-            marginLeft: "10px",
-          }}
-          size="small"
-          variant="contained"
-          onClick={downloadCSV}
-        >
-          Download CSV
-        </Button>
-        <br />
-        <Button
-          style={{
-            marginLeft: "10px",
-            marginRight: "10px",
-          }}
-          size="small"
-          variant="contained"
-          onClick={downloadJSON}
-        >
-          Download Json
-        </Button>
+  {/* Right area */}
+  <div style={{ display: "flex", alignItems: "center", gap: "clamp(8px, 1.5vw, 16px)", flexWrap: "wrap" }}>
+    <Tooltip title="Download CSV">
+      <Button
+        variant="contained"
+        size="small"
+        onClick={downloadCSV}
+        startIcon={<DownloadIcon />}
+        style={{
+          transition: "transform 0.2s ease-in-out",
+        }}
+        onMouseEnter={e => e.currentTarget.style.transform = "scale(1.05)"}
+        onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
+      >
+        CSV
+      </Button>
+    </Tooltip>
+
+    <Tooltip title="Download JSON">
+      <Button
+        variant="contained"
+        size="small"
+        onClick={downloadJSON}
+        startIcon={<DownloadIcon />}
+        style={{
+          transition: "transform 0.2s ease-in-out",
+        }}
+        onMouseEnter={e => e.currentTarget.style.transform = "scale(1.05)"}
+        onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
+      >
+        JSON
+      </Button>
+    </Tooltip>
+
+    <Tooltip title="Share Current View">
+      <span>
         <CopyToClipboardButton
-          style={{
-            marginLeft: "10px",
-            marginRight: "30px",
-          }}
           dateRange={checkedDateRange ? selectedTimeRange : null}
           transformation={transformation}
         />
-        <Tooltip title={INCLUDE_DATE_RANGE}>
-          {
-            <Checkbox
-              checked={checkedDateRange}
-              onChange={handleDateRangeCheckChange}
-              inputProps={{ "aria-label": "controlled" }}
-            />
-          }
-        </Tooltip>
-        <Typography variant="body2">With Date Range</Typography>
-        <Button
-          style={{
-            marginLeft: "10px",
-          }}
-          size="small"
-          variant="contained"
-          onClick={openCurrentRepoPage}
+      </span>
+    </Tooltip>
+
+    <Tooltip title="Include Date Range">
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={checkedDateRange}
+            onChange={handleDateRangeCheckChange}
+          />
+        }
+        label="With Date Range"
+      />
+    </Tooltip>
+
+    <Tooltip title="Open GitHub Repository">
+      <Button
+        variant="outlined"
+        size="small"
+        onClick={openCurrentRepoPage}
+        startIcon={<OpenInNewIcon />}
+        style={{
+          transition: "transform 0.2s ease-in-out",
+        }}
+        onMouseEnter={e => e.currentTarget.style.transform = "scale(1.05)"}
+        onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
+      >
+        GH Repo
+      </Button>
+    </Tooltip>
+
+    <Tooltip title="Star this project on GitHub">
+      <div style={{ transform: "scale(0.9)", transformOrigin: "left center" }}>
+        <GitHubButton
+          href="https://github.com/emanuelef/daily-stars-explorer"
+          data-color-scheme="no-preference: dark; light: dark_dimmed; dark: dark_high_contrast;"
+          data-size="large"
+          data-show-count="true"
+          aria-label="Star emanuelef/daily-stars-explorer on GitHub"
         >
-          Open GH repo
-        </Button>
-        <div
-          style={{
-            marginTop: "5px",
-            marginLeft: "10px",
-          }}
-        >
-          <GitHubButton
-            href="https://github.com/emanuelef/daily-stars-explorer"
-            data-color-scheme="no-preference: dark; light: dark_dimmed; dark: dark_high_contrast;"
-            data-size="large"
-            data-show-count="true"
-            aria-label="Star emanuelef/daily-stars-explorer on GitHub"
-          >
-            Star Me
-          </GitHubButton>
-        </div>
+          Star
+        </GitHubButton>
       </div>
+    </Tooltip>
+  </div>
+</div>
       <div
         style={{
           display: "flex",
@@ -1876,7 +1871,7 @@ function TimeSeriesChart() {
       >
         <label
           style={{
-            color: "white",
+            //color: "white",
             marginRight: "10px",
           }}
         >
@@ -1887,8 +1882,7 @@ function TimeSeriesChart() {
           value={`${formatNumber(zoomedStars)} - ${zoomedStarsPercentageTotal}%`}
           readOnly
           style={{
-            color: "white",
-            backgroundColor: "black",
+
             border: "1px solid #ccc",
             borderRadius: "4px",
             padding: "5px",
