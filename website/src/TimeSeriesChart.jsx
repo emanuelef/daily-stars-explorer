@@ -15,6 +15,7 @@ import Select from "@mui/material/Select";
 import LoadingButton from "@mui/lab/LoadingButton";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import SendIcon from "@mui/icons-material/Send";
+import SmartphoneIcon from "@mui/icons-material/Smartphone";
 import FusionCharts from "fusioncharts";
 import TimeSeries from "fusioncharts/fusioncharts.timeseries";
 import ReactFC from "react-fusioncharts";
@@ -100,10 +101,11 @@ const FORCE_REFETCH_TOOLTIP =
 const INFO_TOOLTIP =
   "Stars are fetched until UTC midnight of the previous day. \
    You can zoom inside the graph by scrolling up and down or dragging the selectors in the underline graph. \
-   Once fetched the history is kept for 7 days but it's possible to refetch again by checking the Update checkbox and press on Fetch again.";
-
-const INCLUDE_DATE_RANGE =
+   Once fetched the history is kept for 7 days but it's possible to refetch again by checking the Update checkbox and press on Fetch again.";  const INCLUDE_DATE_RANGE =
   "When checked the URL to share will include the current time range selected";
+
+const MOBILE_VERSION_INFO = 
+  "There's also a mobile-optimized version of this tool available at emanuelef.github.io/daily-stars-mobile";
 
 const isToday = (dateString) => {
   const today = new Date();
@@ -271,6 +273,8 @@ function TimeSeriesChart() {
   const [checkedYAxisType, setCheckedYAxisType] = useState(false);
   const [error, setError] = useState("");
   const [showError, setShowError] = useState(false);
+  const [starsRepos, setStarsRepos] = useState([]);
+  const [isMobile, setIsMobile] = useState(false);
 
   const currentHNnews = useRef({});
   const currentPeaks = useRef([]);
@@ -297,7 +301,21 @@ function TimeSeriesChart() {
 
   const currentSSE = useRef(null);
 
-  const [starsRepos, setStarsRepos] = useState([]);
+  // Check if user is on a mobile device
+  useEffect(() => {
+    const checkIfMobile = () => {
+      const userAgent = navigator.userAgent.toLowerCase();
+      const mobileRegex = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i;
+      setIsMobile(mobileRegex.test(userAgent) || window.innerWidth <= 768);
+    };
+    
+    checkIfMobile();
+    window.addEventListener('resize', checkIfMobile);
+    
+    return () => {
+      window.removeEventListener('resize', checkIfMobile);
+    };
+  }, []);
 
   // Fetch available repos on mount (like in CompareChart)
   useEffect(() => {
@@ -1285,6 +1303,11 @@ function TimeSeriesChart() {
     window.open("https://github.com/" + repoParsed, "_blank");
   };
 
+  const openMobileVersion = () => {
+    const repoParsed = parseGitHubRepoURL(selectedRepo);
+    window.open(`https://emanuelef.github.io/daily-stars-mobile/#/${repoParsed}`, "_blank");
+  };
+
   const closeSSE = () => {
     if (currentSSE.current) {
       console.log("STOP SSE");
@@ -1713,6 +1736,20 @@ function TimeSeriesChart() {
           marginBottom: "10px",
         }}
       >
+        {/* Mobile version icon button with tooltip */}
+        <Tooltip title="Open mobile version of stats explorer">
+          <IconButton
+            style={{
+              marginRight: "15px",
+            }}
+            size="small"
+            color="primary"
+            onClick={openMobileVersion}
+          >
+            <SmartphoneIcon />
+          </IconButton>
+        </Tooltip>
+        
         <div
           style={{
             width: "110px",
