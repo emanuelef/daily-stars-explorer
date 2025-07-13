@@ -101,10 +101,10 @@ const FORCE_REFETCH_TOOLTIP =
 const INFO_TOOLTIP =
   "Stars are fetched until UTC midnight of the previous day. \
    You can zoom inside the graph by scrolling up and down or dragging the selectors in the underline graph. \
-   Once fetched the history is kept for 7 days but it's possible to refetch again by checking the Update checkbox and press on Fetch again.";  const INCLUDE_DATE_RANGE =
+   Once fetched the history is kept for 7 days but it's possible to refetch again by checking the Update checkbox and press on Fetch again."; const INCLUDE_DATE_RANGE =
   "When checked the URL to share will include the current time range selected";
 
-const MOBILE_VERSION_INFO = 
+const MOBILE_VERSION_INFO =
   "There's also a mobile-optimized version of this tool available at emanuelef.github.io/daily-stars-mobile";
 
 const isToday = (dateString) => {
@@ -131,11 +131,11 @@ const isYesterday = (dateString) => {
 // Helper function to calculate stars in the last 10 days from star history
 const calculateStarsLast10Days = (starHistory) => {
   if (!starHistory || starHistory.length === 0) return 0;
-  
+
   // Take up to the last 10 days of data
   const daysToConsider = Math.min(10, starHistory.length);
   const last10Days = starHistory.slice(-daysToConsider);
-  
+
   // Sum the daily stars (index 1 contains daily stars count)
   return last10Days.reduce((sum, day) => sum + day[1], 0);
 };
@@ -308,10 +308,10 @@ function TimeSeriesChart() {
       const mobileRegex = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i;
       setIsMobile(mobileRegex.test(userAgent) || window.innerWidth <= 768);
     };
-    
+
     checkIfMobile();
     window.addEventListener('resize', checkIfMobile);
-    
+
     return () => {
       window.removeEventListener('resize', checkIfMobile);
     };
@@ -661,19 +661,19 @@ function TimeSeriesChart() {
       const releaseMarkers = releases.map(release => {
         const date = new Date(release.publishedAt);
         const formattedDate = `${String(date.getDate()).padStart(2, '0')}-${String(date.getMonth() + 1).padStart(2, '0')}-${date.getFullYear()}`;
-        
+
         let label = `Release: ${release.tagName}`;
         if (release.name && release.name.trim() !== "") {
           label += `<br>${release.name}`;
         }
-        
+
         // Add status information to the label
         if (release.isPrerelease) {
           label += "<br>(Pre-release)";
         } else if (release.isDraft) {
           label += "<br>(Draft)";
         }
-        
+
         // Choose marker color based on release type
         let markerColor = "#1976d2"; // Default blue for regular releases
         if (release.isPrerelease) {
@@ -681,7 +681,7 @@ function TimeSeriesChart() {
         } else if (release.isDraft) {
           markerColor = "#9e9e9e"; // Gray for drafts
         }
-        
+
         return {
           start: formattedDate,
           label: label,
@@ -822,22 +822,22 @@ function TimeSeriesChart() {
       // Check if the last date in the star history is yesterday
       const lastDateInHistory = starHistory[starHistory.length - 1][0];
       const isHistoryCompleteUntilYesterday = isYesterday(lastDateInHistory);
-      
+
       if (isHistoryCompleteUntilYesterday) {
         // Create today's date in the format DD-MM-YYYY
         const today = new Date();
         const formattedToday = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
-        
+
         // Get the previous day's total stars (if available)
         const prevTotalStars = starHistory[starHistory.length - 1][2];
-        
+
         // Calculate daily stars (difference between current total and previous total)
         const todayDailyStars = Math.max(0, effectiveTotalStars - prevTotalStars);
-        
+
         // Add the new data point with today's date, calculated daily stars, and current total stars
         starHistory.push([formattedToday, todayDailyStars, effectiveTotalStars]);
         console.log("Added today's data point:", formattedToday, todayDailyStars, effectiveTotalStars);
-        
+
         // Update the starsLast10d value to include today's stars
         const updatedLast10DaysStars = calculateStarsLast10Days(starHistory);
         setStarsLast10d(updatedLast10DaysStars.toString());
@@ -1136,7 +1136,7 @@ function TimeSeriesChart() {
         setLoading(false);
         const starHistory = data.stars;
         setCurrentStarsHistory(starHistory);
-        
+
         // Set starsLast10d from server response
         setStarsLast10d(data.newLast10Days);
 
@@ -1201,10 +1201,10 @@ function TimeSeriesChart() {
                 ...recentData.stars.filter(d => !existingDays.has(d[0]))
               ];
               setCurrentStarsHistory(merged);
-              
+
               // Important change here: Update the graph with data AND title together
               updateGraphWithTitle(merged, repo, totalStarsToUse);
-              
+
               setLoading(false); // <--- Hide spinner after fetch
             })
             .catch((error) => {
@@ -1213,7 +1213,7 @@ function TimeSeriesChart() {
               setError("Failed to fetch recent star data. Using cached data instead.");
               setShowError(true);
               // Fall back to using the cached data we already have
-              
+
               // Important change here: Update the graph with data AND title together
               updateGraphWithTitle(starHistory, repo, totalStarsToUse);
             });
@@ -1234,7 +1234,7 @@ function TimeSeriesChart() {
   const updateGraphWithTitle = (starHistory, repo, currentTotalStars = 0) => {
     // First update the graph data
     updateGraph(starHistory, currentTotalStars);
-    
+
     // Then update the title
     const options = { ...ds };
     options.dataSource.caption = { text: `Stars ${repo}` };
@@ -1317,6 +1317,22 @@ function TimeSeriesChart() {
 
   const startSSEUpates = (repo, callsNeeded, onGoing) => {
     console.log(repo, callsNeeded, onGoing);
+    // If callsNeeded is 0, immediately fetch and update the graph (no SSE needed)
+    if (callsNeeded === 0) {
+      // Get the current star history and update it with today's data if needed
+      const repoParsed = parseGitHubRepoURL(selectedRepo);
+      setTimeout(async () => {
+        const res = await fetchTotalStars(repoParsed);
+        if (res) {
+          const freshTotalStars = res.stars;
+          fetchAllStars(repoParsed, false, freshTotalStars);
+        } else {
+          handleClick();
+        }
+      }, 1000); // Short delay for consistency
+      setLoading(false);
+      return;
+    }
     try {
       const sse = new EventSource(`${HOST}/sse?repo=${repo}`);
       closeSSE();
@@ -1352,7 +1368,7 @@ function TimeSeriesChart() {
         if (currentValue === callsNeeded) {
           console.log("CLOSE SSE");
           closeSSE();
-          
+
           // Get the current star history and update it with today's data if needed
           const repo = parseGitHubRepoURL(selectedRepo);
           setTimeout(async () => {
@@ -1367,7 +1383,7 @@ function TimeSeriesChart() {
               handleClick();
             }
           }, 2000);
-          
+
           setLoading(false);
         }
       });
@@ -1398,7 +1414,7 @@ function TimeSeriesChart() {
 
     // Clear any previous errors when starting a valid fetch
     setShowError(false);
-    
+
     navigate(`/${repoParsed}`, {
       replace: false,
     });
@@ -1472,7 +1488,7 @@ function TimeSeriesChart() {
 
     // Clear any previous errors when starting a valid fetch
     setShowError(false);
-    
+
     navigate(`/${repoParsed}`, {
       replace: false,
     });
@@ -1533,7 +1549,7 @@ function TimeSeriesChart() {
       const timer = setTimeout(() => {
         setShowError(false);
       }, 6000);
-      
+
       // Clean up the timer when the component unmounts or showError changes
       return () => clearTimeout(timer);
     }
@@ -1592,8 +1608,8 @@ function TimeSeriesChart() {
             starsRepos.includes(selectedRepo)
               ? { label: selectedRepo }
               : selectedRepo
-              ? { label: selectedRepo }
-              : null
+                ? { label: selectedRepo }
+                : null
           }
           onChange={(e, v, reason) => {
             const repo = typeof v === "string" ? v : v?.label || "";
@@ -1749,7 +1765,7 @@ function TimeSeriesChart() {
             <SmartphoneIcon />
           </IconButton>
         </Tooltip>
-        
+
         <div
           style={{
             width: "110px",
