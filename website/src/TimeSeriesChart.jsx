@@ -706,8 +706,7 @@ function TimeSeriesChart() {
 
         // Store the article in our map using the formatted date as key
         mapMedium[parsedDate.formattedDate] = {
-          HNURL: item.url, // Using HNURL as it's the field used for opening links
-          claps: item.claps || 0 // Store claps count
+          HNURL: item.url // Using HNURL as it's the field used for opening links
         };
       } catch (error) {
         console.error("Error processing Medium post date:", error);
@@ -727,9 +726,7 @@ function TimeSeriesChart() {
         
         return {
           start: parsedDate.formattedDate,
-          label: item.title + 
-                 "<br>" + "Author: " + item.author + 
-                 (item.claps ? "<br>👏 " + item.claps + " claps" : ""),
+          label: item.title + "<br>" + "Author: " + item.author,
           timeformat: "%d-%m-%Y",
           style: {
             marker: {
