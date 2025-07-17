@@ -275,6 +275,7 @@ function TimeSeriesChart() {
   const [showError, setShowError] = useState(false);
   const [starsRepos, setStarsRepos] = useState([]);
   const [isMobile, setIsMobile] = useState(false);
+  const [showFeedbackBanner, setShowFeedbackBanner] = useState(true);
 
   const currentHNnews = useRef({});
   const currentPeaks = useRef([]);
@@ -1555,6 +1556,15 @@ function TimeSeriesChart() {
     }
   }, [showError]);
 
+  // Auto-hide feedback banner after 15 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowFeedbackBanner(false);
+    }, 15000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <div>
       {showError && (
@@ -1577,6 +1587,28 @@ function TimeSeriesChart() {
           {error}
         </Alert>
       )}
+
+      {showFeedbackBanner && (
+        <Alert
+          severity="info"
+          action={
+            <IconButton
+              aria-label="close"
+              color="inherit"
+              size="small"
+              onClick={() => {
+                setShowFeedbackBanner(false);
+              }}
+            >
+              <CloseIcon fontSize="inherit" />
+            </IconButton>
+          }
+          sx={{ mb: 2 }}
+        >
+          If you have a moment, please share your feedback or suggestions in our <a href="https://github.com/emanuelef/daily-stars-explorer/discussions/218" target="_blank" rel="noopener noreferrer" style={{ color: '#2196f3', textDecoration: 'underline' }}>GitHub Discussion</a>. Your input helps improve the tool!
+        </Alert>
+      )}
+
       <div style={{ display: "flex", alignItems: "center" }}>
         <Autocomplete
           freeSolo
