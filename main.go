@@ -134,6 +134,7 @@ func main() {
 	cacheHackerNews := cache.New[string, []news.Article]()
 	cacheReddit := cache.New[string, []news.ArticleData]()
 	cacheYouTube := cache.New[string, []news.YTVideoMetadata]()
+	cacheMedium := cache.New[string, []news.MediumArticle]()
 	cacheReleases := cache.New[string, []stats.ReleaseInfo]()
 
 	onGoingStars := make(map[string]bool)
@@ -188,6 +189,7 @@ func main() {
 	app.Use("/youtube", rateLimiterFeed)
 	app.Use("/reddit", rateLimiterFeed)
 	app.Use("/hackernews", rateLimiterFeed)
+	app.Use("/medium", rateLimiterFeed)
 	app.Use("/allReleases", rateLimiter)
 	app.Use(recover.New())
 	app.Use(cors.New())
@@ -292,6 +294,28 @@ func main() {
 		durationUntilEndOfDay := nextDay.Sub(now)
 
 		cacheYouTube.Set(query, articles, cache.WithExpiration(durationUntilEndOfDay))
+
+		return c.JSON(articles)
+	})
+
+	app.Get("/medium", func(c *fiber.Ctx) error {
+		query := c.Query("query", "golang")
+
+		if res, hit := cacheMedium.Get(query); hit {
+			return c.JSON(res)
+		}
+
+		articles, err := news.SearchMediumArticles(query)
+		if err != nil {
+			log.Printf("Error fetching Medium articles: %v", err)
+			return c.Status(500).SendString("Internal Server Error")
+		}
+
+		now := time.Now()
+		nextDay := now.UTC().Truncate(24 * time.Hour).Add(1 * 24 * time.Hour)
+		durationUntilEndOfDay := nextDay.Sub(now)
+
+		cacheMedium.Set(query, articles, cache.WithExpiration(durationUntilEndOfDay))
 
 		return c.JSON(articles)
 	})
