@@ -1,4 +1,4 @@
-package tests
+package main
 
 import (
 	"encoding/json"
@@ -7,7 +7,7 @@ import (
 	"github.com/emanuelef/gh-repo-stats-server/news"
 )
 
-func TestShowHN() {
+func main() {
 	// Test sorting by date (default)
 	fmt.Println("=== Testing sort by date ===")
 	postsByDate, err := news.FetchShowHNGitHubPosts("date")

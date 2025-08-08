@@ -12,11 +12,14 @@ import (
 )
 
 type ShowHNPost struct {
-	Title       string `json:"title"`
-	URL         string `json:"url"`
-	Points      int    `json:"points"`
-	NumComments int    `json:"num_comments"`
-	CreatedAt   string `json:"created_at"`
+	Title        string `json:"title"`
+	URL          string `json:"url"`
+	Points       int    `json:"points"`
+	NumComments  int    `json:"num_comments"`
+	CreatedAt    string `json:"created_at"`
+	HNLink       string `json:"hn_link"`
+	IsGitHubRepo bool   `json:"is_github_repo"`
+	ObjectID     string `json:"object_id"`
 }
 
 // FetchShowHNGitHubPosts fetches Show HN posts from the last month that mention a GitHub repo
@@ -75,6 +78,7 @@ func FetchShowHNGitHubPosts(sortBy string) ([]ShowHNPost, error) {
 
 		var result struct {
 			Hits []struct {
+				ObjectID    string `json:"objectID"`
 				Title       string `json:"title"`
 				URL         string `json:"url"`
 				Points      int    `json:"points"`
@@ -100,21 +104,35 @@ func FetchShowHNGitHubPosts(sortBy string) ([]ShowHNPost, error) {
 
 		// Process hits from this page
 		for _, hit := range result.Hits {
-			// Check if this post links to GitHub
-			var hasGitHubLink bool
-			if hit.URL != "" && strings.Contains(strings.ToLower(hit.URL), "github.com") {
-				hasGitHubLink = true
-			} else if hit.Text != "" && strings.Contains(strings.ToLower(hit.Text), "github.com") {
-				hasGitHubLink = true
+			// Check if this post links to GitHub - only consider direct GitHub repository URLs
+			isGitHubRepo := false
+			if hit.URL != "" {
+				// Parse the URL to check if it's a valid GitHub repository URL
+				// A GitHub repo URL should be in the format: github.com/username/repo
+				parsedURL, err := url.Parse(hit.URL)
+				if err == nil && strings.Contains(strings.ToLower(parsedURL.Host), "github.com") {
+					// The path should have at least 2 parts (username/repo)
+					pathParts := strings.Split(strings.TrimPrefix(parsedURL.Path, "/"), "/")
+					if len(pathParts) >= 2 && pathParts[0] != "" && pathParts[1] != "" {
+						isGitHubRepo = true
+					}
+				}
 			}
 
-			if hasGitHubLink {
+			// Create HN discussion link
+			hnLink := fmt.Sprintf("https://news.ycombinator.com/item?id=%s", hit.ObjectID)
+
+			// Only include posts with GitHub URLs
+			if isGitHubRepo {
 				allPosts = append(allPosts, ShowHNPost{
-					Title:       hit.Title,
-					URL:         hit.URL,
-					Points:      hit.Points,
-					NumComments: hit.NumComments,
-					CreatedAt:   hit.CreatedAt,
+					Title:        hit.Title,
+					URL:          hit.URL,
+					Points:       hit.Points,
+					NumComments:  hit.NumComments,
+					CreatedAt:    hit.CreatedAt,
+					HNLink:       hnLink,
+					IsGitHubRepo: true,
+					ObjectID:     hit.ObjectID,
 				})
 
 				// Safety check to ensure we don't go over 200 posts total
