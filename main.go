@@ -135,6 +135,7 @@ func main() {
 	cacheReddit := cache.New[string, []news.ArticleData]()
 	cacheYouTube := cache.New[string, []news.YTVideoMetadata]()
 	cacheReleases := cache.New[string, []stats.ReleaseInfo]()
+	cacheShowHN := cache.New[string, []news.ShowHNPost]()
 
 	onGoingStars := make(map[string]bool)
 	onGoingIssues := make(map[string]bool)
@@ -186,6 +187,7 @@ func main() {
 
 	app.Use("/allStars", rateLimiter)
 	app.Use("/youtube", rateLimiterFeed)
+	app.Use("/showhn", rateLimiterFeed)
 	app.Use("/reddit", rateLimiterFeed)
 	app.Use("/hackernews", rateLimiterFeed)
 	app.Use("/allReleases", rateLimiter)
@@ -355,6 +357,63 @@ func main() {
 		cacheReleases.Set(cacheKey, releases, cache.WithExpiration(durationUntilEndOfDay))
 
 		return c.JSON(releases)
+	})
+
+	app.Get("/showhn", func(c *fiber.Ctx) error {
+		// Get sort parameter, default to "date" if not provided
+		sortBy := c.Query("sort", "date")
+
+		// Validate sort parameter
+		validSort := sortBy == "date" || sortBy == "points" || sortBy == "comments"
+		if !validSort {
+			sortBy = "date" // Default to date if invalid parameter
+		}
+
+		// Get minimum points/comments filters
+		minPointsStr := c.Query("min_points", "0")
+		minCommentsStr := c.Query("min_comments", "0")
+
+		minPoints, err := strconv.Atoi(minPointsStr)
+		if err != nil || minPoints < 0 {
+			minPoints = 0
+		}
+
+		minComments, err := strconv.Atoi(minCommentsStr)
+		if err != nil || minComments < 0 {
+			minComments = 0
+		}
+
+		// Create cache key based on sort parameter
+		cacheKey := fmt.Sprintf("showhn:%s", sortBy)
+
+		var posts []news.ShowHNPost
+
+		// Try to get from cache first
+		if res, hit := cacheShowHN.Get(cacheKey); hit {
+			posts = res
+		} else {
+			// Fetch fresh data if not in cache
+			posts, err = news.FetchShowHNGitHubPosts(sortBy)
+			if err != nil {
+				return fiber.NewError(fiber.StatusInternalServerError, "error fetching Show HN posts")
+			}
+
+			// Store in cache with 1-hour expiration
+			cacheShowHN.Set(cacheKey, posts, cache.WithExpiration(1*time.Hour))
+		}
+
+		// Apply filters after retrieving from cache
+		if minPoints > 0 || minComments > 0 {
+			filteredPosts := make([]news.ShowHNPost, 0)
+			for _, post := range posts {
+				if post.Points >= minPoints && post.NumComments >= minComments {
+					filteredPosts = append(filteredPosts, post)
+				}
+			}
+			posts = filteredPosts
+		}
+
+		return c.JSON(posts)
 	})
 
 	app.Get("/stats", func(c *fiber.Ctx) error {

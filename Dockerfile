@@ -5,7 +5,7 @@ COPY website .
 RUN npm install --force && npm run build
 RUN ls -la /build/dist
 
-FROM golang:1.24.5-alpine AS builder
+FROM golang:1.24.6-alpine AS builder
 WORKDIR /app
 COPY main.go .
 COPY cache ./cache
