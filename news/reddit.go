@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -95,26 +96,79 @@ type RedditGitHubPost struct {
 
 // Extract GitHub URL from post content
 func extractGitHubURL(content string) string {
-	// We'll just search for GitHub links directly in the content
+	if !strings.Contains(content, "github.com") {
+		return ""
+	}
+
+	// Process content line by line for better control
 	r := strings.NewReader(content)
 	scanner := bufio.NewScanner(r)
 
 	for scanner.Scan() {
 		line := scanner.Text()
-		matches := strings.Split(line, " ")
-		for _, match := range matches {
-			if strings.Contains(match, "github.com") && strings.Count(match, "/") >= 2 {
-				// Ensure it starts with http/https
-				if !strings.HasPrefix(match, "http") {
-					match = "https://" + match
-				}
-				// Clean the URL (remove trailing characters)
-				match = strings.TrimRight(match, ".,;:!?)")
-				return match
-			}
+
+		// Handle markdown links with GitHub URLs - most common in Reddit posts
+		// Example: [repo name](https://github.com/user/repo)
+		markdownLinkRegex := regexp.MustCompile(`\[.*?\]\((https?://)?github\.com/([^/\s]+/[^/\s\)]+)`)
+		markdownMatches := markdownLinkRegex.FindStringSubmatch(line)
+		if len(markdownMatches) > 2 {
+			return cleanGitHubURL("https://github.com/" + markdownMatches[2])
+		}
+
+		// Handle markdown nested in brackets
+		// Example: [https://github.com/user/repo](https://github.com/user/repo)
+		nestedMarkdownRegex := regexp.MustCompile(`\[(https?://)?github\.com/([^/\s\]]+/[^/\s\]]+)\]`)
+		nestedMatches := nestedMarkdownRegex.FindStringSubmatch(line)
+		if len(nestedMatches) > 2 {
+			return cleanGitHubURL("https://github.com/" + nestedMatches[2])
+		}
+
+		// Handle URLs with text prefixes like "months:", "Link]", etc.
+		// Example: months: [https://github.com/user/repo](https://github.com/user/repo
+		prefixedURLRegex := regexp.MustCompile(`(?:months:|Link[\]\)]|APK[\]\)]|GitHub:|Github[\]\)]|https?://)?\s*(?:\[|\()?(?:https?://)?github\.com/([^/\s\]\)]+/[^/\s\]\)]+)`)
+		prefixMatches := prefixedURLRegex.FindStringSubmatch(line)
+		if len(prefixMatches) > 1 {
+			return cleanGitHubURL("https://github.com/" + prefixMatches[1])
+		}
+
+		// Basic GitHub URL pattern as fallback
+		basicURLRegex := regexp.MustCompile(`(?:https?://)?github\.com/([^/\s]+/[^/\s]+)`)
+		basicMatches := basicURLRegex.FindStringSubmatch(line)
+		if len(basicMatches) > 1 {
+			return cleanGitHubURL("https://github.com/" + basicMatches[1])
 		}
 	}
+
 	return ""
+}
+
+// Helper function to clean GitHub URLs
+func cleanGitHubURL(url string) string {
+	// Clean trailing characters that aren't part of repository names
+	url = strings.TrimRight(url, ".,;:!?)\"")
+
+	// Extract just the owner and repo name
+	parts := strings.Split(url, "github.com/")
+	if len(parts) < 2 {
+		return url
+	}
+
+	repoPath := parts[1]
+	// Split by / and take just the owner/repo part
+	repoParts := strings.Split(repoPath, "/")
+	if len(repoParts) < 2 {
+		return url
+	}
+
+	// Handle some special cases with trailing characters
+	owner := repoParts[0]
+	repo := repoParts[1]
+
+	// Remove trailing parenthesis or other punctuation from repo name
+	repo = strings.TrimRight(repo, ".,;:!?)\"")
+
+	// Return the clean URL
+	return "https://github.com/" + owner + "/" + repo
 }
 
 // FetchRedditGitHubPosts fetches GitHub repos from specified subreddits from the last two weeks
