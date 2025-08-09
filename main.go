@@ -393,13 +393,14 @@ func main() {
 			posts = res
 		} else {
 			// Fetch fresh data if not in cache
+			var err error
 			posts, err = news.FetchShowHNGitHubPosts(sortBy)
 			if err != nil {
-				return fiber.NewError(fiber.StatusInternalServerError, "error fetching Show HN posts")
+				return fiber.NewError(fiber.StatusInternalServerError, "error fetching Show HN posts: "+err.Error())
 			}
 
-			// Store in cache with 1-hour expiration
-			cacheShowHN.Set(cacheKey, posts, cache.WithExpiration(1*time.Hour))
+			// Store in cache with a shorter 10-minute expiration to get fresh content
+			cacheShowHN.Set(cacheKey, posts, cache.WithExpiration(10*time.Minute))
 		}
 
 		// Apply filters after retrieving from cache

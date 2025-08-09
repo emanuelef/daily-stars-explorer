@@ -26,18 +26,19 @@ type ShowHNPost struct {
 // sortBy can be "date" (default), "points", or "comments"
 func FetchShowHNGitHubPosts(sortBy string) ([]ShowHNPost, error) {
 	// Algolia API for HN: https://hn.algolia.com/api
-	// Search for Show HN posts from the last month
+	// Search for Show HN posts from the last 7 days
 	end := time.Now()
-	// Extend the time range from 2 weeks to 1 month to get more posts
-	start := end.AddDate(0, -1, 0)
+	// Use a 7-day window to get recent posts
+	start := end.AddDate(0, 0, -7)
 	startUnix := start.Unix()
 	endUnix := end.Unix()
 
-	baseURL := "https://hn.algolia.com/api/v1/search_by_date"
+	// Use search instead of search_by_date to get more relevant results
+	baseURL := "https://hn.algolia.com/api/v1/search"
 
-	// Number of pages to fetch (each page has 100 posts)
-	// Limit to 2 pages to stay under 200 results
-	maxPages := 2
+	// Number of pages to fetch (each page has 20 posts by default)
+	// Fetch multiple pages to get more results
+	maxPages := 5
 
 	var allPosts []ShowHNPost
 
@@ -50,9 +51,9 @@ func FetchShowHNGitHubPosts(sortBy string) ([]ShowHNPost, error) {
 
 		q := u.Query()
 		q.Set("tags", "story,show_hn")
-		q.Set("hitsPerPage", "100")
+		q.Set("hitsPerPage", "100") // Request 100 items per page
 		q.Set("page", fmt.Sprintf("%d", page))
-		q.Set("numericFilters", fmt.Sprintf("created_at_i>%d,created_at_i<%d", startUnix, endUnix))
+		q.Set("numericFilters", fmt.Sprintf("created_at_i>%d,created_at_i<%d,points>3", startUnix, endUnix))
 		u.RawQuery = q.Encode()
 
 		apiURL := u.String()
@@ -104,18 +105,30 @@ func FetchShowHNGitHubPosts(sortBy string) ([]ShowHNPost, error) {
 
 		// Process hits from this page
 		for _, hit := range result.Hits {
-			// Check if this post links to GitHub - only consider direct GitHub repository URLs
+			// Check if this post links to GitHub or mentions GitHub in the title/URL
 			isGitHubRepo := false
+
+			// First check the URL for GitHub links
 			if hit.URL != "" {
-				// Parse the URL to check if it's a valid GitHub repository URL
-				// A GitHub repo URL should be in the format: github.com/username/repo
 				parsedURL, err := url.Parse(hit.URL)
+
+				// Direct GitHub links
 				if err == nil && strings.Contains(strings.ToLower(parsedURL.Host), "github.com") {
-					// The path should have at least 2 parts (username/repo)
-					pathParts := strings.Split(strings.TrimPrefix(parsedURL.Path, "/"), "/")
-					if len(pathParts) >= 2 && pathParts[0] != "" && pathParts[1] != "" {
-						isGitHubRepo = true
-					}
+					isGitHubRepo = true
+				}
+
+				// Links with "github" in the URL
+				if !isGitHubRepo && strings.Contains(strings.ToLower(hit.URL), "github") {
+					isGitHubRepo = true
+				}
+			}
+
+			// Check title and text for GitHub mentions
+			if !isGitHubRepo {
+				if strings.Contains(strings.ToLower(hit.Title), "github") {
+					isGitHubRepo = true
+				} else if hit.Text != "" && strings.Contains(strings.ToLower(hit.Text), "github.com") {
+					isGitHubRepo = true
 				}
 			}
 
@@ -135,15 +148,15 @@ func FetchShowHNGitHubPosts(sortBy string) ([]ShowHNPost, error) {
 					ObjectID:     hit.ObjectID,
 				})
 
-				// Safety check to ensure we don't go over 200 posts total
-				if len(allPosts) >= 200 {
+				// Safety check to ensure we don't go over 500 posts total
+				if len(allPosts) >= 500 {
 					break
 				}
 			}
 		}
 
 		// If we've reached the last page or hit our limit, stop
-		if result.Page >= result.NbPages-1 || len(result.Hits) == 0 || len(allPosts) >= 200 {
+		if result.Page >= result.NbPages-1 || len(result.Hits) == 0 || len(allPosts) >= 500 {
 			break
 		}
 

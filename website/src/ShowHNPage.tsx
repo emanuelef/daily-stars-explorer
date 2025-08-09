@@ -84,8 +84,8 @@ function ShowHNPage() {
     const fetchPosts = async () => {
       setLoading(true);
       try {
-        // Fetch data with default sort by points (we'll handle sorting in the frontend)
-        const response = await fetch(`${HOST}/showhn?sort=points&min_points=5`);
+        // Fetch data with default sort by points, without min_points to get more results
+        const response = await fetch(`${HOST}/showhn?sort=points`);
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
