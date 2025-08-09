@@ -36,14 +36,32 @@ interface ShowHNPost {
 // Function to extract GitHub username and repository name from URL
 const extractRepoDetails = (url: string): { user: string; repository: string } | null => {
   try {
-    const githubUrlPattern = /github\.com\/([^\/]+)\/([^\/]+)/;
+    if (!url) return null;
+    
+    // Handle various GitHub URL formats
+    // Standard format: github.com/user/repo
+    // Also handle: github.com/user/repo/
+    // And: github.com/user/repo/tree/main, github.com/user/repo/issues, etc.
+    const githubUrlPattern = /github\.com\/([^\/]+)\/([^\/\?#]+)/;
     const match = url.match(githubUrlPattern);
     
     if (match && match.length >= 3) {
-      return {
-        user: match[1],
-        repository: match[2]
-      };
+      const user = match[1];
+      let repository = match[2];
+      
+      // Skip if the user or repository part is not valid
+      if (user === '' || repository === '' || 
+          user === 'orgs' || user === 'settings' || 
+          repository === 'settings' || repository === 'dashboard') {
+        return null;
+      }
+      
+      // Clean repository name (remove .git suffix if present)
+      if (repository.endsWith('.git')) {
+        repository = repository.substring(0, repository.length - 4);
+      }
+      
+      return { user, repository };
     }
     return null;
   } catch (e) {
@@ -74,7 +92,7 @@ function ShowHNPage() {
   const [sortedPosts, setSortedPosts] = useState<ShowHNPost[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<'date' | 'points' | 'comments'>('date');
+  const [sortBy, setSortBy] = useState<'date' | 'points' | 'comments'>('points');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -84,15 +102,19 @@ function ShowHNPage() {
     const fetchPosts = async () => {
       setLoading(true);
       try {
-        // Fetch data with default sort by points, without min_points to get more results
+        // Fetch data with default sort by points in descending order
         const response = await fetch(`${HOST}/showhn?sort=points`);
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
         
         const data = await response.json();
+        
+        // Log initial data count before filtering
+        console.log(`Retrieved ${data.length} Show HN posts from API`);
+        
         setAllPosts(data);
-        // Apply initial sorting
+        // Apply initial filtering and sorting
         sortPosts(data, sortBy, sortDirection);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An unknown error occurred');
@@ -104,11 +126,28 @@ function ShowHNPage() {
     fetchPosts();
   }, []); // Empty dependency array - only fetch once on mount
   
-  // Function to sort posts based on criteria
+  // Function to sort posts based on criteria and filter out invalid GitHub repos
   const sortPosts = (posts: ShowHNPost[], sortField: 'date' | 'points' | 'comments', direction: 'asc' | 'desc') => {
     if (!posts || posts.length === 0) return [];
     
-    const sorted = [...posts].sort((a, b) => {
+    // First filter out posts that don't have a valid GitHub repository URL
+    const validGitHubPosts = posts.filter(post => {
+      // Check if post is marked as a GitHub repo
+      if (!post.is_github_repo) return false;
+      
+      // Verify if URL can be parsed into user/repository format
+      const repoDetails = extractRepoDetails(post.url);
+      
+      if (!repoDetails) {
+        console.debug(`Filtered out post: "${post.title}" with URL: ${post.url}`);
+      }
+      
+      return repoDetails !== null;
+    });
+    
+    console.log(`Filtered to ${validGitHubPosts.length} valid GitHub repos out of ${posts.length} total posts`);
+    
+    const sorted = [...validGitHubPosts].sort((a, b) => {
       let comparison = 0;
       
       switch (sortField) {
@@ -176,7 +215,8 @@ function ShowHNPage() {
         GitHub Projects from Show HN
       </Typography>
       <Typography variant="subtitle1" gutterBottom color="text.secondary">
-        Trending GitHub projects featured on Hacker News "Show HN"
+        Trending GitHub projects featured on Hacker News "Show HN" 
+        (Only posts with valid GitHub repository links are shown)
       </Typography>
       
       <TableContainer component={Paper} sx={{ mt: 3 }}>
