@@ -64,30 +64,30 @@ function isRedditPost(post: GitHubPost): post is RedditGitHubPost {
 const extractRepoDetails = (url: string): { user: string; repository: string } | null => {
   try {
     if (!url) return null;
-    
+
     // Handle various GitHub URL formats
     // Standard format: github.com/user/repo
     // Also handle: github.com/user/repo/
     // And: github.com/user/repo/tree/main, github.com/user/repo/issues, etc.
     const githubUrlPattern = /github\.com\/([^\/]+)\/([^\/\?#]+)/;
     const match = url.match(githubUrlPattern);
-    
+
     if (match && match.length >= 3) {
       const user = match[1];
       let repository = match[2];
-      
+
       // Skip if the user or repository part is not valid
-      if (user === '' || repository === '' || 
-          user === 'orgs' || user === 'settings' || 
-          repository === 'settings' || repository === 'dashboard') {
+      if (user === '' || repository === '' ||
+        user === 'orgs' || user === 'settings' ||
+        repository === 'settings' || repository === 'dashboard') {
         return null;
       }
-      
+
       // Clean repository name (remove .git suffix if present)
       if (repository.endsWith('.git')) {
         repository = repository.substring(0, repository.length - 4);
       }
-      
+
       return { user, repository };
     }
     return null;
@@ -100,9 +100,9 @@ const extractRepoDetails = (url: string): { user: string; repository: string } |
 // Function to format date
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', { 
-    year: 'numeric', 
-    month: 'short', 
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit'
@@ -124,7 +124,7 @@ function ShowHNPage() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [source, setSource] = useState<'hackernews' | 'reddit'>('hackernews');
-  
+
   // Fetch posts from selected source
   useEffect(() => {
     const fetchPosts = async () => {
@@ -132,18 +132,18 @@ function ShowHNPage() {
       try {
         // Determine endpoint based on selected source
         const endpoint = source === 'hackernews' ? 'showhn' : 'redditrepos';
-        
+
         // Fetch data with default sort by points in descending order
         const response = await fetch(`${HOST}/${endpoint}?sort=points`);
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
-        
+
         const data = await response.json();
-        
+
         // Log initial data count before filtering
         console.log(`Retrieved ${data.length} ${source === 'hackernews' ? 'Show HN' : 'Reddit'} posts from API`);
-        
+
         setAllPosts(data);
         // Apply initial filtering and sorting
         sortPosts(data, sortBy, sortDirection);
@@ -153,34 +153,34 @@ function ShowHNPage() {
         setLoading(false);
       }
     };
-    
+
     fetchPosts();
   }, [source]); // Re-fetch when the source changes
-  
+
   // Function to sort posts based on criteria and filter out invalid GitHub repos
   const sortPosts = (posts: GitHubPost[], sortField: 'date' | 'points' | 'comments', direction: 'asc' | 'desc') => {
     if (!posts || posts.length === 0) return [];
-    
+
     // First filter out posts that don't have a valid GitHub repository URL
     const validGitHubPosts = posts.filter(post => {
       // Check if post is marked as a GitHub repo
       if (!post.is_github_repo) return false;
-      
+
       // Verify if URL can be parsed into user/repository format
       const repoDetails = extractRepoDetails(post.url);
-      
+
       if (!repoDetails) {
         console.debug(`Filtered out post: "${post.title}" with URL: ${post.url}`);
       }
-      
+
       return repoDetails !== null;
     });
-    
+
     console.log(`Filtered to ${validGitHubPosts.length} valid GitHub repos out of ${posts.length} total posts`);
-    
+
     const sorted = [...validGitHubPosts].sort((a, b) => {
       let comparison = 0;
-      
+
       switch (sortField) {
         case 'points':
           comparison = a.points - b.points;
@@ -192,27 +192,27 @@ function ShowHNPage() {
           comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
           break;
       }
-      
+
       return direction === 'asc' ? comparison : -comparison;
     });
-    
+
     setSortedPosts(sorted);
   };
-  
+
   // Sort posts whenever sort criteria changes
   useEffect(() => {
     sortPosts(allPosts, sortBy, sortDirection);
   }, [sortBy, sortDirection, allPosts]);
-  
+
   const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
   };
-  
+
   const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
-  
+
   const handleSortChange = (newSortBy: 'date' | 'points' | 'comments') => {
     // If clicking on the same column that's already being sorted, toggle the direction
     if (sortBy === newSortBy) {
@@ -223,7 +223,7 @@ function ShowHNPage() {
       setSortDirection('desc');
     }
   };
-  
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
@@ -231,7 +231,7 @@ function ShowHNPage() {
       </Box>
     );
   }
-  
+
   if (error) {
     return (
       <Box sx={{ p: 3 }}>
@@ -239,7 +239,7 @@ function ShowHNPage() {
       </Box>
     );
   }
-  
+
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
@@ -249,13 +249,13 @@ function ShowHNPage() {
         Trending GitHub projects featured on social platforms
         (Only posts with valid GitHub repository links are shown)
       </Typography>
-      
+
       <Box sx={{ mb: 3 }}>
         <ToggleButtonGroup
           color="primary"
           value={source}
           exclusive
-          onChange={(_, newSource) => { 
+          onChange={(_, newSource) => {
             if (newSource) setSource(newSource);
           }}
           aria-label="Data source"
@@ -264,7 +264,7 @@ function ShowHNPage() {
           <ToggleButton value="reddit">Reddit</ToggleButton>
         </ToggleButtonGroup>
       </Box>
-      
+
       <TableContainer component={Paper} sx={{ mt: 3 }}>
         <Table sx={{ minWidth: 650 }} aria-label="github repos table">
           <TableHead>
@@ -306,7 +306,7 @@ function ShowHNPage() {
               .map((post: GitHubPost, index: number) => {
                 const repoDetails = extractRepoDetails(post.url);
                 const isHN = isShowHNPost(post);
-                
+
                 return (
                   <StyledTableRow key={(isHN ? post.object_id : post.post_id) || index}>
                     <TableCell component="th" scope="row">
@@ -328,12 +328,12 @@ function ShowHNPage() {
                             <RedditIcon color="primary" titleAccess="Reddit Discussion" />
                           )}
                         </a>
-                        
+
                         {/* Link to GitHub repo */}
                         <a href={post.url} target="_blank" rel="noopener noreferrer">
                           <GitHubIcon color="primary" titleAccess="GitHub Repo" />
                         </a>
-                        
+
                         {/* Link to Timeline view */}
                         {repoDetails && (
                           <Link to={`/${repoDetails.user}/${repoDetails.repository}`}>
