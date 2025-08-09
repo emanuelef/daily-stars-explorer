@@ -188,6 +188,7 @@ func main() {
 	app.Use("/allStars", rateLimiter)
 	app.Use("/youtube", rateLimiterFeed)
 	app.Use("/showhn", rateLimiterFeed)
+	app.Use("/redditrepos", rateLimiterFeed)
 	app.Use("/reddit", rateLimiterFeed)
 	app.Use("/hackernews", rateLimiterFeed)
 	app.Use("/allReleases", rateLimiter)
@@ -406,6 +407,67 @@ func main() {
 		// Apply filters after retrieving from cache
 		if minPoints > 0 || minComments > 0 {
 			filteredPosts := make([]news.ShowHNPost, 0)
+			for _, post := range posts {
+				if post.Points >= minPoints && post.NumComments >= minComments {
+					filteredPosts = append(filteredPosts, post)
+				}
+			}
+			posts = filteredPosts
+		}
+
+		return c.JSON(posts)
+	})
+
+	// Cache for Reddit GitHub repos
+	cacheRedditGitHub := cache.New[string, []news.RedditGitHubPost]()
+
+	app.Get("/redditrepos", func(c *fiber.Ctx) error {
+		// Get sort parameter, default to "date" if not provided
+		sortBy := c.Query("sort", "date")
+
+		// Validate sort parameter
+		validSort := sortBy == "date" || sortBy == "points" || sortBy == "comments"
+		if !validSort {
+			sortBy = "date" // Default to date if invalid parameter
+		}
+
+		// Get minimum points/comments filters
+		minPointsStr := c.Query("min_points", "0")
+		minCommentsStr := c.Query("min_comments", "0")
+
+		minPoints, err := strconv.Atoi(minPointsStr)
+		if err != nil || minPoints < 0 {
+			minPoints = 0
+		}
+
+		minComments, err := strconv.Atoi(minCommentsStr)
+		if err != nil || minComments < 0 {
+			minComments = 0
+		}
+
+		// Create cache key based on sort parameter
+		cacheKey := fmt.Sprintf("redditrepos:%s", sortBy)
+
+		var posts []news.RedditGitHubPost
+
+		// Try to get from cache first
+		if res, hit := cacheRedditGitHub.Get(cacheKey); hit {
+			posts = res
+		} else {
+			// Fetch fresh data if not in cache
+			var err error
+			posts, err = news.FetchRedditGitHubPosts(sortBy)
+			if err != nil {
+				return fiber.NewError(fiber.StatusInternalServerError, "error fetching Reddit GitHub posts: "+err.Error())
+			}
+
+			// Store in cache with expiration
+			cacheRedditGitHub.Set(cacheKey, posts, cache.WithExpiration(4*time.Hour))
+		}
+
+		// Apply filters after retrieving from cache
+		if minPoints > 0 || minComments > 0 {
+			filteredPosts := make([]news.RedditGitHubPost, 0)
 			for _, post := range posts {
 				if post.Points >= minPoints && post.NumComments >= minComments {
 					filteredPosts = append(filteredPosts, post)

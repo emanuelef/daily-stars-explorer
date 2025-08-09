@@ -10,7 +10,7 @@ import ForksTimeSeriesChart from "./ForksTimeSeriesChart";
 import CommitsTimeSeriesChart from "./CommitsTimeSeriesChart";
 import ContributorsTimeSeriesChart from "./ContributorsTimeSeriesChart";
 import InfoPage from "./InfoPage";
-import ShowHNPage from "./ShowHNPage";
+import TrendingReposPage from "./TrendingReposPage";
 
 import { Sidebar, Menu, MenuItem } from "react-pro-sidebar";
 import { Routes, Route, Link, useLocation } from "react-router-dom";
@@ -25,7 +25,7 @@ import AltRouteOutlinedIcon from "@mui/icons-material/AltRouteOutlined";
 import CallMergeRoundedIcon from '@mui/icons-material/CallMergeRounded';
 import CommitRoundedIcon from '@mui/icons-material/CommitRounded';
 import Diversity3OutlinedIcon from '@mui/icons-material/Diversity3Outlined';
-import NewReleasesIcon from '@mui/icons-material/NewReleases';
+import ArticleIcon from '@mui/icons-material/Article';
 
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -92,7 +92,8 @@ function App() {
                   useLocation().pathname.includes("/forks") ||
                   useLocation().pathname.includes("/prs") ||
                   useLocation().pathname.includes("/commits") ||
-                  useLocation().pathname.includes("/contributors")
+                  useLocation().pathname.includes("/contributors") ||
+                  useLocation().pathname.includes("/showhn")
                 )
               }
             >
@@ -167,13 +168,13 @@ function App() {
             <MenuItem
               component={<Link to="/showhn" className="link" />}
               icon={
-                <Tooltip title="Show HN Projects" placement="right">
-                  <NewReleasesIcon />
+                <Tooltip title="GitHub Repositories Featured on Social Platforms" placement="right">
+                  <ArticleIcon />
                 </Tooltip>
               }
               active={useLocation().pathname.includes("/showhn")}
             >
-              Show HN
+              Featured Repos
             </MenuItem>
             <MenuItem
               component={<Link to="/table" className="link" />}
@@ -221,7 +222,7 @@ function App() {
             <Route path="/commits/:user/:repository" element={<CommitsTimeSeriesChart />} />
             <Route path="/contributors" element={<ContributorsTimeSeriesChart />} />
             <Route path="/contributors/:user/:repository" element={<ContributorsTimeSeriesChart />} />
-            <Route path="/showhn" element={<ShowHNPage />} />
+            <Route path="/showhn" element={<TrendingReposPage />} />
           </Routes>
         </section>
       </div>

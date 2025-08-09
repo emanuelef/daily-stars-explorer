@@ -1,10 +1,12 @@
 package news
 
 import (
+	"bufio"
 	"encoding/json"
 	"net/http"
 	"net/url"
 	"os"
+	"sort"
 	"strings"
 	"time"
 )
@@ -76,6 +78,184 @@ func getRedditToken() (string, error) {
 	}
 
 	return tokenResponse.AccessToken, nil
+}
+
+// Represent a GitHub repository post from Reddit
+type RedditGitHubPost struct {
+	Title        string `json:"title"`
+	URL          string `json:"url"`    // GitHub repo URL if found, otherwise the post URL
+	Points       int    `json:"points"` // Upvotes
+	NumComments  int    `json:"num_comments"`
+	CreatedAt    string `json:"created_at"`
+	RedditLink   string `json:"reddit_link"`
+	IsGitHubRepo bool   `json:"is_github_repo"`
+	PostID       string `json:"post_id"`
+	Subreddit    string `json:"subreddit"`
+}
+
+// Extract GitHub URL from post content
+func extractGitHubURL(content string) string {
+	// We'll just search for GitHub links directly in the content
+	r := strings.NewReader(content)
+	scanner := bufio.NewScanner(r)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		matches := strings.Split(line, " ")
+		for _, match := range matches {
+			if strings.Contains(match, "github.com") && strings.Count(match, "/") >= 2 {
+				// Ensure it starts with http/https
+				if !strings.HasPrefix(match, "http") {
+					match = "https://" + match
+				}
+				// Clean the URL (remove trailing characters)
+				match = strings.TrimRight(match, ".,;:!?)")
+				return match
+			}
+		}
+	}
+	return ""
+}
+
+// FetchRedditGitHubPosts fetches GitHub repos from specified subreddits from the last two weeks
+func FetchRedditGitHubPosts(sortBy string) ([]RedditGitHubPost, error) {
+	token, err := getRedditToken()
+	if err != nil {
+		return nil, err
+	}
+
+	client := &http.Client{}
+
+	// List of subreddits to check
+	subreddits := []string{"github", "opensource"}
+
+	// Calculate dates for two weeks ago
+	twoWeeksAgo := time.Now().AddDate(0, 0, -14)
+
+	var allPosts []RedditGitHubPost
+
+	// Get top posts from each subreddit
+	for _, subreddit := range subreddits {
+		params := url.Values{}
+		params.Set("t", "week") // Get top posts from past week
+		params.Set("limit", "100")
+
+		req, err := http.NewRequest("GET", "https://oauth.reddit.com/r/"+subreddit+"/top?"+params.Encode(), nil)
+		if err != nil {
+			continue // Skip this subreddit if there's an error
+		}
+
+		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set("User-Agent", UserAgent)
+
+		resp, err := client.Do(req)
+		if err != nil {
+			continue // Skip this subreddit if there's an error
+		}
+
+		var redditResponse RedditResponse
+		if err := json.NewDecoder(resp.Body).Decode(&redditResponse); err != nil {
+			resp.Body.Close()
+			continue // Skip this subreddit if there's an error
+		}
+		resp.Body.Close()
+
+		// Process posts from this subreddit
+		for _, child := range redditResponse.Data.Children {
+			postCreatedAt := time.Unix(int64(child.Data.Created), 0)
+
+			// Skip posts older than two weeks
+			if postCreatedAt.Before(twoWeeksAgo) {
+				continue
+			}
+
+			// Format created time
+			createdAtFormatted := postCreatedAt.Format(time.RFC3339)
+
+			// Create Reddit link
+			redditLink := "https://www.reddit.com" + child.Data.Permalink
+
+			// Check for GitHub links in title, selftext, or URL
+			isGitHubPost := false
+			githubURL := ""
+
+			// Check post URL first
+			if strings.Contains(strings.ToLower(child.Data.Permalink), "github.com") {
+				isGitHubPost = true
+				githubURL = child.Data.Permalink
+			}
+
+			// If not found in URL, check title and self text
+			if !isGitHubPost {
+				// Check in self text
+				if child.Data.SelfText != "" {
+					extractedURL := extractGitHubURL(child.Data.SelfText)
+					if extractedURL != "" {
+						isGitHubPost = true
+						githubURL = extractedURL
+					}
+				}
+
+				// Check in title if still not found
+				if !isGitHubPost && strings.Contains(strings.ToLower(child.Data.Title), "github.com") {
+					extractedURL := extractGitHubURL(child.Data.Title)
+					if extractedURL != "" {
+						isGitHubPost = true
+						githubURL = extractedURL
+					}
+				}
+			}
+
+			// Add only posts with GitHub repos
+			if isGitHubPost {
+				post := RedditGitHubPost{
+					Title:        child.Data.Title,
+					URL:          githubURL,
+					Points:       child.Data.Ups,
+					NumComments:  child.Data.NumComments,
+					CreatedAt:    createdAtFormatted,
+					RedditLink:   redditLink,
+					IsGitHubRepo: true,
+					PostID:       redditLink, // Use Reddit permalink as ID
+					Subreddit:    subreddit,
+				}
+
+				allPosts = append(allPosts, post)
+			}
+		}
+
+		// Add a small delay between API calls
+		time.Sleep(200 * time.Millisecond)
+	}
+
+	// Sort posts based on the specified criteria
+	switch sortBy {
+	case "points":
+		// Sort by upvotes (highest first)
+		sort.Slice(allPosts, func(i, j int) bool {
+			return allPosts[i].Points > allPosts[j].Points
+		})
+	case "comments":
+		// Sort by number of comments (highest first)
+		sort.Slice(allPosts, func(i, j int) bool {
+			return allPosts[i].NumComments > allPosts[j].NumComments
+		})
+	default:
+		// Default: sort by date (most recent first)
+		sort.Slice(allPosts, func(i, j int) bool {
+			iTime, errI := time.Parse(time.RFC3339, allPosts[i].CreatedAt)
+			jTime, errJ := time.Parse(time.RFC3339, allPosts[j].CreatedAt)
+
+			// If we can't parse either date, fall back to string comparison
+			if errI != nil || errJ != nil {
+				return allPosts[i].CreatedAt > allPosts[j].CreatedAt
+			}
+
+			return iTime.After(jTime)
+		})
+	}
+
+	return allPosts, nil
 }
 
 func FetchRedditPosts(query string, minUpvotes int) ([]ArticleData, error) {

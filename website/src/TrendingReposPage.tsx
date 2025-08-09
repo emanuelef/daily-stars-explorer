@@ -55,11 +55,6 @@ function isShowHNPost(post: GitHubPost): post is ShowHNPost {
   return 'hn_link' in post;
 }
 
-// Type guard to check if a post is from Reddit
-function isRedditPost(post: GitHubPost): post is RedditGitHubPost {
-  return 'reddit_link' in post;
-}
-
 // Function to extract GitHub username and repository name from URL
 const extractRepoDetails = (url: string): { user: string; repository: string } | null => {
   try {
@@ -114,7 +109,7 @@ const cleanTitle = (title: string): string => {
   return title.replace(/^Show\s+HN\s*:\s*/i, '');
 };
 
-function ShowHNPage() {
+function TrendingReposPage() {
   const [allPosts, setAllPosts] = useState<GitHubPost[]>([]);
   const [sortedPosts, setSortedPosts] = useState<GitHubPost[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -235,7 +230,7 @@ function ShowHNPage() {
   if (error) {
     return (
       <Box sx={{ p: 3 }}>
-        <Typography variant="h5" color="error">Error loading ShowHN posts: {error}</Typography>
+        <Typography variant="h5" color="error">Error loading GitHub repositories: {error}</Typography>
       </Box>
     );
   }
@@ -243,10 +238,10 @@ function ShowHNPage() {
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
-        GitHub Projects from Social Media
+        Featured GitHub Repositories
       </Typography>
       <Typography variant="subtitle1" gutterBottom color="text.secondary">
-        Trending GitHub projects featured on social platforms
+        GitHub repositories featured on social platforms like Hacker News and Reddit
         (Only posts with valid GitHub repository links are shown)
       </Typography>
       
@@ -361,4 +356,4 @@ function ShowHNPage() {
   );
 }
 
-export default ShowHNPage;
+export default TrendingReposPage;
