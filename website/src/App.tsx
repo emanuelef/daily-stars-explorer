@@ -10,6 +10,7 @@ import ForksTimeSeriesChart from "./ForksTimeSeriesChart";
 import CommitsTimeSeriesChart from "./CommitsTimeSeriesChart";
 import ContributorsTimeSeriesChart from "./ContributorsTimeSeriesChart";
 import InfoPage from "./InfoPage";
+import ShowHNPage from "./ShowHNPage";
 
 import { Sidebar, Menu, MenuItem } from "react-pro-sidebar";
 import { Routes, Route, Link, useLocation } from "react-router-dom";
@@ -24,6 +25,7 @@ import AltRouteOutlinedIcon from "@mui/icons-material/AltRouteOutlined";
 import CallMergeRoundedIcon from '@mui/icons-material/CallMergeRounded';
 import CommitRoundedIcon from '@mui/icons-material/CommitRounded';
 import Diversity3OutlinedIcon from '@mui/icons-material/Diversity3Outlined';
+import NewReleasesIcon from '@mui/icons-material/NewReleases';
 
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -163,6 +165,17 @@ function App() {
               Contributors
             </MenuItem>
             <MenuItem
+              component={<Link to="/showhn" className="link" />}
+              icon={
+                <Tooltip title="Show HN Projects" placement="right">
+                  <NewReleasesIcon />
+                </Tooltip>
+              }
+              active={useLocation().pathname.includes("/showhn")}
+            >
+              Show HN
+            </MenuItem>
+            <MenuItem
               component={<Link to="/table" className="link" />}
               icon={
                 <Tooltip title="Table" placement="right">
@@ -208,6 +221,7 @@ function App() {
             <Route path="/commits/:user/:repository" element={<CommitsTimeSeriesChart />} />
             <Route path="/contributors" element={<ContributorsTimeSeriesChart />} />
             <Route path="/contributors/:user/:repository" element={<ContributorsTimeSeriesChart />} />
+            <Route path="/showhn" element={<ShowHNPage />} />
           </Routes>
         </section>
       </div>
