@@ -400,7 +400,7 @@ func main() {
 			}
 
 			// Store in cache with a shorter 10-minute expiration to get fresh content
-			cacheShowHN.Set(cacheKey, posts, cache.WithExpiration(10*time.Minute))
+			cacheShowHN.Set(cacheKey, posts, cache.WithExpiration(4*time.Hour))
 		}
 
 		// Apply filters after retrieving from cache
