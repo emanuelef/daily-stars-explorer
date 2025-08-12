@@ -1605,7 +1605,7 @@ function TimeSeriesChart() {
           }
           sx={{ mb: 2 }}
         >
-          If you have a moment, please share your feedback or suggestions in our <a href="https://github.com/emanuelef/daily-stars-explorer/discussions/218" target="_blank" rel="noopener noreferrer" style={{ color: '#2196f3', textDecoration: 'underline' }}>GitHub Discussion</a>. Your input helps improve the tool!
+          If you have a moment, please share your feedback or suggestions in the <a href="https://github.com/emanuelef/daily-stars-explorer/discussions/218" target="_blank" rel="noopener noreferrer" style={{ color: '#2196f3', textDecoration: 'underline' }}>GitHub Discussion</a>. Your input helps improve the tool!
         </Alert>
       )}
 
