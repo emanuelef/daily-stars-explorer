@@ -10,10 +10,10 @@ import ForksTimeSeriesChart from "./ForksTimeSeriesChart";
 import CommitsTimeSeriesChart from "./CommitsTimeSeriesChart";
 import ContributorsTimeSeriesChart from "./ContributorsTimeSeriesChart";
 import InfoPage from "./InfoPage";
-import TrendingReposPage from "./TrendingReposPage";
+import FeaturedReposPage from "./FeaturedReposPage";
 
 import { Sidebar, Menu, MenuItem } from "react-pro-sidebar";
-import { Routes, Route, Link, useLocation } from "react-router-dom";
+import { Routes, Route, Link, useLocation, Navigate } from "react-router-dom";
 
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import TableViewRounded from "@mui/icons-material/TableViewRounded";
@@ -93,7 +93,7 @@ function App() {
                   useLocation().pathname.includes("/prs") ||
                   useLocation().pathname.includes("/commits") ||
                   useLocation().pathname.includes("/contributors") ||
-                  useLocation().pathname.includes("/showhn")
+                  useLocation().pathname.includes("/featured")
                 )
               }
             >
@@ -166,13 +166,13 @@ function App() {
               Contributors
             </MenuItem>
             <MenuItem
-              component={<Link to="/showhn" className="link" />}
+              component={<Link to="/featured" className="link" />}
               icon={
                 <Tooltip title="GitHub Repositories Featured on Social Platforms" placement="right">
                   <ArticleIcon />
                 </Tooltip>
               }
-              active={useLocation().pathname.includes("/showhn")}
+              active={useLocation().pathname.includes("/featured")}
             >
               Featured Repos
             </MenuItem>
@@ -222,7 +222,8 @@ function App() {
             <Route path="/commits/:user/:repository" element={<CommitsTimeSeriesChart />} />
             <Route path="/contributors" element={<ContributorsTimeSeriesChart />} />
             <Route path="/contributors/:user/:repository" element={<ContributorsTimeSeriesChart />} />
-            <Route path="/showhn" element={<TrendingReposPage />} />
+            <Route path="/showhn" element={<Navigate to="/featured" replace />} />
+            <Route path="/featured" element={<FeaturedReposPage />} />
           </Routes>
         </section>
       </div>
