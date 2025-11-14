@@ -1588,6 +1588,10 @@ function TimeSeriesChart() {
         </Alert>
       )}
 
+      <Alert severity="warning" sx={{ mb: 2 }}>
+        The hosted version is temporarily down for a certificate update. You can still use the tool by self-hosting it as described in the <a href="https://github.com/emanuelef/daily-stars-explorer?tab=readme-ov-file#run-locally-or-self-host-using-docker-image" target="_blank" rel="noopener noreferrer" style={{ color: '#2196f3', textDecoration: 'underline' }}>README</a>.
+      </Alert>
+
       {showFeedbackBanner && (
         <Alert
           severity="info"
