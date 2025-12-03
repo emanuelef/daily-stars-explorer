@@ -276,6 +276,8 @@ function TimeSeriesChart() {
   const [starsRepos, setStarsRepos] = useState([]);
   const [isMobile, setIsMobile] = useState(false);
   const [showFeedbackBanner, setShowFeedbackBanner] = useState(true);
+  const [keepLast30Zoom, setKeepLast30Zoom] = useState(false);
+  const [last30Active, setLast30Active] = useState(false); // false: button applies last 30; true: button restores full timeline
 
   const currentHNnews = useRef({});
   const currentPeaks = useRef([]);
@@ -1243,6 +1245,27 @@ function TimeSeriesChart() {
     setds(options);
   };
 
+  // Re-apply last 30 days zoom immediately when data updates and flag is set
+  useEffect(() => {
+    if (
+      keepLast30Zoom &&
+      ds &&
+      ds.dataSource &&
+      ds.dataSource.data &&
+      ds.dataSource.data._data &&
+      ds.dataSource.data._data.length > 0 &&
+      chartRef.current && chartRef.current.chartObj
+    ) {
+      const dataArr = ds.dataSource.data._data;
+      const lastIdx = dataArr.length - 1;
+      const end = dataArr[lastIdx][0];
+      const start = dataArr[Math.max(0, lastIdx - 29)][0];
+
+      chartRef.current.chartObj.setTimeSelection({ start, end });
+      setSelectedTimeRange({ start, end });
+    }
+  }, [ds, keepLast30Zoom]);
+
   const downloadCSV = () => {
     const repoParsed = parseGitHubRepoURL(selectedRepo);
     const downloadUrl = `${HOST}/allStarsCsv?repo=${repoParsed}`;
@@ -1895,6 +1918,12 @@ function TimeSeriesChart() {
           Download CSV
         </Button>
         <br />
+        <Tooltip 
+          title={last30Active ? "Restore full timeline view" : "Zoom to last 30 days and keep it across fetches"}
+          placement="top"
+          arrow
+        >
+        <span>
         <Button
           style={{
             marginLeft: "10px",
@@ -1906,6 +1935,8 @@ function TimeSeriesChart() {
         >
           Download Json
         </Button>
+        </span>
+        </Tooltip>
         <CopyToClipboardButton
           style={{
             marginLeft: "10px",
@@ -1998,29 +2029,38 @@ function TimeSeriesChart() {
               const dataArr = ds.dataSource.data._data;
               const lastIdx = dataArr.length - 1;
               const lastDate = dataArr[lastIdx][0];
-              const firstDate = dataArr[Math.max(0, lastIdx - 29)][0];
+              const firstDateLast30 = dataArr[Math.max(0, lastIdx - 29)][0];
+              const firstDateFull = dataArr[0][0];
 
-              console.log("Zooming to last 30 days:", firstDate, lastDate);
-
-              // Update the selected time range state
-              setSelectedTimeRange({
-                start: firstDate,
-                end: lastDate,
-              });
-
-              if (chartRef.current && chartRef.current.chartObj) {
-                chartRef.current.chartObj.setTimeSelection({
-                  start: firstDate,
-                  end: lastDate,
-                });
+              if (!last30Active) {
+                // Apply last 30 days and persist across fetches
+                setSelectedTimeRange({ start: firstDateLast30, end: lastDate });
+                setKeepLast30Zoom(true);
+                setLast30Active(true);
+                if (chartRef.current && chartRef.current.chartObj) {
+                  chartRef.current.chartObj.setTimeSelection({
+                    start: firstDateLast30,
+                    end: lastDate,
+                  });
+                }
+                handleZoom(firstDateLast30, lastDate);
+              } else {
+                // Restore full timeline and disable persistence
+                setKeepLast30Zoom(false);
+                setSelectedTimeRange({ start: firstDateFull, end: lastDate });
+                setLast30Active(false);
+                if (chartRef.current && chartRef.current.chartObj) {
+                  chartRef.current.chartObj.setTimeSelection({
+                    start: firstDateFull,
+                    end: lastDate,
+                  });
+                }
+                handleZoom(firstDateFull, lastDate);
               }
-
-              // Update the "New Stars in Zoomed Period" display
-              handleZoom(firstDate, lastDate);
             }
           }}
         >
-          Last 30 days
+          {last30Active ? "Full timeline" : "Last 30 days"}
         </Button>
       </div>
       <EstimatedTimeProgress
