@@ -153,6 +153,20 @@ function HourlyStarsChart() {
 
   return (
     <div>
+      <div style={{
+        width: "100%",
+        background: "#b0bec5",
+        color: "#222",
+        padding: "4px 0",
+        textAlign: "center",
+        fontWeight: 500,
+        fontSize: "0.95rem",
+        letterSpacing: "0.5px",
+        marginBottom: "10px",
+        borderRadius: "3px"
+      }}>
+        This is an experimental view
+      </div>
       {showError && (
         <Alert
           severity="error"
