@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import TextField from "@mui/material/TextField";
@@ -6,6 +5,7 @@ import FormControl from "@mui/material/FormControl";
 import Tooltip from "@mui/material/Tooltip";
 import Autocomplete from "@mui/material/Autocomplete";
 import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
@@ -84,7 +84,7 @@ function HourlyStarsChart() {
       if (data.length > 0) {
         setTotalStars(data[data.length - 1].totalStars);
       }
-      
+
       // Prepare data for Plotly
       const hours = data.map(item => item.hour);
       const stars = data.map(item => item.stars);
@@ -97,7 +97,7 @@ function HourlyStarsChart() {
           return hourPart?.startsWith('00:00:00');
         })
         .map(item => item.hour);
-      
+
       console.log('Day start hours:', dayStartHours);
       console.log('Sample data hour format:', data[0]?.hour);
 
@@ -150,6 +150,28 @@ function HourlyStarsChart() {
         }
       });
 
+      // Calculate best hour(s) of the day for stars
+      const hourCounts = {};
+      const hourOccurrences = {};
+      data.forEach(item => {
+        // item.hour: "YYYY-MM-DDTHH:MM:SSZ"
+        const hour = item.hour.split('T')[1].slice(0,2);
+        hourCounts[hour] = (hourCounts[hour] || 0) + item.stars;
+        hourOccurrences[hour] = (hourOccurrences[hour] || 0) + 1;
+      });
+      const maxHourCount = Math.max(...Object.values(hourCounts));
+      const bestHours = Object.entries(hourCounts)
+        .filter(([h, count]) => count === maxHourCount)
+        .map(([h]) => h.padStart(2, '0'));
+      const bestHourLabel = bestHours.length > 1 ? bestHours.join(', ') : bestHours[0];
+      // Calculate average for best hour(s)
+      const avgStars = bestHours.map(h => {
+        const total = hourCounts[h];
+        const occ = hourOccurrences[h];
+        return occ ? (total / occ) : 0;
+      });
+      const avgStarsLabel = avgStars.length > 1 ? avgStars.map(a => a.toFixed(2)).join(', ') : avgStars[0].toFixed(2);
+
       setChartData({
         hours,
         stars,
@@ -174,9 +196,11 @@ function HourlyStarsChart() {
         topHour,
         topHourCount,
         topDay,
-        topDayCount
+        topDayCount,
+        bestHourLabel,
+        avgStarsLabel,
       });
-      
+
       console.log('Day start shapes count:', dayStartHours.length);
     } catch (error) {
       console.error(`An error occurred: ${error}`);
@@ -326,7 +350,7 @@ function HourlyStarsChart() {
           onClick={handleClick}
           variant="contained"
           disabled={loading}
-          endIcon={<SendIcon />}
+          endIcon={loading ? <CircularProgress size={18} color="inherit" /> : <SendIcon />}
         >
           {loading ? "Loading..." : "Fetch"}
         </Button>
@@ -348,10 +372,10 @@ function HourlyStarsChart() {
             id="top-hour"
             label="Peak Hour (UTC)"
             value={(() => {
-              const iso = chartData.topHour.replace('Z','');
+              const iso = chartData.topHour.replace('Z', '');
               const [date, time] = iso.split('T');
               const [year, month, day] = date.split('-');
-              const hour = time.slice(0,2);
+              const hour = time.slice(0, 2);
               return `${day}-${month}-${year} ${hour}:00 (${chartData.topHourCount} stars)`;
             })()}
             InputProps={{ readOnly: true }}
@@ -367,6 +391,16 @@ function HourlyStarsChart() {
               const [year, month, day] = chartData.topDay.split('-');
               return `${day}-${month}-${year} (${chartData.topDayCount} stars)`;
             })()}
+            InputProps={{ readOnly: true }}
+          />
+        )}
+        {chartData?.bestHourLabel && (
+          <TextField
+            style={{ marginTop: "20px", marginRight: "5px", marginLeft: "10px", width: "220px" }}
+            size="small"
+            id="best-hour"
+            label="Best Hour(s)"
+            value={`${chartData.bestHourLabel} (avg: ${chartData.avgStarsLabel} stars)`}
             InputProps={{ readOnly: true }}
           />
         )}
