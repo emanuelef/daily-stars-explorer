@@ -89,12 +89,72 @@ function HourlyStarsChart() {
       const hours = data.map(item => item.hour);
       const stars = data.map(item => item.stars);
       const totalStarsData = data.map(item => item.totalStars);
+
+      // Find all hours that are the start of a day (midnight at 00:00 UTC)
+      const dayStartHours = data
+        .filter(item => {
+          const hourPart = item.hour.includes('T') ? item.hour.split('T')[1] : item.hour.split(' ')[1];
+          return hourPart?.startsWith('00:00:00');
+        })
+        .map(item => item.hour);
       
+      console.log('Day start hours:', dayStartHours);
+      console.log('Sample data hour format:', data[0]?.hour);
+
+      // Find all weekends for background bands (cool effect)
+      const weekendBands = [];
+      for (let i = 0; i < data.length; i++) {
+        const d = new Date(data[i].hour);
+        if (d.getUTCDay() === 6) { // Saturday
+          const start = data[i].hour;
+          // Find next Monday or end of data
+          let j = i + 1;
+          while (j < data.length) {
+            const dj = new Date(data[j].hour);
+            if (dj.getUTCDay() === 1 && dj.getUTCHours() === 0) break;
+            j++;
+          }
+          const end = j < data.length ? data[j].hour : data[data.length - 1].hour;
+          weekendBands.push({
+            type: 'rect',
+            xref: 'x',
+            yref: 'paper',
+            x0: start,
+            x1: end,
+            y0: 0,
+            y1: 1,
+            fillcolor: 'rgba(200,200,255,0.08)',
+            line: { width: 0 },
+            layer: 'below',
+          });
+          i = j - 1;
+        }
+      }
+
       setChartData({
         hours,
         stars,
-        totalStarsData
+        totalStarsData,
+        dayStartHours,
+        weekendBands,
+        dayStartShapes: dayStartHours.map(xVal => ({
+          type: 'line',
+          xref: 'x',
+          yref: 'paper',
+          x0: xVal,
+          x1: xVal,
+          y0: 0,
+          y1: 1,
+          line: {
+            color: 'rgba(100,180,255,0.5)', // subtle blue
+            width: 1,
+            dash: 'dot',
+          },
+          layer: 'above',
+        }))
       });
+      
+      console.log('Day start shapes count:', dayStartHours.length);
     } catch (error) {
       console.error(`An error occurred: ${error}`);
       setLoading(false);
@@ -313,6 +373,10 @@ function HourlyStarsChart() {
               plot_bgcolor: '#2d2d2d',
               font: { color: '#ffffff' },
               margin: { l: 60, r: 60, t: 60, b: 60 },
+              shapes: [
+                ...((chartData.weekendBands) || []),
+                ...((chartData.dayStartShapes) || [])
+              ],
             }}
             config={{
               responsive: true,
