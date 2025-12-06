@@ -109,6 +109,56 @@ func NewClientWithPAT(token string) *repostats.ClientGQL {
 	return repostats.NewClientGQL(oauthClient)
 }
 
+// getRecentStarsByHourHandler handles API requests for hourly stars
+func getRecentStarsByHourHandler(ghStatClients map[string]*repostats.ClientGQL) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		param := c.Query("repo")
+		lastDaysStr := c.Query("lastDays", "7")
+		if param == "" {
+			return c.Status(400).JSON(fiber.Map{"error": "Missing repo parameter"})
+		}
+		lastDays, err := strconv.Atoi(lastDaysStr)
+		if err != nil || lastDays < 1 || lastDays > 60 {
+			return c.Status(400).JSON(fiber.Map{"error": "Invalid lastDays parameter"})
+		}
+
+		repo, err := url.QueryUnescape(param)
+		if err != nil {
+			return c.Status(400).JSON(fiber.Map{"error": "Invalid repo parameter"})
+		}
+		repo = strings.ToLower(fmt.Sprintf("%s", repo))
+
+		// Get random client (PAT or PAT2)
+		randomIndex := rand.Intn(len(maps.Keys(ghStatClients)))
+		clientKey := c.Query("client", maps.Keys(ghStatClients)[randomIndex])
+		client, ok := ghStatClients[clientKey]
+		if !ok {
+			return c.Status(404).SendString("Resource not found")
+		}
+
+		starsPerHour, err := client.GetRecentStarsHistoryByHour(c.Context(), repo, lastDays, nil)
+		if err != nil {
+			log.Printf("Error getting hourly stars: %v", err)
+			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		}
+
+		type Hourly struct {
+			Hour       string `json:"hour"`
+			Stars      int    `json:"stars"`
+			TotalStars int    `json:"totalStars"`
+		}
+		out := make([]Hourly, len(starsPerHour))
+		for i, h := range starsPerHour {
+			out[i] = Hourly{
+				Hour:       h.Hour.UTC().Format(time.RFC3339),
+				Stars:      h.Stars,
+				TotalStars: h.TotalStars,
+			}
+		}
+		return c.JSON(out)
+	}
+}
+
 func main() {
 	ctx := context.Background()
 	tp, exp, err := otel_instrumentation.InitializeGlobalTracerProvider(ctx)
@@ -818,6 +868,8 @@ func main() {
 
 		return c.JSON(res)
 	})
+
+	app.Get("/recentStarsByHour", getRecentStarsByHourHandler(ghStatClients))
 
 	app.Get("/allIssues", func(c *fiber.Ctx) error {
 		param := c.Query("repo")
