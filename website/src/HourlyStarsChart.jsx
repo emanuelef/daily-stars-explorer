@@ -35,7 +35,7 @@ function HourlyStarsChart() {
   const [error, setError] = useState("");
   const [showError, setShowError] = useState(false);
   const [starsRepos, setStarsRepos] = useState([]);
-  const [lastDays, setLastDays] = useState(7);
+  const [lastDays, setLastDays] = useState(3);
   const [totalStars, setTotalStars] = useState(0);
   const [selectedRepo, setSelectedRepo] = useState(defaultRepo);
   const navigate = useNavigate();
@@ -302,7 +302,7 @@ function HourlyStarsChart() {
           renderInput={(params) => (
             <TextField
               {...params}
-              style={{ marginTop: "20px", marginRight: "20px", marginLeft: "10px", width: "400px" }}
+              style={{ marginTop: "16px", marginRight: "8px", marginLeft: "4px", width: "400px" }}
               label="Enter a GitHub repository"
               variant="outlined"
               size="small"
@@ -326,7 +326,7 @@ function HourlyStarsChart() {
             if (reason === "input") setSelectedRepo(v);
           }}
         />
-        <FormControl style={{ marginTop: "20px", marginRight: "10px", marginLeft: "10px", width: "120px" }}>
+        <FormControl style={{ marginTop: "16px", marginRight: "6px", marginLeft: "4px", width: "120px" }}>
           <InputLabel id="last-days-select">Days</InputLabel>
           <Select
             labelId="last-days"
@@ -345,7 +345,7 @@ function HourlyStarsChart() {
           </Select>
         </FormControl>
         <Button
-          style={{ marginTop: "20px", marginRight: "20px", marginLeft: "10px" }}
+          style={{ marginTop: "16px", marginRight: "8px", marginLeft: "4px" }}
           size="small"
           onClick={handleClick}
           variant="contained"
@@ -355,10 +355,10 @@ function HourlyStarsChart() {
           {loading ? "Loading..." : "Fetch"}
         </Button>
         <Tooltip title={INFO_TOOLTIP}>
-          <InfoOutlinedIcon style={{ marginTop: "20px", marginRight: "10px", color: "grey" }} />
+          <InfoOutlinedIcon style={{ marginTop: "16px", marginRight: "6px", color: "grey" }} />
         </Tooltip>
         <TextField
-          style={{ marginTop: "20px", marginRight: "5px", marginLeft: "10px", width: "120px" }}
+          style={{ marginTop: "16px", marginRight: "4px", marginLeft: "4px", width: "120px" }}
           size="small"
           id="total-stars"
           label="⭐ Total"
@@ -367,15 +367,15 @@ function HourlyStarsChart() {
         />
         {chartData?.topHour && (
           <TextField
-            style={{ marginTop: "20px", marginRight: "5px", marginLeft: "10px", width: "220px" }}
+            style={{ marginTop: "16px", marginRight: "4px", marginLeft: "4px", width: "220px" }}
             size="small"
             id="top-hour"
             label="Peak Hour (UTC)"
             value={(() => {
-              const iso = chartData.topHour.replace('Z', '');
+              const iso = chartData.topHour.replace('Z','');
               const [date, time] = iso.split('T');
               const [year, month, day] = date.split('-');
-              const hour = time.slice(0, 2);
+              const hour = time.slice(0,2);
               return `${day}-${month}-${year} ${hour}:00 (${chartData.topHourCount} stars)`;
             })()}
             InputProps={{ readOnly: true }}
@@ -383,7 +383,7 @@ function HourlyStarsChart() {
         )}
         {chartData?.topDay && (
           <TextField
-            style={{ marginTop: "20px", marginRight: "5px", marginLeft: "10px", width: "180px" }}
+            style={{ marginTop: "16px", marginRight: "4px", marginLeft: "4px", width: "180px" }}
             size="small"
             id="top-day"
             label="Peak Day"
@@ -396,7 +396,7 @@ function HourlyStarsChart() {
         )}
         {chartData?.bestHourLabel && (
           <TextField
-            style={{ marginTop: "20px", marginRight: "5px", marginLeft: "10px", width: "220px" }}
+            style={{ marginTop: "16px", marginRight: "4px", marginLeft: "4px", width: "220px" }}
             size="small"
             id="best-hour"
             label="Best Hour(s)"
