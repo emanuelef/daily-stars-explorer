@@ -131,6 +131,25 @@ function HourlyStarsChart() {
         }
       }
 
+      // Calculate top hour and top day for stars
+      let topHour = null, topHourCount = 0;
+      let dayCounts = {};
+      data.forEach(item => {
+        if (item.stars > topHourCount) {
+          topHour = item.hour;
+          topHourCount = item.stars;
+        }
+        const day = item.hour.split('T')[0];
+        dayCounts[day] = (dayCounts[day] || 0) + item.stars;
+      });
+      let topDay = null, topDayCount = 0;
+      Object.entries(dayCounts).forEach(([day, count]) => {
+        if (count > topDayCount) {
+          topDay = day;
+          topDayCount = count;
+        }
+      });
+
       setChartData({
         hours,
         stars,
@@ -151,7 +170,11 @@ function HourlyStarsChart() {
             dash: 'dot',
           },
           layer: 'above',
-        }))
+        })),
+        topHour,
+        topHourCount,
+        topDay,
+        topDayCount
       });
       
       console.log('Day start shapes count:', dayStartHours.length);
@@ -318,6 +341,35 @@ function HourlyStarsChart() {
           value={totalStars}
           InputProps={{ readOnly: true }}
         />
+        {chartData?.topHour && (
+          <TextField
+            style={{ marginTop: "20px", marginRight: "5px", marginLeft: "10px", width: "220px" }}
+            size="small"
+            id="top-hour"
+            label="Peak Hour (UTC)"
+            value={(() => {
+              const iso = chartData.topHour.replace('Z','');
+              const [date, time] = iso.split('T');
+              const [year, month, day] = date.split('-');
+              const hour = time.slice(0,2);
+              return `${day}-${month}-${year} ${hour}:00 (${chartData.topHourCount} stars)`;
+            })()}
+            InputProps={{ readOnly: true }}
+          />
+        )}
+        {chartData?.topDay && (
+          <TextField
+            style={{ marginTop: "20px", marginRight: "5px", marginLeft: "10px", width: "180px" }}
+            size="small"
+            id="top-day"
+            label="Peak Day"
+            value={(() => {
+              const [year, month, day] = chartData.topDay.split('-');
+              return `${day}-${month}-${year} (${chartData.topDayCount} stars)`;
+            })()}
+            InputProps={{ readOnly: true }}
+          />
+        )}
       </div>
       <div style={{ display: "flex", alignItems: "center", marginTop: "10px", marginLeft: "10px", marginBottom: "10px" }}>
         <Button style={{ marginLeft: "10px" }} size="small" variant="contained" onClick={goToDailyView}>
