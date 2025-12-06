@@ -3,6 +3,7 @@ import "./App.css";
 
 import MainPage from "./MainPage";
 import TimeSeriesChart from "./TimeSeriesChart";
+import HourlyStarsChart from "./HourlyStarsChart";
 import CompareChart from "./CompareChart";
 import IssuesTimeSeriesChart from "./IssuesTimeSeriesChart";
 import PRsTimeSeriesChart from "./PRsTimeSeriesChart";
@@ -26,6 +27,7 @@ import CallMergeRoundedIcon from '@mui/icons-material/CallMergeRounded';
 import CommitRoundedIcon from '@mui/icons-material/CommitRounded';
 import Diversity3OutlinedIcon from '@mui/icons-material/Diversity3Outlined';
 import ArticleIcon from '@mui/icons-material/Article';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
 
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -37,8 +39,10 @@ const darkTheme = createTheme({
   },
 });
 
+
 function App() {
   const [collapsed, setCollapsed] = useState(true);
+  const location = useLocation();
 
   return (
     <ThemeProvider theme={darkTheme}>
@@ -85,19 +89,31 @@ function App() {
               }
               active={
                 !(
-                  useLocation().pathname.includes("/compare") ||
-                  useLocation().pathname.includes("/table") ||
-                  useLocation().pathname.includes("/info") ||
-                  useLocation().pathname.includes("/issues") ||
-                  useLocation().pathname.includes("/forks") ||
-                  useLocation().pathname.includes("/prs") ||
-                  useLocation().pathname.includes("/commits") ||
-                  useLocation().pathname.includes("/contributors") ||
-                  useLocation().pathname.includes("/featured")
+                  location.pathname.includes("/compare") ||
+                  location.pathname.includes("/table") ||
+                  location.pathname.includes("/info") ||
+                  location.pathname.includes("/issues") ||
+                  location.pathname.includes("/forks") ||
+                  location.pathname.includes("/prs") ||
+                  location.pathname.includes("/commits") ||
+                  location.pathname.includes("/contributors") ||
+                  location.pathname.includes("/featured") ||
+                  location.pathname.includes("/hourly")
                 )
               }
             >
               Repo Star History
+            </MenuItem>
+            <MenuItem
+              component={<Link to="/hourly" className="link" />}
+              icon={
+                <Tooltip title="Hourly Stars" placement="right">
+                  <AccessTimeIcon />
+                </Tooltip>
+              }
+              active={location.pathname.includes("/hourly")}
+            >
+              Hourly Stars
             </MenuItem>
             <MenuItem
               component={<Link to="/compare" className="link" />}
@@ -106,7 +122,7 @@ function App() {
                   <SsidChartRoundedIcon />
                 </Tooltip>
               }
-              active={useLocation().pathname.includes("/compare")}
+              active={location.pathname.includes("/compare")}
             >
               Compare
             </MenuItem>
@@ -117,7 +133,7 @@ function App() {
                   <CommitRoundedIcon />
                 </Tooltip>
               }
-              active={useLocation().pathname.includes("/commits")}
+              active={location.pathname.includes("/commits")}
             >
               Commits
             </MenuItem>
@@ -128,7 +144,7 @@ function App() {
                   <CallMergeRoundedIcon />
                 </Tooltip>
               }
-              active={useLocation().pathname.includes("/prs")}
+              active={location.pathname.includes("/prs")}
             >
               PRs
             </MenuItem>
@@ -139,7 +155,7 @@ function App() {
                   <BugReportRoundedIcon />
                 </Tooltip>
               }
-              active={useLocation().pathname.includes("/issues")}
+              active={location.pathname.includes("/issues")}
             >
               Issues
             </MenuItem>
@@ -150,7 +166,7 @@ function App() {
                   <AltRouteOutlinedIcon />
                 </Tooltip>
               }
-              active={useLocation().pathname.includes("/forks")}
+              active={location.pathname.includes("/forks")}
             >
               Forks
             </MenuItem>
@@ -161,7 +177,7 @@ function App() {
                   <Diversity3OutlinedIcon />
                 </Tooltip>
               }
-              active={useLocation().pathname.includes("/contributors")}
+              active={location.pathname.includes("/contributors")}
             >
               Contributors
             </MenuItem>
@@ -172,7 +188,7 @@ function App() {
                   <ArticleIcon />
                 </Tooltip>
               }
-              active={useLocation().pathname.includes("/featured")}
+              active={location.pathname.includes("/featured")}
             >
               Featured Repos
             </MenuItem>
@@ -183,7 +199,7 @@ function App() {
                   <TableViewRounded />
                 </Tooltip>
               }
-              active={useLocation().pathname === "/table"}
+              active={location.pathname === "/table"}
             >
               Table
             </MenuItem>
@@ -194,7 +210,7 @@ function App() {
                   <InfoOutlinedIcon />
                 </Tooltip>
               }
-              active={useLocation().pathname === "/info"}
+              active={location.pathname === "/info"}
             >
               Info
             </MenuItem>
@@ -206,6 +222,8 @@ function App() {
             <Route path="/:user/:repository" element={<TimeSeriesChart />} />
             <Route path="/table" element={<MainPage />} />
             <Route path="/starstimeline/:id" element={<TimeSeriesChart />} />
+            <Route path="/hourly" element={<HourlyStarsChart />} />
+            <Route path="/hourly/:user/:repository" element={<HourlyStarsChart />} />
             <Route path="/compare" element={<CompareChart />} />
             <Route
               path="/compare/:user/:repository/:secondUser/:secondRepository"
