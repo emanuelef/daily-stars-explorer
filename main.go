@@ -136,6 +136,18 @@ func getRecentStarsByHourHandler(ghStatClients map[string]*repostats.ClientGQL) 
 			return c.Status(404).SendString("Resource not found")
 		}
 
+		// --- Add IP logging and OpenTelemetry span attribute ---
+		ip := c.Get("X-Forwarded-For")
+		if ip == "" {
+			ip = c.IP()
+		}
+		userAgent := c.Get("User-Agent")
+		log.Printf("Request from IP: %s, Repo: %s, User-Agent: %s\n", ip, repo, userAgent)
+		span := trace.SpanFromContext(c.UserContext())
+		span.SetAttributes(attribute.String("github.repo", repo))
+		span.SetAttributes(attribute.String("caller.ip", ip))
+		// --- End IP logging ---
+
 		starsPerHour, err := client.GetRecentStarsHistoryByHour(c.Context(), repo, lastDays, nil)
 		if err != nil {
 			log.Printf("Error getting hourly stars: %v", err)
