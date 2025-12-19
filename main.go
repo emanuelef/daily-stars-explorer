@@ -75,6 +75,12 @@ type ContributorsWithStatsResponse struct {
 	Contributors []stats.NewContributorsPerDay `json:"contributors"`
 }
 
+type HourlyStars struct {
+	Hour       string `json:"hour"`
+	Stars      int    `json:"stars"`
+	TotalStars int    `json:"totalStars"`
+}
+
 func getEnv(key, fallback string) string {
 	value, exists := os.LookupEnv(key)
 	if !exists {
@@ -110,7 +116,7 @@ func NewClientWithPAT(token string) *repostats.ClientGQL {
 }
 
 // getRecentStarsByHourHandler handles API requests for hourly stars
-func getRecentStarsByHourHandler(ghStatClients map[string]*repostats.ClientGQL) fiber.Handler {
+func getRecentStarsByHourHandler(ghStatClients map[string]*repostats.ClientGQL, cacheRecentStarsByHour *cache.Cache[string, []HourlyStars]) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		param := c.Query("repo")
 		lastDaysStr := c.Query("lastDays", "7")
@@ -131,6 +137,7 @@ func getRecentStarsByHourHandler(ghStatClients map[string]*repostats.ClientGQL) 
 		// Get random client (PAT or PAT2)
 		randomIndex := rand.Intn(len(maps.Keys(ghStatClients)))
 		clientKey := c.Query("client", maps.Keys(ghStatClients)[randomIndex])
+		forceRefetch := c.Query("forceRefetch", "false") == "true"
 		client, ok := ghStatClients[clientKey]
 		if !ok {
 			return c.Status(404).SendString("Resource not found")
@@ -148,25 +155,36 @@ func getRecentStarsByHourHandler(ghStatClients map[string]*repostats.ClientGQL) 
 		span.SetAttributes(attribute.String("caller.ip", ip))
 		// --- End IP logging ---
 
+		// Create cache key with repo and lastDays
+		cacheKey := fmt.Sprintf("%s_hourly_%d", repo, lastDays)
+
+		if forceRefetch {
+			cacheRecentStarsByHour.Delete(cacheKey)
+		}
+
+		// Check cache
+		if res, hit := cacheRecentStarsByHour.Get(cacheKey); hit {
+			return c.JSON(res)
+		}
+
 		starsPerHour, err := client.GetRecentStarsHistoryByHour(c.Context(), repo, lastDays, nil)
 		if err != nil {
 			log.Printf("Error getting hourly stars: %v", err)
 			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 		}
 
-		type Hourly struct {
-			Hour       string `json:"hour"`
-			Stars      int    `json:"stars"`
-			TotalStars int    `json:"totalStars"`
-		}
-		out := make([]Hourly, len(starsPerHour))
+		out := make([]HourlyStars, len(starsPerHour))
 		for i, h := range starsPerHour {
-			out[i] = Hourly{
+			out[i] = HourlyStars{
 				Hour:       h.Hour.UTC().Format(time.RFC3339),
 				Stars:      h.Stars,
 				TotalStars: h.TotalStars,
 			}
 		}
+
+		// Cache the result for 10 minutes
+		cacheRecentStarsByHour.Set(cacheKey, out, cache.WithExpiration(10*time.Minute))
+
 		return c.JSON(out)
 	}
 }
@@ -198,6 +216,7 @@ func main() {
 	cacheYouTube := cache.New[string, []news.YTVideoMetadata]()
 	cacheReleases := cache.New[string, []stats.ReleaseInfo]()
 	cacheShowHN := cache.New[string, []news.ShowHNPost]()
+	cacheRecentStarsByHour := cache.New[string, []HourlyStars]()
 
 	onGoingStars := make(map[string]bool)
 	onGoingIssues := make(map[string]bool)
@@ -881,7 +900,7 @@ func main() {
 		return c.JSON(res)
 	})
 
-	app.Get("/recentStarsByHour", getRecentStarsByHourHandler(ghStatClients))
+	app.Get("/recentStarsByHour", getRecentStarsByHourHandler(ghStatClients, cacheRecentStarsByHour))
 
 	app.Get("/allIssues", func(c *fiber.Ctx) error {
 		param := c.Query("repo")
