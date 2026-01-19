@@ -518,6 +518,41 @@ function TimeSeriesChart() {
     options.dataSource.xAxis.timemarker = [...youtube, ...currentPeaks.current];
   }
 
+  const fetchMedium = async (repo) => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${HOST}/medium?query=${repo}`);
+
+      if (!response.ok) {
+        setLoading(false);
+        toast.error("Internal Server Error. Please try again later.", {
+          position: toast.POSITION.BOTTOM_CENTER,
+        });
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      setLoading(false);
+
+      const data = await response.json();
+      console.log("Medium API response:", data); // Debug: Check the structure of the returned data
+      
+      if (data && data.length > 0) {
+        console.log("Sample Medium article date:", data[0].published_at);
+        // Try to parse the date to verify it's in the expected format
+        try {
+          const testDate = new Date(data[0].published_at);
+          console.log("Parsed date:", testDate.toISOString());
+        } catch (e) {
+          console.error("Date parsing error:", e);
+        }
+      }
+
+      return data;
+    } catch (error) {
+      console.error(`An error occurred: ${error}`);
+      setLoading(false);
+    }
+  };
+
   const fetchPredictions = async (repo) => {
     try {
       setLoading(true);
@@ -621,6 +656,99 @@ function TimeSeriesChart() {
       setLoading(false);
     }
   };
+
+  const fetchMediumFeed = async (options) => {
+    const mediumPosts = await fetchMedium(parseGitHubRepoURL(selectedRepo).split("/")[1]);
+    const mapMedium = {};
+
+    if (!mediumPosts || mediumPosts.length === 0) {
+      console.log("No Medium posts found");
+      options.dataSource.xAxis.timemarker = [...currentPeaks.current];
+      return;
+    }
+
+    console.log("Processing Medium posts for feed display");
+    
+    // Helper function to parse and format date
+    const parseAndFormatDate = (dateStr) => {
+      if (!dateStr) return null;
+      
+      try {
+        // Try parsing as ISO date string (2023-07-20T15:30:00Z format)
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) {
+          throw new Error("Invalid date: " + dateStr);
+        }
+        
+        const day = String(date.getUTCDate()).padStart(2, '0');
+        const month = String(date.getUTCMonth() + 1).padStart(2, '0'); // Months are zero-indexed
+        const year = date.getUTCFullYear();
+        return {
+          date,
+          formattedDate: `${day}-${month}-${year}`
+        };
+      } catch (e) {
+        console.error("Failed to parse date:", dateStr, e);
+        return null;
+      }
+    };
+    
+    mediumPosts.forEach(item => {
+      try {
+        // Debug the available date fields
+        console.log("Medium article date field:", item.published_at);
+        
+        // Try to parse the date
+        const parsedDate = parseAndFormatDate(item.published_at);
+        if (!parsedDate) {
+          console.error("Could not parse date for article:", item.title);
+          return; // Skip this item
+        }
+        
+        console.log("Formatted date for Medium article:", parsedDate.formattedDate);
+
+        // Store the article in our map using the formatted date as key
+        mapMedium[parsedDate.formattedDate] = {
+          HNURL: item.url // Using HNURL as it's the field used for opening links
+        };
+      } catch (error) {
+        console.error("Error processing Medium post date:", error);
+      }
+    });
+
+    currentHNnews.current = mapMedium;
+
+    // Create timeline markers for the Medium posts
+    let medium = mediumPosts.map(item => {
+      try {
+        // Try to parse the date
+        const parsedDate = parseAndFormatDate(item.published_at);
+        if (!parsedDate) {
+          return null; // Skip this item
+        }
+        
+        return {
+          start: parsedDate.formattedDate,
+          label: item.title + "<br>" + "Author: " + item.author,
+          timeformat: "%d-%m-%Y",
+          style: {
+            marker: {
+              fill: "#00ab6c", // Medium green color
+            },
+          },
+        };
+      } catch (error) {
+        console.error("Error creating marker for Medium post:", error);
+        return null;
+      }
+    })
+    .filter(item => item !== null) // Remove any null items from failed parsing
+    .slice(0, 40); // Take up to 40 items
+
+    console.log("Medium markers created:", medium.length);
+    
+    options.dataSource.xAxis.timemarker = [...medium, ...currentPeaks.current];
+  }
 
   const fetchReleasesFeed = async (options) => {
     try {
@@ -1061,6 +1189,9 @@ function TimeSeriesChart() {
         break;
       case "youtube":
         await fetchYoutubeFeed(options);
+        break;
+      case "medium":
+        await fetchMediumFeed(options);
         break;
       case "releases":
         await fetchReleasesFeed(options);
@@ -1696,6 +1827,7 @@ function TimeSeriesChart() {
             <MenuItem value={"releases"}>Releases</MenuItem>
             <MenuItem value={"hacker"}>HNews</MenuItem>
             <MenuItem value={"reddit"}>Reddit</MenuItem>
+            <MenuItem value={"medium"}>Medium</MenuItem>
             <MenuItem value={"youtube"}>YouTube</MenuItem>
           </Select>
         </FormControl>
