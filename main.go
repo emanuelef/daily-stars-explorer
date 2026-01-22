@@ -75,6 +75,10 @@ type ContributorsWithStatsResponse struct {
 	Contributors []stats.NewContributorsPerDay `json:"contributors"`
 }
 
+type NewReposWithStatsResponse struct {
+	NewRepos []stats.NewReposPerDay `json:"newRepos"`
+}
+
 type HourlyStars struct {
 	Hour       string `json:"hour"`
 	Stars      int    `json:"stars"`
@@ -210,6 +214,7 @@ func main() {
 	cachePRs := cache.New[string, PRsWithStatsResponse]()
 	cacheCommits := cache.New[string, CommitsWithStatsResponse]()
 	cacheContributors := cache.New[string, ContributorsWithStatsResponse]()
+	cacheNewRepos := cache.New[string, NewReposWithStatsResponse]()
 
 	cacheHackerNews := cache.New[string, []news.Article]()
 	cacheReddit := cache.New[string, []news.ArticleData]()
@@ -224,6 +229,7 @@ func main() {
 	onGoingPRs := make(map[string]bool)
 	onGoingCommits := make(map[string]bool)
 	onGoingContributors := make(map[string]bool)
+	onGoingNewRepos := make(map[string]bool)
 
 	ghStatClients := make(map[string]*repostats.ClientGQL)
 
@@ -1420,6 +1426,117 @@ func main() {
 
 		cacheContributors.Set(repo, res, cache.WithExpiration(durationUntilEndOfDay))
 		delete(onGoingContributors, repo)
+
+		return c.JSON(res)
+	})
+
+	app.Get("/newRepos", func(c *fiber.Ctx) error {
+		randomIndex := rand.Intn(len(maps.Keys(ghStatClients)))
+		clientKey := c.Query("client", maps.Keys(ghStatClients)[randomIndex])
+		startDateStr := c.Query("startDate")
+		endDateStr := c.Query("endDate")
+		includeForks := c.Query("includeForks", "false") == "true"
+		forceRefetch := c.Query("forceRefetch", "false") == "true"
+
+		client, ok := ghStatClients[clientKey]
+		if !ok {
+			return c.Status(404).SendString("Resource not found")
+		}
+
+		// Parse dates
+		if startDateStr == "" || endDateStr == "" {
+			return c.Status(400).SendString("startDate and endDate are required parameters")
+		}
+
+		startDate, err := time.Parse("2006-01-02", startDateStr)
+		if err != nil {
+			return c.Status(400).SendString("Invalid startDate format. Use YYYY-MM-DD")
+		}
+
+		endDate, err := time.Parse("2006-01-02", endDateStr)
+		if err != nil {
+			return c.Status(400).SendString("Invalid endDate format. Use YYYY-MM-DD")
+		}
+
+		ip := c.Get("X-Forwarded-For")
+		if ip == "" {
+			ip = c.IP()
+		}
+
+		userAgent := c.Get("User-Agent")
+		log.Printf("NewRepos Request from IP: %s, StartDate: %s, EndDate: %s, User-Agent: %s\n", ip, startDateStr, endDateStr, userAgent)
+
+		if strings.Contains(userAgent, "python-requests") {
+			return c.Status(404).SendString("Custom 404 Error: Resource not found")
+		}
+
+		span := trace.SpanFromContext(c.UserContext())
+		span.SetAttributes(attribute.String("github.startDate", startDateStr))
+		span.SetAttributes(attribute.String("github.endDate", endDateStr))
+		span.SetAttributes(attribute.String("caller.ip", ip))
+
+		// Create cache key with dates and includeForks flag
+		cacheKey := fmt.Sprintf("%s_%s_%t", startDateStr, endDateStr, includeForks)
+
+		if forceRefetch {
+			cacheNewRepos.Delete(cacheKey)
+		}
+
+		if res, hit := cacheNewRepos.Get(cacheKey); hit {
+			return c.JSON(res)
+		}
+
+		// if another request is already getting the data, skip and rely on SSE updates
+		if _, hit := onGoingNewRepos[cacheKey]; hit {
+			return c.SendStatus(fiber.StatusNoContent)
+		}
+
+		onGoingNewRepos[cacheKey] = true
+
+		updateChannel := make(chan int)
+		var newReposHistory []stats.NewReposPerDay
+
+		eg, ctx := errgroup.WithContext(ctx)
+
+		eg.Go(func() error {
+			newReposHistory, err = client.GetNewReposCountHistory(ctx, startDate, endDate, includeForks, updateChannel)
+			if err != nil {
+				return err
+			}
+			return nil
+		})
+
+		for progress := range updateChannel {
+			wg := &sync.WaitGroup{}
+
+			for _, s := range currentSessions.Sessions {
+				wg.Add(1)
+				go func(cs *session.Session) {
+					defer wg.Done()
+					if cs.Repo == cacheKey {
+						cs.StateChannel <- progress
+					}
+				}(s)
+			}
+			wg.Wait()
+		}
+
+		if err := eg.Wait(); err != nil {
+			delete(onGoingNewRepos, cacheKey)
+			return err
+		}
+
+		res := NewReposWithStatsResponse{
+			NewRepos: newReposHistory,
+		}
+
+		// Cache for 7 days like other endpoints
+		now := time.Now()
+		nextDay := now.UTC().Truncate(24 * time.Hour).Add(DAY_CACHED * 24 * time.Hour)
+		durationUntilEndOfDay := nextDay.Sub(now)
+
+		cacheNewRepos.Set(cacheKey, res, cache.WithExpiration(durationUntilEndOfDay))
+		delete(onGoingNewRepos, cacheKey)
 
 		return c.JSON(res)
 	})

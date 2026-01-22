@@ -10,6 +10,7 @@ import PRsTimeSeriesChart from "./PRsTimeSeriesChart";
 import ForksTimeSeriesChart from "./ForksTimeSeriesChart";
 import CommitsTimeSeriesChart from "./CommitsTimeSeriesChart";
 import ContributorsTimeSeriesChart from "./ContributorsTimeSeriesChart";
+import NewReposTimeSeriesChart from "./NewReposTimeSeriesChart";
 import InfoPage from "./InfoPage";
 import FeaturedReposPage from "./FeaturedReposPage";
 
@@ -26,6 +27,7 @@ import AltRouteOutlinedIcon from "@mui/icons-material/AltRouteOutlined";
 import CallMergeRoundedIcon from '@mui/icons-material/CallMergeRounded';
 import CommitRoundedIcon from '@mui/icons-material/CommitRounded';
 import Diversity3OutlinedIcon from '@mui/icons-material/Diversity3Outlined';
+import AddBoxOutlinedIcon from '@mui/icons-material/AddBoxOutlined';
 import ArticleIcon from '@mui/icons-material/Article';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 
@@ -97,6 +99,7 @@ function App() {
                   location.pathname.includes("/prs") ||
                   location.pathname.includes("/commits") ||
                   location.pathname.includes("/contributors") ||
+                  location.pathname.includes("/newrepos") ||
                   location.pathname.includes("/featured") ||
                   location.pathname.includes("/hourly")
                 )
@@ -182,6 +185,17 @@ function App() {
               Contributors
             </MenuItem>
             <MenuItem
+              component={<Link to="/newrepos" className="link" />}
+              icon={
+                <Tooltip title="New GitHub Repositories Created Daily" placement="right">
+                  <AddBoxOutlinedIcon />
+                </Tooltip>
+              }
+              active={location.pathname.includes("/newrepos")}
+            >
+              New Repos
+            </MenuItem>
+            <MenuItem
               component={<Link to="/featured" className="link" />}
               icon={
                 <Tooltip title="GitHub Repositories Featured on Social Platforms" placement="right">
@@ -240,6 +254,7 @@ function App() {
             <Route path="/commits/:user/:repository" element={<CommitsTimeSeriesChart />} />
             <Route path="/contributors" element={<ContributorsTimeSeriesChart />} />
             <Route path="/contributors/:user/:repository" element={<ContributorsTimeSeriesChart />} />
+            <Route path="/newrepos" element={<NewReposTimeSeriesChart />} />
             <Route path="/showhn" element={<Navigate to="/featured" replace />} />
             <Route path="/featured" element={<FeaturedReposPage />} />
           </Routes>
