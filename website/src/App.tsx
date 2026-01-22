@@ -231,6 +231,9 @@ function App() {
           </Menu>
         </Sidebar>
         <section className="content">
+          <div className="warning-banner">
+            ⚠️ There's currently an issue while fetching stars for some repos. We're working on it.
+          </div>
           <Routes>
             <Route path="/" element={<TimeSeriesChart />} />
             <Route path="/:user/:repository" element={<TimeSeriesChart />} />

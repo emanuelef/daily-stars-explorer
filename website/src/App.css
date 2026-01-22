@@ -21,3 +21,13 @@
     overflow-y: auto;
     /* Enable vertical scrolling for content */
 }
+
+.warning-banner {
+    background-color: #ff9800;
+    color: #000;
+    padding: 12px 20px;
+    text-align: center;
+    font-weight: 500;
+    font-size: 14px;
+    border-bottom: 2px solid #f57c00;
+}
