@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand"
 	"net/url"
 	"strconv"
 	"strings"
@@ -37,10 +38,7 @@ func AllIssuesHandler(
 		for k := range ghStatClients {
 			clientKeys = append(clientKeys, k)
 		}
-		randomIndex := len(clientKeys)
-		if randomIndex > 0 {
-			randomIndex = c.Locals("randomIndex").(int) % randomIndex
-		}
+		randomIndex := rand.Intn(len(clientKeys))
 		clientKey := c.Query("client", clientKeys[randomIndex])
 		forceRefetch := c.Query("forceRefetch", "false") == "true"
 
@@ -151,10 +149,7 @@ func AllForksHandler(
 		for k := range ghStatClients {
 			clientKeys = append(clientKeys, k)
 		}
-		randomIndex := len(clientKeys)
-		if randomIndex > 0 {
-			randomIndex = c.Locals("randomIndex").(int) % randomIndex
-		}
+		randomIndex := rand.Intn(len(clientKeys))
 		clientKey := c.Query("client", clientKeys[randomIndex])
 		forceRefetch := c.Query("forceRefetch", "false") == "true"
 
@@ -265,10 +260,7 @@ func AllPRsHandler(
 		for k := range ghStatClients {
 			clientKeys = append(clientKeys, k)
 		}
-		randomIndex := len(clientKeys)
-		if randomIndex > 0 {
-			randomIndex = c.Locals("randomIndex").(int) % randomIndex
-		}
+		randomIndex := rand.Intn(len(clientKeys))
 		clientKey := c.Query("client", clientKeys[randomIndex])
 		forceRefetch := c.Query("forceRefetch", "false") == "true"
 
@@ -379,10 +371,7 @@ func AllCommitsHandler(
 		for k := range ghStatClients {
 			clientKeys = append(clientKeys, k)
 		}
-		randomIndex := len(clientKeys)
-		if randomIndex > 0 {
-			randomIndex = c.Locals("randomIndex").(int) % randomIndex
-		}
+		randomIndex := rand.Intn(len(clientKeys))
 		clientKey := c.Query("client", clientKeys[randomIndex])
 		forceRefetch := c.Query("forceRefetch", "false") == "true"
 
@@ -495,10 +484,7 @@ func AllContributorsHandler(
 		for k := range ghStatClients {
 			clientKeys = append(clientKeys, k)
 		}
-		randomIndex := len(clientKeys)
-		if randomIndex > 0 {
-			randomIndex = c.Locals("randomIndex").(int) % randomIndex
-		}
+		randomIndex := rand.Intn(len(clientKeys))
 		clientKey := c.Query("client", clientKeys[randomIndex])
 		forceRefetch := c.Query("forceRefetch", "false") == "true"
 
@@ -611,10 +597,7 @@ func NewReposHandler(
 		for k := range ghStatClients {
 			clientKeys = append(clientKeys, k)
 		}
-		randomIndex := len(clientKeys)
-		if randomIndex > 0 {
-			randomIndex = c.Locals("randomIndex").(int) % randomIndex
-		}
+		randomIndex := rand.Intn(len(clientKeys))
 		clientKey := c.Query("client", clientKeys[randomIndex])
 		forceRefetch := c.Query("forceRefetch", "false") == "true"
 
