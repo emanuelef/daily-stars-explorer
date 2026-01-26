@@ -117,3 +117,70 @@ func RegisterStarsRoutes(
 		caches.RecentStarsByHour,
 	))
 }
+
+// RegisterRepoActivityRoutes registers repository activity routes
+func RegisterRepoActivityRoutes(
+	app *fiber.App,
+	ctx context.Context,
+	ghStatClients map[string]*repostats.ClientGQL,
+	caches *Caches,
+	onGoingMaps *OnGoingMaps,
+	currentSessions *session.SessionsLock,
+) {
+	app.Get("/allIssues", handlers.AllIssuesHandler(
+		ghStatClients,
+		caches.Issues,
+		onGoingMaps.Issues,
+		currentSessions,
+		ctx,
+	))
+	app.Get("/allForks", handlers.AllForksHandler(
+		ghStatClients,
+		caches.Forks,
+		onGoingMaps.Forks,
+		currentSessions,
+		ctx,
+	))
+	app.Get("/allPRs", handlers.AllPRsHandler(
+		ghStatClients,
+		caches.PRs,
+		onGoingMaps.PRs,
+		currentSessions,
+		ctx,
+	))
+	app.Get("/allCommits", handlers.AllCommitsHandler(
+		ghStatClients,
+		caches.Commits,
+		onGoingMaps.Commits,
+		currentSessions,
+		ctx,
+	))
+	app.Get("/allContributors", handlers.AllContributorsHandler(
+		ghStatClients,
+		caches.Contributors,
+		onGoingMaps.Contributors,
+		currentSessions,
+		ctx,
+	))
+	app.Get("/newRepos", handlers.NewReposHandler(
+		ghStatClients,
+		caches.NewRepos,
+		onGoingMaps.NewRepos,
+		currentSessions,
+		ctx,
+	))
+}
+
+// RegisterSSERoutes registers Server-Sent Events routes
+func RegisterSSERoutes(app *fiber.App, currentSessions *session.SessionsLock) {
+	app.Get("/sse", handlers.SSEHandler(currentSessions))
+}
+
+// RegisterLimitsRoutes registers API limits routes
+func RegisterLimitsRoutes(
+	app *fiber.App,
+	ctx context.Context,
+	ghStatClients map[string]*repostats.ClientGQL,
+) {
+	app.Get("/limits", handlers.LimitsHandler(ghStatClients, ctx))
+}
