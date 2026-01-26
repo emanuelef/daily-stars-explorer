@@ -15,21 +15,21 @@ import (
 
 // Caches holds all the cache instances used by the application
 type Caches struct {
-	Overall            *cache.Cache[string, *stats.RepoStats]
-	Stars              *cache.Cache[string, types.StarsWithStatsResponse]
-	Issues             *cache.Cache[string, types.IssuesWithStatsResponse]
-	Forks              *cache.Cache[string, types.ForksWithStatsResponse]
-	PRs                *cache.Cache[string, types.PRsWithStatsResponse]
-	Commits            *cache.Cache[string, types.CommitsWithStatsResponse]
-	Contributors       *cache.Cache[string, types.ContributorsWithStatsResponse]
-	NewRepos           *cache.Cache[string, types.NewReposWithStatsResponse]
-	HackerNews         *cache.Cache[string, []news.Article]
-	Reddit             *cache.Cache[string, []news.ArticleData]
-	YouTube            *cache.Cache[string, []news.YTVideoMetadata]
-	Releases           *cache.Cache[string, []stats.ReleaseInfo]
-	ShowHN             *cache.Cache[string, []news.ShowHNPost]
-	RedditGitHub       *cache.Cache[string, []news.RedditGitHubPost]
-	RecentStarsByHour  *cache.Cache[string, []types.HourlyStars]
+	Overall           *cache.Cache[string, *stats.RepoStats]
+	Stars             *cache.Cache[string, types.StarsWithStatsResponse]
+	Issues            *cache.Cache[string, types.IssuesWithStatsResponse]
+	Forks             *cache.Cache[string, types.ForksWithStatsResponse]
+	PRs               *cache.Cache[string, types.PRsWithStatsResponse]
+	Commits           *cache.Cache[string, types.CommitsWithStatsResponse]
+	Contributors      *cache.Cache[string, types.ContributorsWithStatsResponse]
+	NewRepos          *cache.Cache[string, types.NewReposWithStatsResponse]
+	HackerNews        *cache.Cache[string, []news.Article]
+	Reddit            *cache.Cache[string, []news.ArticleData]
+	YouTube           *cache.Cache[string, []news.YTVideoMetadata]
+	Releases          *cache.Cache[string, []stats.ReleaseInfo]
+	ShowHN            *cache.Cache[string, []news.ShowHNPost]
+	RedditGitHub      *cache.Cache[string, []news.RedditGitHubPost]
+	RecentStarsByHour *cache.Cache[string, []types.HourlyStars]
 }
 
 // OnGoingMaps holds all the ongoing operation tracking maps

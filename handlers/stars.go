@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Code-Hex/go-generics-cache"
+	cache "github.com/Code-Hex/go-generics-cache"
 	"github.com/emanuelef/gh-repo-stats-server/config"
 	"github.com/emanuelef/gh-repo-stats-server/session"
 	"github.com/emanuelef/gh-repo-stats-server/types"
@@ -35,7 +35,7 @@ func AllStarsHandler(
 ) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		param := c.Query("repo")
-		
+
 		clientKeys := make([]string, 0, len(ghStatClients))
 		for k := range ghStatClients {
 			clientKeys = append(clientKeys, k)
@@ -173,7 +173,7 @@ func RecentStarsHandler(
 	return func(c *fiber.Ctx) error {
 		param := c.Query("repo")
 		lastDaysStr := c.Query("lastDays", "30") // Default to 30 days if not provided
-		
+
 		clientKeys := make([]string, 0, len(ghStatClients))
 		for k := range ghStatClients {
 			clientKeys = append(clientKeys, k)
@@ -307,7 +307,7 @@ func RecentStarsByHourHandler(
 ) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		param := c.Query("repo")
-		
+
 		clientKeys := make([]string, 0, len(ghStatClients))
 		for k := range ghStatClients {
 			clientKeys = append(clientKeys, k)
