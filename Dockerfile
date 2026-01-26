@@ -1,4 +1,4 @@
-FROM node:23-alpine AS website
+FROM node:24-alpine AS website
 ENV VITE_HOST=""
 WORKDIR /build
 COPY website .
@@ -9,9 +9,14 @@ FROM golang:1.26-rc-alpine AS builder
 WORKDIR /app
 COPY main.go .
 COPY cache ./cache
-COPY otel_instrumentation ./otel_instrumentation
-COPY session ./session
+COPY config ./config
+COPY handlers ./handlers
 COPY news ./news
+COPY otel_instrumentation ./otel_instrumentation
+COPY routes ./routes
+COPY session ./session
+COPY types ./types
+COPY utils ./utils
 COPY go.mod .
 COPY go.sum .
 RUN go mod download
