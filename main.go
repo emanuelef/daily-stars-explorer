@@ -45,6 +45,42 @@ import (
 
 var currentSessions session.SessionsLock
 
+type RequestStats struct {
+	mu           sync.RWMutex
+	currentDate  string
+	requestCount int
+	uniqueIPs    map[string]bool
+	uniqueRepos  map[string]bool
+}
+
+func (rs *RequestStats) RecordRequest(ip, repo string) {
+	rs.mu.Lock()
+	defer rs.mu.Unlock()
+
+	today := time.Now().UTC().Format("2006-01-02")
+
+	// Reset if it's a new day
+	if rs.currentDate != today {
+		rs.currentDate = today
+		rs.requestCount = 0
+		rs.uniqueIPs = make(map[string]bool)
+		rs.uniqueRepos = make(map[string]bool)
+	}
+
+	rs.requestCount++
+	rs.uniqueIPs[ip] = true
+	rs.uniqueRepos[repo] = true
+}
+
+func (rs *RequestStats) GetStats() (date string, requestCount int, uniqueIPs int, uniqueRepos int) {
+	rs.mu.RLock()
+	defer rs.mu.RUnlock()
+
+	return rs.currentDate, rs.requestCount, len(rs.uniqueIPs), len(rs.uniqueRepos)
+}
+
+var allStarsRequestStats RequestStats
+
 const DAY_CACHED = 7
 
 type StarsWithStatsResponse struct {
@@ -683,6 +719,9 @@ func main() {
 
 		userAgent := c.Get("User-Agent")
 		log.Printf("Request from IP: %s, Repo: %s User-Agent: %s\n", ip, repo, userAgent)
+
+		// Track the request
+		allStarsRequestStats.RecordRequest(ip, repo)
 
 		if strings.Contains(userAgent, "python-requests") {
 			return c.Status(404).SendString("Custom 404 Error: Resource not found")
@@ -1643,6 +1682,19 @@ func main() {
 		data := map[string]any{
 			"cached":  cached,
 			"onGoing": onGoing,
+		}
+
+		return c.JSON(data)
+	})
+
+	app.Get("/allStarsRequestStats", func(c *fiber.Ctx) error {
+		date, requestCount, uniqueIPs, uniqueRepos := allStarsRequestStats.GetStats()
+
+		data := map[string]any{
+			"date":         date,
+			"requestCount": requestCount,
+			"uniqueIPs":    uniqueIPs,
+			"uniqueRepos":  uniqueRepos,
 		}
 
 		return c.JSON(data)
