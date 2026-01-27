@@ -112,9 +112,10 @@ function HourlyStarsChart() {
         setShowError(true);
         return;
       }
-      if (data.length > 0) {
-        setTotalStars(data[data.length - 1].totalStars);
-      }
+      
+      // Calculate total stars for THIS period only (sum of hourly stars)
+      const periodTotal = data.reduce((sum, item) => sum + item.stars, 0);
+      setTotalStars(periodTotal);
 
       // Prepare data for Plotly
       const hours = data.map(item => item.hour);
@@ -404,7 +405,7 @@ function HourlyStarsChart() {
         }}>
           <StatCard
             icon="⭐"
-            label="Total Stars"
+            label={`Stars (${lastDays}d)`}
             value={formatNumber(totalStars)}
             color="#fbbf24"
           />
