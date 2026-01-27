@@ -424,16 +424,14 @@ func RecentStarsByHourHandler(
 			}
 
 			if needsNewerData {
-				// Fetch newer data: fetch from 2 hours before the newest cache to ensure
-				// we always span multiple hours (avoids truncation issues when in same hour)
-				// This will re-fetch the current hour with updated data
-				fetchFrom := newestCachedTime.Add(-2 * time.Hour)
+				// Fetch newer data from the last cached hour to now
+				// This ensures we always have fresh current-hour data
 				log.Printf("Fetching newer data for %s: from %v to now (cache has %d hours)",
-					repo, fetchFrom.Format(time.RFC3339), len(cachedHourly))
+					repo, newestCachedTime.Format(time.RFC3339), len(cachedHourly))
 				newerData, err = client.GetRecentStarsHistoryByHourSince(
 					c.Context(),
 					repo,
-					fetchFrom, // Fetch from 2 hours before newest to ensure multiple hours
+					newestCachedTime, // Fetch from the newest cached hour directly
 					nil,
 				)
 				if err != nil {
@@ -501,14 +499,16 @@ func RecentStarsByHourHandler(
 		cacheRecentStarsByHour.Set(cacheKey, allHourly, cache.WithExpiration(7*24*time.Hour))
 
 		// Filter to requested period before returning
-		cutoffTime := time.Now().UTC().AddDate(0, 0, -lastDays)
+		now := time.Now().UTC()
+		cutoffTime := now.AddDate(0, 0, -lastDays)
 		filtered := make([]types.HourlyStars, 0, len(allHourly))
 		for _, h := range allHourly {
 			t, parseErr := time.Parse(time.RFC3339, h.Hour)
 			if parseErr != nil {
 				continue
 			}
-			if !t.Before(cutoffTime) {
+			// Only include hours that are within the requested period and not in the future
+			if !t.Before(cutoffTime) && !t.After(now) {
 				filtered = append(filtered, h)
 			}
 		}
