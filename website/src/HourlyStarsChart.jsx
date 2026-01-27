@@ -549,7 +549,7 @@ function HourlyStarsChart() {
                 scale: 2
               }
             }}
-            style={{ width: '100%', height: '600px' }}
+            style={{ width: '100%', height: '400px' }}
           />
         )}
         {!chartData && !loading && (
