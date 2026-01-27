@@ -63,6 +63,11 @@ func AllStarsHandler(
 		// If X-Forwarded-For is empty, fallback to RemoteIP
 		if ip == "" {
 			ip = c.IP()
+		} else {
+			// X-Forwarded-For can contain multiple IPs, get the first one (client IP)
+			if commaIndex := strings.Index(ip, ","); commaIndex != -1 {
+				ip = strings.TrimSpace(ip[:commaIndex])
+			}
 		}
 
 		userAgent := c.Get("User-Agent")
@@ -328,13 +333,20 @@ func RecentStarsByHourHandler(
 		repo = fmt.Sprintf("%s", repo)
 		repo = strings.ToLower(repo)
 
-		// Check cache first
-		if cachedResult, found := cacheRecentStarsByHour.Get(repo); found {
+		// Get lastDays parameter, default to 2
+		lastDays, err := strconv.Atoi(c.Query("lastDays", "2"))
+		if err != nil || lastDays < 1 {
+			lastDays = 2
+		}
+
+		// Check cache first - cache key includes repo and lastDays
+		cacheKey := fmt.Sprintf("%s:%d", repo, lastDays)
+		if cachedResult, found := cacheRecentStarsByHour.Get(cacheKey); found {
 			return c.JSON(cachedResult)
 		}
 
-		// Fetch data if not in cache - use 2 days as default
-		starsPerHour, err := client.GetRecentStarsHistoryByHour(c.Context(), repo, 2, nil)
+		// Fetch data if not in cache
+		starsPerHour, err := client.GetRecentStarsHistoryByHour(c.Context(), repo, lastDays, nil)
 		if err != nil {
 			log.Printf("Error getting stars by hour: %v", err)
 			return c.Status(500).SendString("Internal Server Error")
@@ -351,7 +363,7 @@ func RecentStarsByHourHandler(
 		}
 
 		// Cache for 1 hour
-		cacheRecentStarsByHour.Set(repo, out, cache.WithExpiration(1*time.Hour))
+		cacheRecentStarsByHour.Set(cacheKey, out, cache.WithExpiration(1*time.Hour))
 
 		return c.JSON(out)
 	}
