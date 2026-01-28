@@ -377,6 +377,14 @@ func RecentStarsByHourHandler(
 
 		// Calculate what time range we need to fetch
 		requestedStartTime := time.Now().UTC().AddDate(0, 0, -lastDays)
+
+		// Allow overriding requestedStartTime with 'since' parameter
+		if sinceStr := c.Query("since"); sinceStr != "" {
+			if t, err := time.Parse(time.RFC3339, sinceStr); err == nil {
+				requestedStartTime = t
+			}
+		}
+
 		log.Printf("[REQUEST] %s: lastDays=%d, requestedStart=%v, now=%v", repo, lastDays, requestedStartTime.Format(time.RFC3339), time.Now().UTC().Format(time.RFC3339))
 		var starsPerHour []stats.StarsPerHour
 
@@ -401,16 +409,46 @@ func RecentStarsByHourHandler(
 			log.Printf("[CACHE ANALYSIS] %s: oldestCached=%v, requestedStart=%v, needsOlder=%v",
 				repo, oldestCachedTime.Format(time.RFC3339), requestedStartTime.Format(time.RFC3339), needsOlderData)
 
-			// Always fetch newer data to get real-time updates up to current second
-			needsNewerData := true
+			// Determine if we need to fetch newer data
+			// If 'complete' param is true, we only care about data up to the last full hour
+			// If the cache contains the last full hour (or more), we skip fetching newer data
+			completeOnly := c.Query("complete") == "true"
 			now := time.Now().UTC()
+			var needsNewerData bool
+
+			if completeOnly {
+				// We want data up to Truncated Hour
+				targetEnd := now.Truncate(time.Hour)
+				// If cache newest timestamp covers >= targetEnd - small_buffer, we are good
+				// Actually cache timestamps are hour starts. So if newestCachedTime >= now.Truncate(Hour) - 1hr,
+				// it means we have the data for the hour slot PRIOR to the current one?
+				// Example: Now 10:45. Truncate -> 10:00.
+				// We want 09:00 bar. 09:00 bar has timestamp 09:00.
+				// If newestCachedTime is 09:00, we have data up to 10:00 exclusive.
+				// So if newestCachedTime >= now.Truncate(Hour).Add(-time.Hour), we have latest COMPLETE hour.
+
+				threshold := targetEnd.Add(-1 * time.Hour)
+				if newestCachedTime.After(threshold) || newestCachedTime.Equal(threshold) {
+					needsNewerData = false
+					log.Printf("[FRESHNESS] %s: requesting complete only, cache has newest=%v (>= %v), skipping update", repo, newestCachedTime, threshold)
+				} else {
+					needsNewerData = true
+					log.Printf("[FRESHNESS] %s: requesting complete only, cache stale (newest=%v < %v), fetching update", repo, newestCachedTime, threshold)
+				}
+			} else {
+				// Always fetch newer data to get real-time updates up to current second
+				needsNewerData = true
+			}
+
 			timeSinceNewest := now.Sub(newestCachedTime) // Use now.Sub() for more reliable calculation
 
-			// Sanity check: if newestCachedTime is in the future, reset to now - 1 hour
+			// Sanity check: if newestCachedTime is in the future, reset it
 			if timeSinceNewest < 0 {
 				log.Printf("[WARN] %s: newestCachedTime is in future! Resetting. newestCached=%v, now=%v",
 					repo, newestCachedTime.Format(time.RFC3339), now.Format(time.RFC3339))
-				newestCachedTime = now.Add(-1 * time.Hour)
+				// Reset to a safe past time to ensure we fetch correct data.
+				// We subtract 1 hour from Now to ensure we at least have the previous full hour anchor.
+				newestCachedTime = now.Add(-1 * time.Hour).Truncate(time.Hour)
 			}
 
 			log.Printf("[FRESHNESS] %s: timeSinceNewest=%.1f min, always fetching newer data",
@@ -437,10 +475,12 @@ func RecentStarsByHourHandler(
 			}
 
 			if needsNewerData {
-				// Fetch newer data from 1 hour BEFORE the last cached hour
-				// This ensures we catch updates to the current hour (the library excludes end boundary)
-				fetchFrom := newestCachedTime.Add(-1 * time.Hour)
-				log.Printf("[FETCH NEWER] %s: from %v to %v (fetching from 1h before to catch updates)",
+				// Fetch newer data starting from the last cached hour.
+				// We re-fetch the last cached hour because it might have been cached when it was partial (incomplete).
+				// We do NOT go back further (-1h) as that would re-fetch a likely complete hour repeatedly.
+				fetchFrom := newestCachedTime
+
+				log.Printf("[FETCH NEWER] %s: from %v to %v",
 					repo, fetchFrom.Format(time.RFC3339), now.Format(time.RFC3339))
 				// Workaround: Pass now+1h to ensure the current partial hour is included.
 				// The library truncates endTime to the hour and uses strict inequality (< truncatedTime),
@@ -496,7 +536,29 @@ func RecentStarsByHourHandler(
 
 		// Convert back to slice
 		allHourly := make([]types.HourlyStars, 0, len(mergedMap))
+		// Filter out any future hours that might have crept in (sanity check)
+		now := time.Now().UTC()
+		nowNextHour := now.Truncate(time.Hour).Add(time.Hour)
+
 		for _, h := range mergedMap {
+			// Parse hour to check sanity
+			if t, err := time.Parse(time.RFC3339, h.Hour); err == nil {
+				if t.After(nowNextHour) || (t.After(now) && !t.Equal(now.Truncate(time.Hour))) {
+					// Skip strictly future hours.
+					// t > now IS allowed ONLY if t == currentHourStart (partial hour).
+					// Actually, currentHourStart <= now. So t can never be > now if t is an hour start.
+					// e.g. Now=16:16. CurrentHour=16:00. 16:00 < 16:16.
+					// NextHour=17:00. 17:00 > 16:16.
+					// So any hour start > now should be excluded.
+					// Wait, strictly speaking > now?
+					// If Now=16:16.
+					// 16:00 is OK.
+					// 17:00 is Future.
+					if t.After(now) {
+						continue
+					}
+				}
+			}
 			allHourly = append(allHourly, h)
 		}
 
@@ -519,17 +581,29 @@ func RecentStarsByHourHandler(
 		cacheRecentStarsByHour.Set(cacheKey, allHourly, cache.WithExpiration(7*24*time.Hour))
 
 		// Filter to requested period before returning
-		now := time.Now().UTC()
-		cutoffTime := now.AddDate(0, 0, -lastDays)
+		now = time.Now().UTC()
+		cutoffTime := requestedStartTime
+		completeOnly := c.Query("complete") == "true"
+
 		log.Printf("[FILTER] %s: cutoff=%v, now=%v, filtering from %d hours",
 			repo, cutoffTime.Format(time.RFC3339), now.Format(time.RFC3339), len(allHourly))
 		filtered := make([]types.HourlyStars, 0, len(allHourly))
 		var beforeCutoff, afterNow int
+
+		// If completeOnly, we filter out any incomplete hours (current hour)
+		// Current hour starts at now.Truncate(Hour)
+
 		for _, h := range allHourly {
 			t, parseErr := time.Parse(time.RFC3339, h.Hour)
 			if parseErr != nil {
 				continue
 			}
+
+			if completeOnly && !t.Before(now.Truncate(time.Hour)) {
+				// Skip current (incomplete) hour or future
+				continue
+			}
+
 			// Only include hours that are within the requested period and not in the future
 			if t.Before(cutoffTime) {
 				beforeCutoff++

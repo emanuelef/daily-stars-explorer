@@ -21,7 +21,7 @@ import { formatNumber } from "./utils";
 const HOST = import.meta.env.VITE_HOST;
 
 const INFO_TOOLTIP =
-  "Hourly star data for the selected time period. You can zoom and pan the chart.";
+  "Shows completed hourly data. Click 'Fetch' to retrieve real-time updates including the current hour. You can zoom and pan the chart.";
 
 // Stat Card Component for clean visual hierarchy
 const StatCard = ({ icon, label, value, color = "#3b82f6" }) => (
@@ -62,11 +62,13 @@ function HourlyStarsChart() {
   }
 
   const [chartData, setChartData] = useState(null);
+  const [rawData, setRawData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showError, setShowError] = useState(false);
   const [starsRepos, setStarsRepos] = useState([]);
   const [lastDays, setLastDays] = useState(3);
+  const [displayedLastDays, setDisplayedLastDays] = useState(3);
   const [totalStars, setTotalStars] = useState(0);
   const [selectedRepo, setSelectedRepo] = useState(defaultRepo);
   const [displayedRepo, setDisplayedRepo] = useState(defaultRepo);
@@ -90,10 +92,151 @@ function HourlyStarsChart() {
     setLastDays(event.target.value);
   };
 
-  const fetchHourlyStars = async (repo, days) => {
+  const processChartData = (data) => {
+    // Calculate total stars for THIS period only (sum of hourly stars)
+    const periodTotal = data.reduce((sum, item) => sum + item.stars, 0);
+
+    // Prepare data for Plotly
+    const hours = data.map(item => item.hour);
+    const stars = data.map(item => item.stars);
+    const totalStarsData = data.map(item => item.totalStars);
+
+    // Find all hours that are the start of a day (midnight at 00:00 UTC)
+    const dayStartHours = data
+      .filter(item => {
+        const hourPart = item.hour.includes('T') ? item.hour.split('T')[1] : item.hour.split(' ')[1];
+        return hourPart?.startsWith('00:00:00');
+      })
+      .map(item => item.hour);
+
+    // Find all weekends for background bands (cool effect)
+    const weekendBands = [];
+    for (let i = 0; i < data.length; i++) {
+      const d = new Date(data[i].hour);
+      if (d.getUTCDay() === 6) { // Saturday
+        const start = data[i].hour;
+        // Find next Monday or end of data
+        let j = i + 1;
+        while (j < data.length) {
+          const dj = new Date(data[j].hour);
+          if (dj.getUTCDay() === 1 && dj.getUTCHours() === 0) break;
+          j++;
+        }
+        const end = j < data.length ? data[j].hour : data[data.length - 1].hour;
+        weekendBands.push({
+          type: 'rect',
+          xref: 'x',
+          yref: 'paper',
+          x0: start,
+          x1: end,
+          y0: 0,
+          y1: 1,
+          fillcolor: 'rgba(200,200,255,0.08)',
+          line: { width: 0 },
+          layer: 'below',
+        });
+        i = j - 1;
+      }
+    }
+
+    // Calculate top hour and top day for stars
+    let topHour = null, topHourCount = 0;
+    let dayCounts = {};
+    data.forEach(item => {
+      if (item.stars > topHourCount) {
+        topHour = item.hour;
+        topHourCount = item.stars;
+      }
+      const day = item.hour.split('T')[0];
+      dayCounts[day] = (dayCounts[day] || 0) + item.stars;
+    });
+    let topDay = null, topDayCount = 0;
+    Object.entries(dayCounts).forEach(([day, count]) => {
+      if (count > topDayCount) {
+        topDay = day;
+        topDayCount = count;
+      }
+    });
+
+    // Calculate best hour(s) of the day for stars
+    const hourCounts = {};
+    const hourOccurrences = {};
+    data.forEach(item => {
+      // item.hour: "YYYY-MM-DDTHH:MM:SSZ"
+      const hour = item.hour.split('T')[1].slice(0, 2);
+      hourCounts[hour] = (hourCounts[hour] || 0) + item.stars;
+      hourOccurrences[hour] = (hourOccurrences[hour] || 0) + 1;
+    });
+    const maxHourCount = Math.max(...Object.values(hourCounts));
+    const bestHours = Object.entries(hourCounts)
+      .filter(([h, count]) => count === maxHourCount)
+      .map(([h]) => h.padStart(2, '0'));
+    const bestHourLabel = bestHours.length > 1 ? bestHours.join(', ') : bestHours[0];
+    // Calculate average for best hour(s)
+    const avgStars = bestHours.map(h => {
+      const total = hourCounts[h];
+      const occ = hourOccurrences[h];
+      return occ ? (total / occ) : 0;
+    });
+    const avgStarsLabel = avgStars.length > 1 ? avgStars.map(a => a.toFixed(2)).join(', ') : avgStars[0].toFixed(2);
+
+    return {
+      hours,
+      stars,
+      totalStarsData,
+      dayStartHours,
+      weekendBands,
+      dayStartShapes: dayStartHours.map(xVal => ({
+        type: 'line',
+        xref: 'x',
+        yref: 'paper',
+        x0: xVal,
+        x1: xVal,
+        y0: 0,
+        y1: 1,
+        line: {
+          color: 'rgba(100,180,255,0.3)', // more subtle
+          width: 1,
+          dash: 'dot',
+        },
+        layer: 'below',
+      })),
+      topHour,
+      topHourCount,
+      topDay,
+      topDayCount,
+      bestHourLabel,
+      avgStarsLabel,
+      periodTotal
+    };
+  };
+
+  const fetchHourlyStars = async (repo, days, complete = false) => {
     try {
       setLoading(true);
-      const response = await fetch(`${HOST}/recentStarsByHour?repo=${repo}&lastDays=${days}`);
+
+      let url = `${HOST}/recentStarsByHour?repo=${repo}&lastDays=${days}`;
+      if (complete) {
+        url += '&complete=true';
+      }
+      
+      let isIncremental = false;
+      let sinceHour = null;
+
+      // Check if we can do an incremental update
+      // Only do incremental if we are NOT asking for complete-only data (i.e. we want latest)
+      // and we have data
+      if (!complete && repo === displayedRepo && days === displayedLastDays && rawData.length > 0) {
+        const lastEntry = rawData[rawData.length - 1];
+        if (lastEntry && lastEntry.hour) {
+          sinceHour = lastEntry.hour;
+          url += `&since=${sinceHour}`;
+          isIncremental = true;
+          console.log(`Incremental fetch for ${repo} since ${sinceHour}`);
+        }
+      }
+
+      const response = await fetch(url);
       if (!response.ok) {
         setLoading(false);
         if (response.status === 404) {
@@ -106,136 +249,41 @@ function HourlyStarsChart() {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
       setShowError(false);
-      const data = await response.json();
-      setLoading(false);
-      if (!data || data.length === 0) {
-        setError("No hourly data available for this repository.");
-        setShowError(true);
-        return;
-      }
       
-      // Calculate total stars for THIS period only (sum of hourly stars)
-      const periodTotal = data.reduce((sum, item) => sum + item.stars, 0);
-      setTotalStars(periodTotal);
+      let newData = await response.json();
+      if (!newData) newData = [];
+      setLoading(false);
 
-      // Prepare data for Plotly
-      const hours = data.map(item => item.hour);
-      const stars = data.map(item => item.stars);
-      const totalStarsData = data.map(item => item.totalStars);
+      let mergedData = newData;
 
-      // Find all hours that are the start of a day (midnight at 00:00 UTC)
-      const dayStartHours = data
-        .filter(item => {
-          const hourPart = item.hour.includes('T') ? item.hour.split('T')[1] : item.hour.split(' ')[1];
-          return hourPart?.startsWith('00:00:00');
-        })
-        .map(item => item.hour);
-
-      console.log('Day start hours:', dayStartHours);
-      console.log('Sample data hour format:', data[0]?.hour);
-
-      // Find all weekends for background bands (cool effect)
-      const weekendBands = [];
-      for (let i = 0; i < data.length; i++) {
-        const d = new Date(data[i].hour);
-        if (d.getUTCDay() === 6) { // Saturday
-          const start = data[i].hour;
-          // Find next Monday or end of data
-          let j = i + 1;
-          while (j < data.length) {
-            const dj = new Date(data[j].hour);
-            if (dj.getUTCDay() === 1 && dj.getUTCHours() === 0) break;
-            j++;
-          }
-          const end = j < data.length ? data[j].hour : data[data.length - 1].hour;
-          weekendBands.push({
-            type: 'rect',
-            xref: 'x',
-            yref: 'paper',
-            x0: start,
-            x1: end,
-            y0: 0,
-            y1: 1,
-            fillcolor: 'rgba(200,200,255,0.08)',
-            line: { width: 0 },
-            layer: 'below',
-          });
-          i = j - 1;
+      if (isIncremental) {
+        if (newData.length === 0) {
+           mergedData = rawData; 
+        } else {
+           // Merge: use a Map to ensure uniqueness by hour
+           // New data overwrites old data for the same hour Key
+           const dataMap = new Map();
+           rawData.forEach(d => dataMap.set(d.hour, d));
+           newData.forEach(d => dataMap.set(d.hour, d));
+           
+           mergedData = Array.from(dataMap.values()).sort((a, b) => a.hour.localeCompare(b.hour));
+        }
+      } else {
+        if (mergedData.length === 0) {
+           setError("No hourly data available for this repository.");
+           setShowError(true);
+           return;
         }
       }
 
-      // Calculate top hour and top day for stars
-      let topHour = null, topHourCount = 0;
-      let dayCounts = {};
-      data.forEach(item => {
-        if (item.stars > topHourCount) {
-          topHour = item.hour;
-          topHourCount = item.stars;
-        }
-        const day = item.hour.split('T')[0];
-        dayCounts[day] = (dayCounts[day] || 0) + item.stars;
-      });
-      let topDay = null, topDayCount = 0;
-      Object.entries(dayCounts).forEach(([day, count]) => {
-        if (count > topDayCount) {
-          topDay = day;
-          topDayCount = count;
-        }
-      });
-
-      // Calculate best hour(s) of the day for stars
-      const hourCounts = {};
-      const hourOccurrences = {};
-      data.forEach(item => {
-        // item.hour: "YYYY-MM-DDTHH:MM:SSZ"
-        const hour = item.hour.split('T')[1].slice(0, 2);
-        hourCounts[hour] = (hourCounts[hour] || 0) + item.stars;
-        hourOccurrences[hour] = (hourOccurrences[hour] || 0) + 1;
-      });
-      const maxHourCount = Math.max(...Object.values(hourCounts));
-      const bestHours = Object.entries(hourCounts)
-        .filter(([h, count]) => count === maxHourCount)
-        .map(([h]) => h.padStart(2, '0'));
-      const bestHourLabel = bestHours.length > 1 ? bestHours.join(', ') : bestHours[0];
-      // Calculate average for best hour(s)
-      const avgStars = bestHours.map(h => {
-        const total = hourCounts[h];
-        const occ = hourOccurrences[h];
-        return occ ? (total / occ) : 0;
-      });
-      const avgStarsLabel = avgStars.length > 1 ? avgStars.map(a => a.toFixed(2)).join(', ') : avgStars[0].toFixed(2);
-
-      setChartData({
-        hours,
-        stars,
-        totalStarsData,
-        dayStartHours,
-        weekendBands,
-        dayStartShapes: dayStartHours.map(xVal => ({
-          type: 'line',
-          xref: 'x',
-          yref: 'paper',
-          x0: xVal,
-          x1: xVal,
-          y0: 0,
-          y1: 1,
-          line: {
-            color: 'rgba(100,180,255,0.3)', // more subtle
-            width: 1,
-            dash: 'dot',
-          },
-          layer: 'below',
-        })),
-        topHour,
-        topHourCount,
-        topDay,
-        topDayCount,
-        bestHourLabel,
-        avgStarsLabel,
-      });
+      const processed = processChartData(mergedData);
+      
+      setChartData(processed);
+      setTotalStars(processed.periodTotal); // Use processed total
+      setRawData(mergedData);
       setDisplayedRepo(repo);
-
-      console.log('Day start shapes count:', dayStartHours.length);
+      setDisplayedLastDays(days);
+      
     } catch (error) {
       console.error(`An error occurred: ${error}`);
       setLoading(false);
@@ -243,7 +291,9 @@ function HourlyStarsChart() {
   };
 
   useEffect(() => {
-    fetchHourlyStars(selectedRepo, lastDays);
+    // Initial fetch requests only "complete" data (up to previous hour)
+    // allowing server to return cached data without hitting GitHub for partial hour
+    fetchHourlyStars(selectedRepo, lastDays, true);
     // eslint-disable-next-line
   }, [selectedRepo, lastDays]);
 
@@ -257,7 +307,8 @@ function HourlyStarsChart() {
     }
     setShowError(false);
     navigate(`/hourly/${repoParsed}`, { replace: false });
-    await fetchHourlyStars(repoParsed, lastDays);
+    // Manual fetch requests LATEST data (complete=false)
+    await fetchHourlyStars(repoParsed, lastDays, false);
   };
 
   const handleClickWithRepo = async (repo) => {
@@ -270,7 +321,8 @@ function HourlyStarsChart() {
     }
     setShowError(false);
     navigate(`/hourly/${repoParsed}`, { replace: false });
-    await fetchHourlyStars(repoParsed, lastDays);
+    // Start with complete data
+    await fetchHourlyStars(repoParsed, lastDays, true);
   };
 
   useEffect(() => {
