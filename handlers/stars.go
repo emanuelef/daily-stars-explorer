@@ -348,6 +348,7 @@ func RecentStarsByHourHandler(
 		var newestCachedTime time.Time
 
 		if cached, found := cacheRecentStarsByHour.Get(cacheKey); found {
+			log.Printf("[CACHE HIT] %s: found %d hours in cache", repo, len(cached))
 			cachedHourly = cached
 			if len(cachedHourly) > 0 {
 				// Find oldest and newest hours in cache
@@ -368,16 +369,20 @@ func RecentStarsByHourHandler(
 						}
 					}
 				}
+				log.Printf("[CACHE BOUNDS] %s: oldest=%v, newest=%v", repo, oldestCachedTime.Format(time.RFC3339), newestCachedTime.Format(time.RFC3339))
 			}
+		} else {
+			log.Printf("[CACHE MISS] %s: no data in cache", repo)
 		}
 
 		// Calculate what time range we need to fetch
 		requestedStartTime := time.Now().UTC().AddDate(0, 0, -lastDays)
+		log.Printf("[REQUEST] %s: lastDays=%d, requestedStart=%v, now=%v", repo, lastDays, requestedStartTime.Format(time.RFC3339), time.Now().UTC().Format(time.RFC3339))
 		var starsPerHour []stats.StarsPerHour
 
 		if len(cachedHourly) == 0 {
 			// No cache - fetch full requested range
-			log.Printf("No cache for %s, fetching %d days of hourly data", repo, lastDays)
+			log.Printf("[FETCH FULL] %s: fetching %d days from %v to now", repo, lastDays, requestedStartTime.Format(time.RFC3339))
 			starsPerHour, err = client.GetRecentStarsHistoryByHourRange(
 				c.Context(),
 				repo,
@@ -392,15 +397,18 @@ func RecentStarsByHourHandler(
 		} else {
 			// We have cache - determine what's missing
 			needsOlderData := oldestCachedTime.After(requestedStartTime)
+			log.Printf("[CACHE ANALYSIS] %s: oldestCached=%v, requestedStart=%v, needsOlder=%v",
+				repo, oldestCachedTime.Format(time.RFC3339), requestedStartTime.Format(time.RFC3339), needsOlderData)
 
 			// Only fetch newer data if cache is stale (older than 10 minutes)
 			// This ensures we always have fresh current-hour data while reusing cache efficiently
 			timeSinceNewest := time.Since(newestCachedTime)
 			needsNewerData := timeSinceNewest > 10*time.Minute
+			log.Printf("[FRESHNESS] %s: timeSinceNewest=%.1f min, needsNewer=%v",
+				repo, timeSinceNewest.Minutes(), needsNewerData)
 
 			if timeSinceNewest <= 10*time.Minute {
-				log.Printf("Cache for %s is fresh (%.0f minutes old), reusing cached data",
-					repo, timeSinceNewest.Minutes())
+				log.Printf("[CACHE FRESH] %s: reusing cache (%.1f min old)", repo, timeSinceNewest.Minutes())
 			}
 
 			var olderData []stats.StarsPerHour
@@ -408,7 +416,7 @@ func RecentStarsByHourHandler(
 
 			if needsOlderData {
 				// Fetch older data: from requestedStartTime to oldestCachedTime
-				log.Printf("Fetching older data for %s: from %v to %v",
+				log.Printf("[FETCH OLDER] %s: from %v to %v",
 					repo, requestedStartTime.Format(time.RFC3339), oldestCachedTime.Format(time.RFC3339))
 				olderData, err = client.GetRecentStarsHistoryByHourRange(
 					c.Context(),
@@ -418,7 +426,7 @@ func RecentStarsByHourHandler(
 					nil,
 				)
 				if err != nil {
-					log.Printf("Error fetching older data: %v", err)
+					log.Printf("[ERROR OLDER] %s: %v", repo, err)
 					return c.Status(500).SendString("Internal Server Error")
 				}
 			}
@@ -426,7 +434,7 @@ func RecentStarsByHourHandler(
 			if needsNewerData {
 				// Fetch newer data from the last cached hour to now
 				// This ensures we always have fresh current-hour data
-				log.Printf("Fetching newer data for %s: from %v to now (cache has %d hours)",
+				log.Printf("[FETCH NEWER] %s: from %v to now (cache %d hours)",
 					repo, newestCachedTime.Format(time.RFC3339), len(cachedHourly))
 				newerData, err = client.GetRecentStarsHistoryByHourSince(
 					c.Context(),
@@ -435,7 +443,7 @@ func RecentStarsByHourHandler(
 					nil,
 				)
 				if err != nil {
-					log.Printf("Error fetching newer data: %v", err)
+					log.Printf("[ERROR NEWER] %s: %v", repo, err)
 					// Don't fail the whole request, just use cached data
 					newerData = []stats.StarsPerHour{}
 				}
@@ -443,8 +451,8 @@ func RecentStarsByHourHandler(
 
 			// Combine older and newer data
 			starsPerHour = append(olderData, newerData...)
-			log.Printf("Fetched %d older hours + %d newer hours for %s",
-				len(olderData), len(newerData), repo)
+			log.Printf("[MERGE INPUT] %s: %d older + %d newer = %d total fetched",
+				repo, len(olderData), len(newerData), len(starsPerHour))
 		}
 
 		// Convert new data to types.HourlyStars format
@@ -468,11 +476,13 @@ func RecentStarsByHourHandler(
 		for _, h := range cachedHourly {
 			mergedMap[h.Hour] = h
 		}
+		log.Printf("[MERGE] %s: added %d cached hours to map", repo, len(cachedHourly))
 
 		// Add/overwrite with new data
 		for _, h := range newHourly {
 			mergedMap[h.Hour] = h
 		}
+		log.Printf("[MERGE] %s: overwrote with %d new hours, map size: %d", repo, len(newHourly), len(mergedMap))
 
 		// Convert back to slice
 		allHourly := make([]types.HourlyStars, 0, len(mergedMap))
@@ -501,19 +511,25 @@ func RecentStarsByHourHandler(
 		// Filter to requested period before returning
 		now := time.Now().UTC()
 		cutoffTime := now.AddDate(0, 0, -lastDays)
+		log.Printf("[FILTER] %s: cutoff=%v, now=%v, filtering from %d hours",
+			repo, cutoffTime.Format(time.RFC3339), now.Format(time.RFC3339), len(allHourly))
 		filtered := make([]types.HourlyStars, 0, len(allHourly))
+		var beforeCutoff, afterNow int
 		for _, h := range allHourly {
 			t, parseErr := time.Parse(time.RFC3339, h.Hour)
 			if parseErr != nil {
 				continue
 			}
 			// Only include hours that are within the requested period and not in the future
-			if !t.Before(cutoffTime) && !t.After(now) {
+			if t.Before(cutoffTime) {
+				beforeCutoff++
+			} else if t.After(now) {
+				afterNow++
+			} else {
 				filtered = append(filtered, h)
 			}
 		}
-
-		log.Printf("Returning %d hours for %s (total cached: %d hours)", len(filtered), repo, len(allHourly))
+		log.Printf("[RESULT] %s: returning %d (excluded: %d before cutoff, %d after now)", repo, len(filtered), beforeCutoff, afterNow)
 
 		return c.JSON(filtered)
 	}
