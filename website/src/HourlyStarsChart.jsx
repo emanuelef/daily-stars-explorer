@@ -69,6 +69,7 @@ function HourlyStarsChart() {
   const [lastDays, setLastDays] = useState(3);
   const [totalStars, setTotalStars] = useState(0);
   const [selectedRepo, setSelectedRepo] = useState(defaultRepo);
+  const [displayedRepo, setDisplayedRepo] = useState(defaultRepo);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -232,6 +233,7 @@ function HourlyStarsChart() {
         bestHourLabel,
         avgStarsLabel,
       });
+      setDisplayedRepo(repo);
 
       console.log('Day start shapes count:', dayStartHours.length);
     } catch (error) {
@@ -489,7 +491,7 @@ function HourlyStarsChart() {
             ]}
             layout={{
               title: {
-                text: `Hourly Stars - ${selectedRepo}`,
+                text: `Hourly Stars - ${displayedRepo}`,
                 font: { size: 24, color: '#ffffff', family: 'Inter, system-ui, sans-serif', weight: 700 },
                 x: 0.5,
                 xanchor: 'center',
@@ -544,7 +546,7 @@ function HourlyStarsChart() {
               modeBarButtonsToRemove: ['lasso2d', 'select2d'],
               toImageButtonOptions: {
                 format: 'png',
-                filename: `${selectedRepo.replace('/', '-')}-hourly-stars`,
+                filename: `${displayedRepo.replace('/', '-')}-hourly-stars`,
                 height: 1080,
                 width: 1920,
                 scale: 2
