@@ -387,7 +387,8 @@ func RecentStarsByHourHandler(
 				c.Context(),
 				repo,
 				requestedStartTime,
-				time.Now().UTC(),
+				// Workaround: Pass now+1h to ensure the current partial hour is included.
+				time.Now().UTC().Add(time.Hour),
 				nil,
 			)
 			if err != nil {
@@ -400,16 +401,20 @@ func RecentStarsByHourHandler(
 			log.Printf("[CACHE ANALYSIS] %s: oldestCached=%v, requestedStart=%v, needsOlder=%v",
 				repo, oldestCachedTime.Format(time.RFC3339), requestedStartTime.Format(time.RFC3339), needsOlderData)
 
-			// Only fetch newer data if cache is stale (older than 10 minutes)
-			// This ensures we always have fresh current-hour data while reusing cache efficiently
-			timeSinceNewest := time.Since(newestCachedTime)
-			needsNewerData := timeSinceNewest > 10*time.Minute
-			log.Printf("[FRESHNESS] %s: timeSinceNewest=%.1f min, needsNewer=%v",
-				repo, timeSinceNewest.Minutes(), needsNewerData)
+			// Always fetch newer data to get real-time updates up to current second
+			needsNewerData := true
+			now := time.Now().UTC()
+			timeSinceNewest := now.Sub(newestCachedTime) // Use now.Sub() for more reliable calculation
 
-			if timeSinceNewest <= 10*time.Minute {
-				log.Printf("[CACHE FRESH] %s: reusing cache (%.1f min old)", repo, timeSinceNewest.Minutes())
+			// Sanity check: if newestCachedTime is in the future, reset to now - 1 hour
+			if timeSinceNewest < 0 {
+				log.Printf("[WARN] %s: newestCachedTime is in future! Resetting. newestCached=%v, now=%v",
+					repo, newestCachedTime.Format(time.RFC3339), now.Format(time.RFC3339))
+				newestCachedTime = now.Add(-1 * time.Hour)
 			}
+
+			log.Printf("[FRESHNESS] %s: timeSinceNewest=%.1f min, always fetching newer data",
+				repo, timeSinceNewest.Minutes())
 
 			var olderData []stats.StarsPerHour
 			var newerData []stats.StarsPerHour
@@ -432,14 +437,19 @@ func RecentStarsByHourHandler(
 			}
 
 			if needsNewerData {
-				// Fetch newer data from the last cached hour to now
-				// This ensures we always have fresh current-hour data
-				log.Printf("[FETCH NEWER] %s: from %v to now (cache %d hours)",
-					repo, newestCachedTime.Format(time.RFC3339), len(cachedHourly))
-				newerData, err = client.GetRecentStarsHistoryByHourSince(
+				// Fetch newer data from 1 hour BEFORE the last cached hour
+				// This ensures we catch updates to the current hour (the library excludes end boundary)
+				fetchFrom := newestCachedTime.Add(-1 * time.Hour)
+				log.Printf("[FETCH NEWER] %s: from %v to %v (fetching from 1h before to catch updates)",
+					repo, fetchFrom.Format(time.RFC3339), now.Format(time.RFC3339))
+				// Workaround: Pass now+1h to ensure the current partial hour is included.
+				// The library truncates endTime to the hour and uses strict inequality (< truncatedTime),
+				// which excludes stars in the current hour if we just pass 'now'.
+				newerData, err = client.GetRecentStarsHistoryByHourRange(
 					c.Context(),
 					repo,
-					newestCachedTime, // Fetch from the newest cached hour directly
+					fetchFrom,
+					now.Add(time.Hour),
 					nil,
 				)
 				if err != nil {
