@@ -4,7 +4,7 @@ go 1.25.5
 
 require (
 	github.com/Code-Hex/go-generics-cache v1.5.1
-	github.com/emanuelef/github-repo-activity-stats v0.2.64
+	github.com/emanuelef/github-repo-activity-stats v0.2.66
 	github.com/gofiber/contrib/otelfiber v1.0.10
 	github.com/gofiber/fiber/v2 v2.52.10
 	github.com/joho/godotenv v1.5.1
@@ -19,7 +19,7 @@ require (
 	golang.org/x/net v0.49.0
 	golang.org/x/oauth2 v0.34.0
 	golang.org/x/sync v0.19.0
-	google.golang.org/api v0.262.0
+	google.golang.org/api v0.263.0
 )
 
 require (

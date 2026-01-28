@@ -69,6 +69,7 @@ function HourlyStarsChart() {
   const [lastDays, setLastDays] = useState(3);
   const [totalStars, setTotalStars] = useState(0);
   const [selectedRepo, setSelectedRepo] = useState(defaultRepo);
+  const [displayedRepo, setDisplayedRepo] = useState(defaultRepo);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -112,9 +113,10 @@ function HourlyStarsChart() {
         setShowError(true);
         return;
       }
-      if (data.length > 0) {
-        setTotalStars(data[data.length - 1].totalStars);
-      }
+      
+      // Calculate total stars for THIS period only (sum of hourly stars)
+      const periodTotal = data.reduce((sum, item) => sum + item.stars, 0);
+      setTotalStars(periodTotal);
 
       // Prepare data for Plotly
       const hours = data.map(item => item.hour);
@@ -231,6 +233,7 @@ function HourlyStarsChart() {
         bestHourLabel,
         avgStarsLabel,
       });
+      setDisplayedRepo(repo);
 
       console.log('Day start shapes count:', dayStartHours.length);
     } catch (error) {
@@ -404,7 +407,7 @@ function HourlyStarsChart() {
         }}>
           <StatCard
             icon="⭐"
-            label="Total Stars"
+            label={`Stars (${lastDays}d)`}
             value={formatNumber(totalStars)}
             color="#fbbf24"
           />
@@ -488,7 +491,7 @@ function HourlyStarsChart() {
             ]}
             layout={{
               title: {
-                text: `Hourly Stars - ${selectedRepo}`,
+                text: `Hourly Stars - ${displayedRepo}`,
                 font: { size: 24, color: '#ffffff', family: 'Inter, system-ui, sans-serif', weight: 700 },
                 x: 0.5,
                 xanchor: 'center',
@@ -543,7 +546,7 @@ function HourlyStarsChart() {
               modeBarButtonsToRemove: ['lasso2d', 'select2d'],
               toImageButtonOptions: {
                 format: 'png',
-                filename: `${selectedRepo.replace('/', '-')}-hourly-stars`,
+                filename: `${displayedRepo.replace('/', '-')}-hourly-stars`,
                 height: 1080,
                 width: 1920,
                 scale: 2
