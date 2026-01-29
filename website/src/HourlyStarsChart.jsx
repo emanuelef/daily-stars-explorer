@@ -505,6 +505,9 @@ function HourlyStarsChart() {
         borderRadius: '16px',
         padding: '24px',
         border: '1px solid rgba(59, 130, 246, 0.2)',
+        minHeight: 'clamp(360px, 60vh, 720px)',
+        display: 'flex',
+        flexDirection: 'column',
       }}>
         {chartData && (
           <Plot
@@ -604,7 +607,11 @@ function HourlyStarsChart() {
                 scale: 2
               }
             }}
-            style={{ width: '100%', height: '400px' }}
+            style={{
+              width: '100%',
+              height: 'clamp(320px, 55vh, 640px)',
+              flex: 1,
+            }}
           />
         )}
         {!chartData && !loading && (
