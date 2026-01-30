@@ -13,6 +13,7 @@ import ContributorsTimeSeriesChart from "./ContributorsTimeSeriesChart";
 import NewReposTimeSeriesChart from "./NewReposTimeSeriesChart";
 import InfoPage from "./InfoPage";
 import FeaturedReposPage from "./FeaturedReposPage";
+import ViralLeaderboard from "./ViralLeaderboard";
 
 import { Sidebar, Menu, MenuItem } from "react-pro-sidebar";
 import { Routes, Route, Link, useLocation, Navigate } from "react-router-dom";
@@ -30,6 +31,7 @@ import Diversity3OutlinedIcon from '@mui/icons-material/Diversity3Outlined';
 import AddBoxOutlinedIcon from '@mui/icons-material/AddBoxOutlined';
 import ArticleIcon from '@mui/icons-material/Article';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import WhatshotIcon from '@mui/icons-material/Whatshot';
 
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -101,7 +103,8 @@ function App() {
                   location.pathname.includes("/contributors") ||
                   location.pathname.includes("/newrepos") ||
                   location.pathname.includes("/featured") ||
-                  location.pathname.includes("/hourly")
+                  location.pathname.includes("/hourly") ||
+                  location.pathname.includes("/viral")
                 )
               }
             >
@@ -117,6 +120,17 @@ function App() {
               active={location.pathname.includes("/hourly")}
             >
               Hourly Stars
+            </MenuItem>
+            <MenuItem
+              component={<Link to="/viral" className="link" />}
+              icon={
+                <Tooltip title="Viral Velocity Leaderboard" placement="right">
+                  <WhatshotIcon />
+                </Tooltip>
+              }
+              active={location.pathname.includes("/viral")}
+            >
+              Viral
             </MenuItem>
             <MenuItem
               component={<Link to="/compare" className="link" />}
@@ -257,6 +271,7 @@ function App() {
             <Route path="/newrepos" element={<NewReposTimeSeriesChart />} />
             <Route path="/showhn" element={<Navigate to="/featured" replace />} />
             <Route path="/featured" element={<FeaturedReposPage />} />
+            <Route path="/viral" element={<ViralLeaderboard />} />
           </Routes>
         </section>
       </div>

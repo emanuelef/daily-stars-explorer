@@ -388,11 +388,17 @@ func RecentStarsByHourHandler(
 		log.Printf("[REQUEST] %s: lastDays=%d, requestedStart=%v, now=%v", repo, lastDays, requestedStartTime.Format(time.RFC3339), time.Now().UTC().Format(time.RFC3339))
 		var starsPerHour []stats.StarsPerHour
 
+		// Use a background context with timeout for the GitHub API call
+		// This prevents the fetch from being cancelled if the HTTP request times out (e.g. 504 Gateway Timeout)
+		// allowing the cache to be populated for subsequent requests.
+		bgCtx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+		defer cancel()
+
 		if len(cachedHourly) == 0 {
 			// No cache - fetch full requested range
 			log.Printf("[FETCH FULL] %s: fetching %d days from %v to now", repo, lastDays, requestedStartTime.Format(time.RFC3339))
 			starsPerHour, err = client.GetRecentStarsHistoryByHourRange(
-				c.Context(),
+				bgCtx,
 				repo,
 				requestedStartTime,
 				// Workaround: Pass now+1h to ensure the current partial hour is included.
@@ -462,7 +468,7 @@ func RecentStarsByHourHandler(
 				log.Printf("[FETCH OLDER] %s: from %v to %v",
 					repo, requestedStartTime.Format(time.RFC3339), oldestCachedTime.Format(time.RFC3339))
 				olderData, err = client.GetRecentStarsHistoryByHourRange(
-					c.Context(),
+					bgCtx,
 					repo,
 					requestedStartTime,
 					oldestCachedTime,
@@ -486,7 +492,7 @@ func RecentStarsByHourHandler(
 				// The library truncates endTime to the hour and uses strict inequality (< truncatedTime),
 				// which excludes stars in the current hour if we just pass 'now'.
 				newerData, err = client.GetRecentStarsHistoryByHourRange(
-					c.Context(),
+					bgCtx,
 					repo,
 					fetchFrom,
 					now.Add(time.Hour),

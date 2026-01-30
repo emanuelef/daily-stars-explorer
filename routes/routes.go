@@ -116,6 +116,10 @@ func RegisterStarsRoutes(
 		ghStatClients,
 		caches.RecentStarsByHour,
 	))
+	app.Get("/trending", handlers.TrendingHandler(
+		caches.RecentStarsByHour,
+		caches.Stars,
+	))
 }
 
 // RegisterRepoActivityRoutes registers repository activity routes
