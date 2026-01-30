@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import TextField from "@mui/material/TextField";
 import FormControl from "@mui/material/FormControl";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import Checkbox from "@mui/material/Checkbox";
 import Typography from "@mui/material/Typography";
 import Tooltip from "@mui/material/Tooltip";
@@ -13,6 +14,9 @@ import Select from "@mui/material/Select";
 import Alert from "@mui/material/Alert";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
+import Box from "@mui/material/Box";
+import Paper from "@mui/material/Paper";
+import Divider from "@mui/material/Divider";
 import { Link } from "react-router-dom";
 import FusionCharts from "fusioncharts";
 import TimeSeries from "fusioncharts/fusioncharts.timeseries";
@@ -570,7 +574,7 @@ function CompareChart() {
   };
 
   return (
-    <div>
+    <Box sx={{ p: 1.5 }}>
       <div>
         {open && (
           <Alert
@@ -585,40 +589,31 @@ function CompareChart() {
                 <CloseIcon fontSize="inherit" />
               </IconButton>
             }
+            sx={{ mb: 1.5 }}
           >
             Consider this tool just as a way to compare trendiness, read more in{" "}
             <Link to="/info">here</Link>.
           </Alert>
         )}
       </div>
-      <Typography
-        style={{
-          marginTop: "10px",
-          marginLeft: "20px",
-          width: "700px",
-        }}
-        variant="body2"
-      >
-        Only already fetched repositories are available for comparison, zoom to see the increase in selection
-      </Typography>
-      <div style={{ display: "flex", alignItems: "center" }}>
+
+      <Alert severity="info" sx={{ mb: 1.5 }}>
+        Only already fetched repositories are available for comparison. Zoom to see the increase in selection.
+      </Alert>
+
+      {/* Repository Selection */}
+      <Paper elevation={2} sx={{ p: 1.5, mb: 1.5 }}>
+        <Box sx={{ display: "flex", gap: 1.2, flexWrap: "wrap", alignItems: "center" }}>
         <Autocomplete
           disablePortal
           id="combo-box-repo"
           size="small"
-          options={starsRepos.map((el) => {
-            return { label: el };
-          })}
+          options={starsRepos.map((el) => ({ label: el }))}
           renderInput={(params) => (
             <TextField
               {...params}
-              style={{
-                marginTop: "20px",
-                marginRight: "10px",
-                marginLeft: "10px",
-                width: "400px",
-              }}
-              label="Enter a GitHub repository"
+              sx={{ width: 400 }}
+              label="Repository 1"
               variant="outlined"
               size="small"
             />
@@ -630,38 +625,28 @@ function CompareChart() {
           }}
         />
         <TextField
-          style={{
-            marginTop: "20px",
-            marginRight: "5px",
-            width: "144px",
-          }}
+          sx={{ width: 165 }}
           size="small"
           id="repo-increase"
           label="Increase"
           value={zoomedStars[selectedRepo] !== undefined
-            ? `${formatNumber(zoomedStars[selectedRepo])} ${zoomedStarsPercentageTotal[selectedRepo]}%`
+            ? `${formatNumber(zoomedStars[selectedRepo])} (${zoomedStarsPercentageTotal[selectedRepo]}%)`
             : "N/A"}
           InputProps={{
             readOnly: true,
           }}
         />
+        <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
         <Autocomplete
           disablePortal
           id="combo-box-repo2"
           size="small"
-          options={starsRepos.map((el) => {
-            return { label: el };
-          })}
+          options={starsRepos.map((el) => ({ label: el }))}
           renderInput={(params) => (
             <TextField
               {...params}
-              style={{
-                marginTop: "20px",
-                marginRight: "10px",
-                marginLeft: "10px",
-                width: "400px",
-              }}
-              label="Enter a GitHub repository"
+              sx={{ width: 400 }}
+              label="Repository 2"
               variant="outlined"
               size="small"
             />
@@ -673,61 +658,27 @@ function CompareChart() {
           }}
         />
         <TextField
-          style={{
-            marginTop: "20px",
-            marginRight: "5px",
-            width: "144px",
-          }}
+          sx={{ width: 165 }}
           size="small"
           id="repo2-increase"
           label="Increase"
           value={zoomedStars[selectedRepo2] !== undefined
-            ? `${formatNumber(zoomedStars[selectedRepo2])} ${zoomedStarsPercentageTotal[selectedRepo2]}%`
+            ? `${formatNumber(zoomedStars[selectedRepo2])} (${zoomedStarsPercentageTotal[selectedRepo2]}%)`
             : "N/A"}
           InputProps={{
             readOnly: true,
           }}
         />
-        <div
-          style={{ marginTop: "20px", display: "flex", alignItems: "center" }}
-        >
-          <CopyToClipboardButton
-            dateRange={checkedDateRange ? selectedTimeRange : null}
-            aggregation={aggregation}
-          />
-          <Tooltip title={INCLUDE_DATE_RANGE}>
-            {
-              <Checkbox
-                checked={checkedDateRange}
-                onChange={handleDateRangeCheckChange}
-                inputProps={{ "aria-label": "controlled" }}
-              />
-            }
-          </Tooltip>
-          <Typography variant="body2">With Date Range</Typography>
-        </div>
-      </div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          marginTop: "10px",
-          marginLeft: "10px",
-          marginBottom: "10px",
-        }}
-      >
-        <div
-          style={{
-            width: "110px",
-          }}
-        >
-          <FormControl>
-            <InputLabel id="theme-select-label">Theme</InputLabel>
+        </Box>
+      </Paper>
+
+      {/* Controls & Actions */}
+      <Paper elevation={2} sx={{ p: 1.5, mb: 1.5 }}>
+        <Box sx={{ display: "flex", gap: 1.2, flexWrap: "wrap", alignItems: "center" }}>
+          <FormControl sx={{ width: 110 }} size="small">
+            <InputLabel>Theme</InputLabel>
             <Select
-              labelId="theme"
-              id="theme"
               value={theme}
-              size="small"
               label="Theme"
               onChange={handleThemeChange}
             >
@@ -738,49 +689,59 @@ function CompareChart() {
               <MenuItem value={"umber"}>Umber</MenuItem>
             </Select>
           </FormControl>
-        </div>
-        <FormControl
-          style={{
-            width: "180px",
-            marginRight: "20px",
-          }}
-        >
-          <InputLabel id="aggregation-select-drop">Aggregate</InputLabel>
-          <Select
-            labelId="aggregation"
-            id="aggregation"
-            value={aggregation}
-            size="small"
-            label="Aggregate"
-            onChange={handleAggregationChange}
-          >
-            <MenuItem value={"none"}>None</MenuItem>
-            <MenuItem value={"trend"}>Trend</MenuItem>
-            <MenuItem value={"yearlyBinning"}>Yearly Binning</MenuItem>
-            <MenuItem value={"monthlyBinning"}>Monthly Binning</MenuItem>
-            <MenuItem value={"weeklyBinning"}>Weekly Binning</MenuItem>
-          </Select>
-        </FormControl>
-        {
-          <Checkbox
-            checked={checkedYAxisType}
-            onChange={handleYAxisTypeCheckChange}
-            inputProps={{ "aria-label": "controlled" }}
+          <FormControl sx={{ width: 160 }} size="small">
+            <InputLabel>Aggregate</InputLabel>
+            <Select
+              value={aggregation}
+              label="Aggregate"
+              onChange={handleAggregationChange}
+            >
+              <MenuItem value={"none"}>None</MenuItem>
+              <MenuItem value={"trend"}>Trend</MenuItem>
+              <MenuItem value={"yearlyBinning"}>Yearly Binning</MenuItem>
+              <MenuItem value={"monthlyBinning"}>Monthly Binning</MenuItem>
+              <MenuItem value={"weeklyBinning"}>Weekly Binning</MenuItem>
+            </Select>
+          </FormControl>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={checkedYAxisType}
+                onChange={handleYAxisTypeCheckChange}
+                size="small"
+              />
+            }
+            label={<Typography variant="body2">Log Y</Typography>}
           />
-        }
-        <Typography variant="body2">Log Y-Axis</Typography>
-      </div>
-      
-      <div
-        style={{
-          marginLeft: "10px",
-        }}
-      >
+          <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
+          <CopyToClipboardButton
+            dateRange={checkedDateRange ? selectedTimeRange : null}
+            aggregation={aggregation}
+          />
+          <Tooltip title={INCLUDE_DATE_RANGE}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={checkedDateRange}
+                  onChange={handleDateRangeCheckChange}
+                  size="small"
+                />
+              }
+              label={<Typography variant="body2">Date Range</Typography>}
+            />
+          </Tooltip>
+        </Box>
+      </Paper>
+
+      {/* Chart Container */}
+      <Paper elevation={3} sx={{ p: 1.5 }}>
+        <Box id="chart-container">
         {ds != null && ds != chart_props && ds && ds.dataSource.data && (
           <ReactFC {...ds} />
         )}
-      </div>
-    </div>
+        </Box>
+      </Paper>
+    </Box>
   );
 }
 
