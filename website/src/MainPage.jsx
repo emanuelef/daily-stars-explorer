@@ -1,113 +1,147 @@
 import { useState, useEffect } from "react";
 import "./App.css";
 
-import TextField from "@mui/material/TextField";
-import LoadingButton from "@mui/lab/LoadingButton";
-import SendIcon from "@mui/icons-material/Send";
-
-import RequestsProgressBar from "./RequestsProgressBar";
-import EstimatedTimeProgress from "./EstimatedTimeProgress";
-
-import { ToastContainer, toast } from "react-toastify";
+import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-import { useParams } from "react-router-dom";
-
-import JsonView from "react18-json-view";
-import "react18-json-view/src/style.css";
-import "react18-json-view/src/dark.css";
-
-import { parseGitHubRepoURL } from "./githubUtils";
+import Button from "@mui/material/Button";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import CircularProgress from "@mui/material/CircularProgress";
 
 const HOST = import.meta.env.VITE_HOST;
 
-console.log("HOST " + HOST);
+// Stat Card Component
+const StatCard = ({ icon, label, value, color = "#3b82f6", subtext = "" }) => (
+  <div style={{
+    background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%)',
+    border: `1px solid ${color}33`,
+    borderRadius: '12px',
+    padding: '20px 24px',
+    minWidth: '200px',
+    backdropFilter: 'blur(10px)',
+  }}>
+    <div style={{
+      fontSize: '12px',
+      textTransform: 'uppercase',
+      letterSpacing: '0.5px',
+      color: '#9ca3af',
+      marginBottom: '8px',
+      fontWeight: '500',
+    }}>
+      {icon} {label}
+    </div>
+    <div style={{
+      fontSize: '32px',
+      fontWeight: '700',
+      color: '#fff',
+      lineHeight: '1.2',
+    }}>
+      {value}
+    </div>
+    {subtext && (
+      <div style={{
+        fontSize: '12px',
+        color: '#6b7280',
+        marginTop: '4px',
+      }}>
+        {subtext}
+      </div>
+    )}
+  </div>
+);
+
+// Progress Bar Component
+const LimitsProgressBar = ({ remaining, total }) => {
+  const percentage = total > 0 ? (remaining / total) * 100 : 0;
+  const getColor = () => {
+    if (percentage > 50) return '#10b981';
+    if (percentage > 20) return '#fbbf24';
+    return '#ef4444';
+  };
+
+  return (
+    <div style={{ marginTop: '16px' }}>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        marginBottom: '8px',
+        fontSize: '12px',
+        color: '#9ca3af',
+      }}>
+        <span>API Requests Used</span>
+        <span>{total - remaining} / {total}</span>
+      </div>
+      <div style={{
+        height: '8px',
+        background: 'rgba(255,255,255,0.1)',
+        borderRadius: '4px',
+        overflow: 'hidden',
+      }}>
+        <div style={{
+          width: `${percentage}%`,
+          height: '100%',
+          background: `linear-gradient(90deg, ${getColor()} 0%, ${getColor()}88 100%)`,
+          borderRadius: '4px',
+          transition: 'width 0.5s ease',
+        }} />
+      </div>
+    </div>
+  );
+};
+
+const formatTime = (seconds) => {
+  if (seconds <= 0) return "0:00";
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+};
 
 const MainPage = () => {
-  let defaultRepo = "helm/helm";
-  const { user, repository } = useParams();
-  if (user && repository) {
-    defaultRepo = `${user}/${repository}`;
-  }
-
-  const [selectedRepo, setSelectedRepo] = useState(defaultRepo);
-  const [repoInput, setRepoInput] = useState(defaultRepo);
-  const [result, setResult] = useState({});
-  const [totalRequests, setTotalRequests] = useState(60);
-  const [remainingRequests, setRemainingRequests] = useState(totalRequests);
-  const [resetLimitsTime, setResetLimitsTime] = useState(60);
+  const [totalRequests, setTotalRequests] = useState(0);
+  const [remainingRequests, setRemainingRequests] = useState(0);
+  const [resetLimitsTime, setResetLimitsTime] = useState(0);
   const [loading, setLoading] = useState(false);
-
-  const fetchRepoStats = (repo) => {
-    console.log(repo);
-    setLoading(true);
-    fetch(`${HOST}/stats?repo=${repo}`)
-      .then((response) => {
-        if (!response.ok) {
-          console.log(response.status);
-          toast.error("Internal Server Error. Please try again later.", {
-            position: toast.POSITION.BOTTOM_CENTER,
-          });
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        return response.json();
-      })
-      .then((stats) => {
-        console.log(stats);
-        setResult(stats);
-        setLoading(false);
-      })
-      .catch((e) => {
-        console.error(`An error occurred: ${e}`);
-        setLoading(false);
-        if (e.message.includes("500")) {
-          toast.error("Internal Server Error. Please try again later.", {
-            position: toast.POSITION.BOTTOM_CENTER,
-          });
-        }
-      });
-  };
+  const [lastUpdated, setLastUpdated] = useState(null);
 
   const fetchLimits = async () => {
     try {
-      // Make your API request here using fetch or an HTTP library like Axios
+      setLoading(true);
       const response = await fetch(`${HOST}/limits`);
       const jsonData = await response.json();
       setRemainingRequests(jsonData.Remaining);
       setTotalRequests(jsonData.Limit);
       const utcDate = new Date(jsonData.ResetAt);
-      console.log("UTC Date:", utcDate);
       const currentDate = new Date();
       const timeDifferenceMilliseconds = utcDate - currentDate;
-      const timeDifferenceSeconds = Math.floor(
-        timeDifferenceMilliseconds / 1000
-      );
-      console.log("Time difference in seconds:", timeDifferenceSeconds);
-      setResetLimitsTime(timeDifferenceSeconds);
+      const timeDifferenceSeconds = Math.floor(timeDifferenceMilliseconds / 1000);
+      setResetLimitsTime(Math.max(0, timeDifferenceSeconds));
+      setLastUpdated(new Date());
     } catch (error) {
       console.error("Error fetching data:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
+  // Countdown timer
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setResetLimitsTime(prev => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   useEffect(() => {
     fetchLimits();
-    fetchRepoStats(selectedRepo);
     const intervalId = setInterval(fetchLimits, 60000);
     return () => clearInterval(intervalId);
   }, []);
 
-  const handleClick = async () => {
-    setSelectedRepo(repoInput);
-    fetchRepoStats(parseGitHubRepoURL(repoInput));
-  };
-
-  const handleInputChange = (event, setStateFunction) => {
-    const inputText = event.target.value;
-    setStateFunction(inputText);
-  };
+  const usedRequests = totalRequests - remainingRequests;
+  const usagePercentage = totalRequests > 0 ? ((usedRequests / totalRequests) * 100).toFixed(1) : 0;
 
   return (
-    <div className="chart-container">
+    <div style={{ background: '#0f0f0f', minHeight: '100vh', padding: '20px' }}>
       <ToastContainer
         position="top-center"
         autoClose={5000}
@@ -120,48 +154,108 @@ const MainPage = () => {
         pauseOnHover
         theme="dark"
       />
-      <TextField
-        style={{
-          marginTop: "20px",
-          marginRight: "20px",
-          marginLeft: "10px",
-          width: "500px",
-        }}
-        size="small"
-        label="Enter a GitHub repository"
-        variant="outlined"
-        value={repoInput}
-        onChange={(e) => handleInputChange(e, setRepoInput)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            handleClick();
-          }
-        }}
-      />
-      <LoadingButton
-        style={{
-          marginTop: "30px",
-          marginRight: "20px",
-          marginLeft: "10px",
-        }}
-        size="small"
-        onClick={handleClick}
-        endIcon={<SendIcon />}
-        loading={loading}
-        loadingPosition="end"
-        variant="contained"
-      >
-        <span>Fetch</span>
-      </LoadingButton>
-      <RequestsProgressBar
-        remainingRequests={remainingRequests}
-        totalRequests={totalRequests}
-      />
-      <EstimatedTimeProgress
-        text="API Limits reset"
-        totalTime={resetLimitsTime}
-      />
-      <div>{result && <JsonView src={result} collapsed={1} dark={true} />}</div>
+
+      {/* Header */}
+      <div style={{
+        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+        borderRadius: '16px',
+        padding: '24px',
+        marginBottom: '24px',
+        border: '1px solid rgba(59, 130, 246, 0.2)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+          <div>
+            <h1 style={{
+              margin: 0,
+              fontSize: '28px',
+              fontWeight: '700',
+              color: '#fff',
+            }}>
+              GitHub API Status
+            </h1>
+            <p style={{
+              margin: '8px 0 0 0',
+              fontSize: '14px',
+              color: '#9ca3af'
+            }}>
+              Monitor your GitHub API rate limits
+            </p>
+          </div>
+          <Button
+            variant="contained"
+            onClick={fetchLimits}
+            disabled={loading}
+            startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <RefreshIcon />}
+          >
+            {loading ? "Loading..." : "Refresh"}
+          </Button>
+        </div>
+        {lastUpdated && (
+          <div style={{ marginTop: '12px', fontSize: '12px', color: '#6b7280' }}>
+            Last updated: {lastUpdated.toLocaleTimeString()}
+          </div>
+        )}
+      </div>
+
+      {/* Stats Cards */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+        gap: "20px",
+        marginBottom: "24px"
+      }}>
+        <StatCard
+          icon="📊"
+          label="Remaining Requests"
+          value={remainingRequests.toLocaleString()}
+          color={remainingRequests > totalRequests * 0.5 ? "#10b981" : remainingRequests > totalRequests * 0.2 ? "#fbbf24" : "#ef4444"}
+          subtext={`of ${totalRequests.toLocaleString()} total`}
+        />
+        <StatCard
+          icon="⏱️"
+          label="Reset In"
+          value={formatTime(resetLimitsTime)}
+          color="#3b82f6"
+          subtext="until limit resets"
+        />
+        <StatCard
+          icon="📈"
+          label="Usage"
+          value={`${usagePercentage}%`}
+          color={usagePercentage < 50 ? "#10b981" : usagePercentage < 80 ? "#fbbf24" : "#ef4444"}
+          subtext={`${usedRequests.toLocaleString()} requests used`}
+        />
+      </div>
+
+      {/* Progress Bar Card */}
+      <div style={{
+        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+        borderRadius: '16px',
+        padding: '24px',
+        border: '1px solid rgba(59, 130, 246, 0.2)',
+      }}>
+        <h3 style={{ margin: '0 0 16px 0', color: '#fff', fontSize: '16px', fontWeight: '600' }}>
+          Rate Limit Status
+        </h3>
+        <LimitsProgressBar remaining={remainingRequests} total={totalRequests} />
+
+        <div style={{
+          marginTop: '24px',
+          padding: '16px',
+          background: 'rgba(59, 130, 246, 0.1)',
+          borderRadius: '8px',
+          border: '1px solid rgba(59, 130, 246, 0.2)',
+        }}>
+          <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '8px' }}>
+            About GitHub API Limits
+          </div>
+          <div style={{ fontSize: '14px', color: '#fff', lineHeight: '1.6' }}>
+            GitHub's GraphQL API has a rate limit of 5,000 points per hour for authenticated requests.
+            This tool uses GraphQL queries which consume varying amounts of points depending on the complexity
+            of the data being fetched.
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

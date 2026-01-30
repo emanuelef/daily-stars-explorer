@@ -18,7 +18,7 @@ import { Sidebar, Menu, MenuItem } from "react-pro-sidebar";
 import { Routes, Route, Link, useLocation, Navigate } from "react-router-dom";
 
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
-import TableViewRounded from "@mui/icons-material/TableViewRounded";
+import SpeedOutlinedIcon from "@mui/icons-material/SpeedOutlined";
 import QueryStatsRoundedIcon from "@mui/icons-material/QueryStatsRounded";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import SsidChartRoundedIcon from "@mui/icons-material/SsidChartRounded";
@@ -92,7 +92,7 @@ function App() {
               active={
                 !(
                   location.pathname.includes("/compare") ||
-                  location.pathname.includes("/table") ||
+                  location.pathname.includes("/limits") ||
                   location.pathname.includes("/info") ||
                   location.pathname.includes("/issues") ||
                   location.pathname.includes("/forks") ||
@@ -207,15 +207,15 @@ function App() {
               Featured Repos
             </MenuItem>
             <MenuItem
-              component={<Link to="/table" className="link" />}
+              component={<Link to="/limits" className="link" />}
               icon={
-                <Tooltip title="Table" placement="right">
-                  <TableViewRounded />
+                <Tooltip title="API Rate Limits" placement="right">
+                  <SpeedOutlinedIcon />
                 </Tooltip>
               }
-              active={location.pathname === "/table"}
+              active={location.pathname === "/limits"}
             >
-              Table
+              API Limits
             </MenuItem>
             <MenuItem
               component={<Link to="/info" className="link" />}
@@ -234,7 +234,8 @@ function App() {
           <Routes>
             <Route path="/" element={<TimeSeriesChart />} />
             <Route path="/:user/:repository" element={<TimeSeriesChart />} />
-            <Route path="/table" element={<MainPage />} />
+            <Route path="/limits" element={<MainPage />} />
+            <Route path="/table" element={<Navigate to="/limits" replace />} />
             <Route path="/starstimeline/:id" element={<TimeSeriesChart />} />
             <Route path="/hourly" element={<HourlyStarsChart />} />
             <Route path="/hourly/:user/:repository" element={<HourlyStarsChart />} />
