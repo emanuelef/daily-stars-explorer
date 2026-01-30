@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import TextField from "@mui/material/TextField";
 import FormControl from "@mui/material/FormControl";
@@ -22,6 +22,70 @@ const HOST = import.meta.env.VITE_HOST;
 
 const INFO_TOOLTIP =
   "Shows completed hourly data. Click 'Fetch' to retrieve real-time updates including the current hour. You can zoom and pan the chart.";
+
+const browserTimeZone =
+  (typeof Intl !== "undefined" &&
+    Intl.DateTimeFormat().resolvedOptions().timeZone) ||
+  "UTC";
+
+// Comprehensive timezone list grouped by region
+const TIMEZONES = [
+  // Americas
+  { city: 'Honolulu', offset: 'UTC-10:00', value: 'Pacific/Honolulu', region: 'Americas' },
+  { city: 'Anchorage', offset: 'UTC-09:00', value: 'America/Anchorage', region: 'Americas' },
+  { city: 'Los Angeles', offset: 'UTC-08:00', value: 'America/Los_Angeles', region: 'Americas' },
+  { city: 'Denver', offset: 'UTC-07:00', value: 'America/Denver', region: 'Americas' },
+  { city: 'Mexico City', offset: 'UTC-06:00', value: 'America/Mexico_City', region: 'Americas' },
+  { city: 'Chicago', offset: 'UTC-06:00', value: 'America/Chicago', region: 'Americas' },
+  { city: 'New York', offset: 'UTC-05:00', value: 'America/New_York', region: 'Americas' },
+  { city: 'Toronto', offset: 'UTC-05:00', value: 'America/Toronto', region: 'Americas' },
+  { city: 'Caracas', offset: 'UTC-04:00', value: 'America/Caracas', region: 'Americas' },
+  { city: 'Santiago', offset: 'UTC-03:00', value: 'America/Santiago', region: 'Americas' },
+  { city: 'São Paulo', offset: 'UTC-03:00', value: 'America/Sao_Paulo', region: 'Americas' },
+  { city: 'Buenos Aires', offset: 'UTC-03:00', value: 'America/Argentina/Buenos_Aires', region: 'Americas' },
+  
+  // Europe & Africa
+  { city: 'London', offset: 'UTC+00:00', value: 'Europe/London', region: 'Europe' },
+  { city: 'Dublin', offset: 'UTC+00:00', value: 'Europe/Dublin', region: 'Europe' },
+  { city: 'Lisbon', offset: 'UTC+00:00', value: 'Europe/Lisbon', region: 'Europe' },
+  { city: 'Paris', offset: 'UTC+01:00', value: 'Europe/Paris', region: 'Europe' },
+  { city: 'Berlin', offset: 'UTC+01:00', value: 'Europe/Berlin', region: 'Europe' },
+  { city: 'Rome', offset: 'UTC+01:00', value: 'Europe/Rome', region: 'Europe' },
+  { city: 'Madrid', offset: 'UTC+01:00', value: 'Europe/Madrid', region: 'Europe' },
+  { city: 'Amsterdam', offset: 'UTC+01:00', value: 'Europe/Amsterdam', region: 'Europe' },
+  { city: 'Stockholm', offset: 'UTC+01:00', value: 'Europe/Stockholm', region: 'Europe' },
+  { city: 'Cairo', offset: 'UTC+02:00', value: 'Africa/Cairo', region: 'Africa' },
+  { city: 'Athens', offset: 'UTC+02:00', value: 'Europe/Athens', region: 'Europe' },
+  { city: 'Helsinki', offset: 'UTC+02:00', value: 'Europe/Helsinki', region: 'Europe' },
+  { city: 'Istanbul', offset: 'UTC+03:00', value: 'Europe/Istanbul', region: 'Europe' },
+  { city: 'Moscow', offset: 'UTC+03:00', value: 'Europe/Moscow', region: 'Europe' },
+  { city: 'Nairobi', offset: 'UTC+03:00', value: 'Africa/Nairobi', region: 'Africa' },
+  { city: 'Dubai', offset: 'UTC+04:00', value: 'Asia/Dubai', region: 'Middle East' },
+  
+  // Asia & Pacific
+  { city: 'Karachi', offset: 'UTC+05:00', value: 'Asia/Karachi', region: 'Asia' },
+  { city: 'Kolkata', offset: 'UTC+05:30', value: 'Asia/Kolkata', region: 'Asia' },
+  { city: 'Mumbai', offset: 'UTC+05:30', value: 'Asia/Kolkata', region: 'Asia' },
+  { city: 'Dhaka', offset: 'UTC+06:00', value: 'Asia/Dhaka', region: 'Asia' },
+  { city: 'Bangkok', offset: 'UTC+07:00', value: 'Asia/Bangkok', region: 'Asia' },
+  { city: 'Singapore', offset: 'UTC+08:00', value: 'Asia/Singapore', region: 'Asia' },
+  { city: 'Hong Kong', offset: 'UTC+08:00', value: 'Asia/Hong_Kong', region: 'Asia' },
+  { city: 'Beijing', offset: 'UTC+08:00', value: 'Asia/Shanghai', region: 'Asia' },
+  { city: 'Manila', offset: 'UTC+08:00', value: 'Asia/Manila', region: 'Asia' },
+  { city: 'Tokyo', offset: 'UTC+09:00', value: 'Asia/Tokyo', region: 'Asia' },
+  { city: 'Seoul', offset: 'UTC+09:00', value: 'Asia/Seoul', region: 'Asia' },
+  { city: 'Sydney', offset: 'UTC+11:00', value: 'Australia/Sydney', region: 'Pacific' },
+  { city: 'Melbourne', offset: 'UTC+11:00', value: 'Australia/Melbourne', region: 'Pacific' },
+  { city: 'Auckland', offset: 'UTC+13:00', value: 'Pacific/Auckland', region: 'Pacific' },
+  
+  // UTC
+  { city: 'UTC', offset: 'UTC+00:00', value: 'UTC', region: 'UTC' },
+];
+
+const detectUserTimezone = () => {
+  const userTz = browserTimeZone;
+  return TIMEZONES.find(t => t.value === userTz) || TIMEZONES.find(t => t.value === 'UTC');
+};
 
 // Stat Card Component for clean visual hierarchy
 const StatCard = ({ icon, label, value, color = "#3b82f6" }) => (
@@ -72,7 +136,42 @@ function HourlyStarsChart() {
   const [totalStars, setTotalStars] = useState(0);
   const [selectedRepo, setSelectedRepo] = useState(defaultRepo);
   const [displayedRepo, setDisplayedRepo] = useState(defaultRepo);
+  const [timeZone, setTimeZone] = useState(() => {
+    const detected = detectUserTimezone();
+    return detected ? detected.value : 'UTC';
+  });
   const navigate = useNavigate();
+
+  const getTimeZoneOffset = (date, tz) => {
+    try {
+      const formatter = new Intl.DateTimeFormat("en-US", {
+        timeZone: tz,
+        hour12: false,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
+      const parts = formatter.formatToParts(date).reduce((acc, p) => {
+        if (p.type !== "literal") acc[p.type] = p.value;
+        return acc;
+      }, {});
+      const asUtc = Date.UTC(
+        Number(parts.year),
+        Number(parts.month) - 1,
+        Number(parts.day),
+        Number(parts.hour),
+        Number(parts.minute),
+        Number(parts.second)
+      );
+      const offsetMinutes = Math.round((asUtc - date.getTime()) / 60000);
+      return offsetMinutes * 60000;
+    } catch (e) {
+      return 0;
+    }
+  };
 
   useEffect(() => {
     const fetchRepos = async () => {
@@ -88,9 +187,25 @@ function HourlyStarsChart() {
     fetchRepos();
   }, []);
 
+  // Re-apply timezone when user changes it without refetching
+  useEffect(() => {
+    if (rawData.length === 0) return;
+    const zoned = applyTimeZone(rawData, timeZone);
+    const processed = processChartData(zoned);
+    setChartData(processed);
+    setTotalStars(processed.periodTotal);
+  }, [timeZone, rawData]);
+
   const handleLastDaysChange = (event) => {
     setLastDays(event.target.value);
   };
+
+  const applyTimeZone = (data, tz) =>
+    data.map((item) => {
+      const utcDate = new Date(item.hour);
+      const shifted = new Date(utcDate.getTime() + getTimeZoneOffset(utcDate, tz));
+      return { ...item, hour: shifted.toISOString() };
+    });
 
   const processChartData = (data) => {
     // Calculate total stars for THIS period only (sum of hourly stars)
@@ -113,7 +228,7 @@ function HourlyStarsChart() {
     const weekendBands = [];
     for (let i = 0; i < data.length; i++) {
       const d = new Date(data[i].hour);
-      if (d.getUTCDay() === 6) { // Saturday
+      if (d.getUTCDay() === 6) { // Saturday (relative to selected TZ, already shifted)
         const start = data[i].hour;
         // Find next Monday or end of data
         let j = i + 1;
@@ -276,7 +391,8 @@ function HourlyStarsChart() {
         }
       }
 
-      const processed = processChartData(mergedData);
+      const zonedData = applyTimeZone(mergedData, timeZone);
+      const processed = processChartData(zonedData);
       
       setChartData(processed);
       setTotalStars(processed.periodTotal); // Use processed total
@@ -425,6 +541,31 @@ function HourlyStarsChart() {
               <MenuItem value={60}>60 Days</MenuItem>
             </Select>
           </FormControl>
+          <Autocomplete
+            disablePortal
+            size="small"
+            options={TIMEZONES}
+            groupBy={(option) => option.region}
+            getOptionLabel={(option) => option.city}
+            value={TIMEZONES.find((opt) => opt.value === timeZone) || null}
+            onChange={(_, v) => v && setTimeZone(v.value)}
+            sx={{ width: 240 }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Timezone"
+                size="small"
+              />
+            )}
+            renderOption={(props, option) => (
+              <li {...props} key={option.value}>
+                <span style={{ fontWeight: 500 }}>{option.city}</span>
+                <span style={{ marginLeft: 8, color: '#9ca3af', fontSize: '0.875rem' }}>
+                  {option.offset}
+                </span>
+              </li>
+            )}
+          />
           <Button
             size="small"
             onClick={handleClick}
