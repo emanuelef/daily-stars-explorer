@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { LinearProgress, Typography } from "@mui/material";
+import { LinearProgress, Typography, Box } from "@mui/material";
 
 const EstimatedTimeProgress = ({ text, totalTime }) => {
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -10,9 +10,6 @@ const EstimatedTimeProgress = ({ text, totalTime }) => {
 
   useEffect(() => {
     let interval;
-
-    //console.log("elapsedTime " + elapsedTime);
-    //console.log("totalTime " + totalTime);
 
     // Start a timer to update elapsed time every second
     if (elapsedTime < totalTime) {
@@ -29,19 +26,29 @@ const EstimatedTimeProgress = ({ text, totalTime }) => {
   const progressPercentage = (elapsedTime / totalTime) * 100;
 
   return (
-    <div
-      style={{
-        marginTop: "10px",
-        marginRight: "20px",
-        marginLeft: "10px",
-        width: "1170px",
-      }}
-    >
-      <Typography variant="h8">
-        {text}: {formatTime(remainingTime)}
-      </Typography>
-      <LinearProgress variant="determinate" value={progressPercentage} />
-    </div>
+    <Box sx={{ width: "100%", mb: 1.5 }}>
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
+        <Typography variant="caption" color="text.secondary">
+          {text}
+        </Typography>
+        <Typography variant="caption" color="text.secondary" fontWeight="medium">
+          {formatTime(remainingTime)}
+        </Typography>
+      </Box>
+      <LinearProgress
+        variant="determinate"
+        value={progressPercentage}
+        sx={{
+          height: 6,
+          borderRadius: 3,
+          backgroundColor: "rgba(255, 255, 255, 0.1)",
+          "& .MuiLinearProgress-bar": {
+            borderRadius: 3,
+            background: "linear-gradient(90deg, #ff9800 0%, #ffc107 100%)",
+          },
+        }}
+      />
+    </Box>
   );
 };
 

@@ -35,6 +35,9 @@ import "react-toastify/dist/ReactToastify.css";
 import Alert from "@mui/material/Alert";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
+import Box from "@mui/material/Box";
+import Paper from "@mui/material/Paper";
+import Divider from "@mui/material/Divider";
 import {
   addRunningMedian,
   addRunningAverage,
@@ -1589,7 +1592,7 @@ function TimeSeriesChart() {
   }, []);
 
   return (
-    <div>
+    <Box sx={{ p: 1.5 }}>
       {showError && (
         <Alert
           severity="error"
@@ -1605,7 +1608,7 @@ function TimeSeriesChart() {
               <CloseIcon fontSize="inherit" />
             </IconButton>
           }
-          sx={{ mb: 2 }}
+          sx={{ mb: 1.5 }}
         >
           {error}
         </Alert>
@@ -1626,13 +1629,15 @@ function TimeSeriesChart() {
               <CloseIcon fontSize="inherit" />
             </IconButton>
           }
-          sx={{ mb: 2 }}
+          sx={{ mb: 1.5 }}
         >
           If you have a moment, please share your feedback or suggestions in the <a href="https://github.com/emanuelef/daily-stars-explorer/discussions/218" target="_blank" rel="noopener noreferrer" style={{ color: '#2196f3', textDecoration: 'underline' }}>GitHub Discussion</a>. Your input helps improve the tool!
         </Alert>
       )}
 
-      <div style={{ display: "flex", alignItems: "center" }}>
+      {/* Main Controls */}
+      <Paper elevation={2} sx={{ p: 1.5, mb: 1.5 }}>
+        <Box sx={{ display: "flex", gap: 1.2, flexWrap: "wrap", alignItems: "center" }}>
         <Autocomplete
           freeSolo
           disablePortal
@@ -1642,12 +1647,7 @@ function TimeSeriesChart() {
           renderInput={(params) => (
             <TextField
               {...params}
-              style={{
-                marginTop: "20px",
-                marginRight: "20px",
-                marginLeft: "10px",
-                width: "400px",
-              }}
+              sx={{ width: 400 }}
               label="Enter a GitHub repository"
               variant="outlined"
               size="small"
@@ -1677,18 +1677,12 @@ function TimeSeriesChart() {
             if (reason === "input") setSelectedRepo(v);
           }}
         />
-        <FormControl style={{
-          marginTop: "20px",
-          marginRight: "10px",
-          marginLeft: "0px",
-          width: "120px",
-        }}>
+        <FormControl sx={{ width: 120 }} size="small">
           <InputLabel id="style-select-drop">Feeds</InputLabel>
           <Select
             labelId="feed"
             id="feed"
             value={feed}
-            size="small"
             label="Feed"
             onChange={handleFeedChange}
           >
@@ -1701,11 +1695,6 @@ function TimeSeriesChart() {
         </FormControl>
 
         <LoadingButton
-          style={{
-            marginTop: "20px",
-            marginRight: "20px",
-            marginLeft: "10px",
-          }}
           size="small"
           onClick={handleClick}
           endIcon={<SendIcon />}
@@ -1718,9 +1707,6 @@ function TimeSeriesChart() {
         {showForceRefetch && (
           <Tooltip title={FORCE_REFETCH_TOOLTIP}>
             <FormControlLabel
-              style={{
-                marginTop: "20px",
-              }}
               control={
                 <Checkbox
                   checked={forceRefetch}
@@ -1733,17 +1719,10 @@ function TimeSeriesChart() {
           </Tooltip>
         )}
         <Tooltip title={INFO_TOOLTIP}>
-          <InfoOutlinedIcon
-            style={{ marginTop: "20px", marginRight: "10px", color: "grey" }}
-          />
+          <InfoOutlinedIcon sx={{ color: "grey" }} />
         </Tooltip>
         <TextField
-          style={{
-            marginTop: "20px",
-            marginRight: "5px",
-            marginLeft: "10px",
-            width: "90px",
-          }}
+          sx={{ width: 110 }}
           size="small"
           id="total-stars"
           label="⭐ Total"
@@ -1753,12 +1732,7 @@ function TimeSeriesChart() {
           }}
         />
         <TextField
-          style={{
-            marginTop: "20px",
-            marginRight: "5px",
-            marginLeft: "10px",
-            width: "100px",
-          }}
+          sx={{ width: 120 }}
           size="small"
           id="last-10d"
           label="⭐ Last 10 d"
@@ -1768,12 +1742,7 @@ function TimeSeriesChart() {
           }}
         />
         <TextField
-          style={{
-            marginTop: "20px",
-            marginRight: "5px",
-            marginLeft: "10px",
-            width: "210px",
-          }}
+          sx={{ width: 220 }}
           size="small"
           id="creation-date"
           label="Creation Date"
@@ -1783,12 +1752,7 @@ function TimeSeriesChart() {
           }}
         />
         <TextField
-          style={{
-            marginTop: "20px",
-            marginRight: "10px",
-            marginLeft: "10px",
-            width: "130px",
-          }}
+          sx={{ width: 145 }}
           size="small"
           id="age"
           label="Age"
@@ -1797,22 +1761,14 @@ function TimeSeriesChart() {
             readOnly: true,
           }}
         />
-      </div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          marginTop: "10px",
-          marginLeft: "10px",
-          marginBottom: "10px",
-        }}
-      >
-        {/* Mobile version icon button with tooltip */}
-        <Tooltip title="Open mobile version of stats explorer">
+        </Box>
+      </Paper>
+
+      {/* Controls & Actions */}
+      <Paper elevation={2} sx={{ p: 1.5, mb: 1.5 }}>
+        <Box sx={{ display: "flex", gap: 1.2, flexWrap: "wrap", alignItems: "center" }}>
+        <Tooltip title="Open mobile version">
           <IconButton
-            style={{
-              marginRight: "15px",
-            }}
             size="small"
             color="primary"
             onClick={openMobileVersion}
@@ -1821,42 +1777,25 @@ function TimeSeriesChart() {
           </IconButton>
         </Tooltip>
 
-        <div
-          style={{
-            width: "110px",
-          }}
-        >
-          <FormControl>
-            <InputLabel id="style-select-drop">Theme</InputLabel>
-            <Select
-              labelId="theme"
-              id="theme"
-              value={theme}
-              size="small"
-              label="Theme"
-              onChange={handleThemeChange}
-            >
-              <MenuItem value={"fusion"}>Fusion</MenuItem>
-              <MenuItem value={"candy"}>Candy</MenuItem>
-              <MenuItem value={"gammel"}>Gammel</MenuItem>
-              <MenuItem value={"zune"}>Zune</MenuItem>
-              <MenuItem value={"umber"}>Umber</MenuItem>
-            </Select>
-          </FormControl>
-        </div>
-
-        <FormControl
-          style={{
-            width: "180px",
-            marginRight: "10px",
-          }}
-        >
-          <InputLabel id="transformation-select-drop">Transform</InputLabel>
+        <FormControl sx={{ width: 110 }} size="small">
+          <InputLabel>Theme</InputLabel>
           <Select
-            labelId="transformation"
-            id="transformation"
+            value={theme}
+            label="Theme"
+            onChange={handleThemeChange}
+          >
+            <MenuItem value={"fusion"}>Fusion</MenuItem>
+            <MenuItem value={"candy"}>Candy</MenuItem>
+            <MenuItem value={"gammel"}>Gammel</MenuItem>
+            <MenuItem value={"zune"}>Zune</MenuItem>
+            <MenuItem value={"umber"}>Umber</MenuItem>
+          </Select>
+        </FormControl>
+
+        <FormControl sx={{ width: 160 }} size="small">
+          <InputLabel>Transform</InputLabel>
+          <Select
             value={transformation}
-            size="small"
             label="Transform"
             onChange={handleTransformationChange}
           >
@@ -1870,24 +1809,14 @@ function TimeSeriesChart() {
             <MenuItem value={"runningAverage"}>Running Average</MenuItem>
             <MenuItem value={"runningMedian"}>Running Median</MenuItem>
             <MenuItem value={"firstOrderDerivative"}>Derivative</MenuItem>
-            <MenuItem value={"secondOrderDerivative"}>
-              Second Derivative
-            </MenuItem>
+            <MenuItem value={"secondOrderDerivative"}>2nd Derivative</MenuItem>
           </Select>
         </FormControl>
         {transformation.includes("Binning") && (
-          <FormControl
-            style={{
-              width: "100px",
-              marginRight: "2px",
-            }}
-          >
-            <InputLabel id="aggregation-select-drop">Aggregate</InputLabel>
+          <FormControl sx={{ width: 90 }} size="small">
+            <InputLabel>Aggregate</InputLabel>
             <Select
-              labelId="aggregation"
-              id="aggregation"
               value={aggregation}
-              size="small"
               label="Aggregate"
               onChange={handleAggregationChange}
             >
@@ -1898,187 +1827,126 @@ function TimeSeriesChart() {
             </Select>
           </FormControl>
         )}
-        {
-          <Checkbox
-            checked={checkedYAxisType}
-            onChange={handleYAxisTypeCheckChange}
-            inputProps={{ "aria-label": "controlled" }}
-          />
-        }
-        <Typography variant="body2">Log Y-Axis</Typography>
-
-        <Button
-          style={{
-            marginLeft: "10px",
-          }}
-          size="small"
-          variant="contained"
-          onClick={downloadCSV}
-        >
-          Download CSV
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={checkedYAxisType}
+              onChange={handleYAxisTypeCheckChange}
+              size="small"
+            />
+          }
+          label="Log Y"
+        />
+        <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
+        <Button size="small" variant="outlined" onClick={downloadCSV}>
+          CSV
         </Button>
-        <br />
-        <Tooltip 
-          title={last30Active ? "Restore full timeline view" : "Zoom to last 30 days and keep it across fetches"}
-          placement="top"
-          arrow
-        >
-        <span>
-        <Button
-          style={{
-            marginLeft: "10px",
-            marginRight: "10px",
-          }}
-          size="small"
-          variant="contained"
-          onClick={downloadJSON}
-        >
-          Download Json
+        <Button size="small" variant="outlined" onClick={downloadJSON}>
+          JSON
         </Button>
-        </span>
-        </Tooltip>
         <CopyToClipboardButton
-          style={{
-            marginLeft: "10px",
-            marginRight: "30px",
-          }}
           dateRange={checkedDateRange ? selectedTimeRange : null}
           transformation={transformation}
         />
-        <Tooltip title={INCLUDE_DATE_RANGE}>
-          {
+        <FormControlLabel
+          control={
             <Checkbox
               checked={checkedDateRange}
               onChange={handleDateRangeCheckChange}
-              inputProps={{ "aria-label": "controlled" }}
+              size="small"
             />
           }
-        </Tooltip>
-        <Typography variant="body2">With Date Range</Typography>
-        <Button
-          style={{
-            marginLeft: "10px",
-          }}
-          size="small"
-          variant="contained"
-          onClick={openCurrentRepoPage}
-        >
-          Open GH repo
-        </Button>
-        <div
-          style={{
-            marginTop: "5px",
-            marginLeft: "10px",
-          }}
-        >
-          <GitHubButton
-            href="https://github.com/emanuelef/daily-stars-explorer"
-            data-color-scheme="no-preference: dark; light: dark_dimmed; dark: dark_high_contrast;"
-            data-size="large"
-            data-show-count="true"
-            aria-label="Star emanuelef/daily-stars-explorer on GitHub"
-          >
-            Star Me
-          </GitHubButton>
-        </div>
-      </div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          marginTop: "10px",
-          marginLeft: "10px",
-        }}
-      >
-        <label
-          style={{
-            color: "white",
-            marginRight: "10px",
-          }}
-        >
-          New Stars in Zoomed Period:
-        </label>
-        <input
-          type="text"
-          value={`${formatNumber(zoomedStars)} - ${zoomedStarsPercentageTotal}%`}
-          readOnly
-          style={{
-            color: "white",
-            backgroundColor: "black",
-            border: "1px solid #ccc",
-            borderRadius: "4px",
-            padding: "5px",
-            width: "130px",
-          }}
+          label="Date Range"
         />
-        <Button
-          style={{
-            marginLeft: "10px",
-            marginRight: "10px",
-          }}
+        <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
+        <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5 }}>
+          Zoomed:
+        </Typography>
+        <TextField
           size="small"
-          variant="contained"
-          onClick={() => {
-            if (
-              ds &&
-              ds.dataSource &&
-              ds.dataSource.data &&
-              ds.dataSource.data._data &&
-              ds.dataSource.data._data.length > 0
-            ) {
-              const dataArr = ds.dataSource.data._data;
-              const lastIdx = dataArr.length - 1;
-              const lastDate = dataArr[lastIdx][0];
-              const firstDateLast30 = dataArr[Math.max(0, lastIdx - 29)][0];
-              const firstDateFull = dataArr[0][0];
-
-              if (!last30Active) {
-                // Apply last 30 days and persist across fetches
-                setSelectedTimeRange({ start: firstDateLast30, end: lastDate });
-                setKeepLast30Zoom(true);
-                setLast30Active(true);
-                if (chartRef.current && chartRef.current.chartObj) {
-                  chartRef.current.chartObj.setTimeSelection({
-                    start: firstDateLast30,
-                    end: lastDate,
-                  });
-                }
-                handleZoom(firstDateLast30, lastDate);
-              } else {
-                // Restore full timeline and disable persistence
-                setKeepLast30Zoom(false);
-                setSelectedTimeRange({ start: firstDateFull, end: lastDate });
-                setLast30Active(false);
-                if (chartRef.current && chartRef.current.chartObj) {
-                  chartRef.current.chartObj.setTimeSelection({
-                    start: firstDateFull,
-                    end: lastDate,
-                  });
-                }
-                handleZoom(firstDateFull, lastDate);
-              }
-            }
+          value={`${formatNumber(zoomedStars)} (${zoomedStarsPercentageTotal}%)`}
+          InputProps={{
+            readOnly: true,
           }}
+          sx={{ width: 165 }}
+        />
+        <Tooltip 
+          title={last30Active ? "Restore full timeline" : "Zoom to last 30 days"}
+          arrow
         >
-          {last30Active ? "Full timeline" : "Last 30 days"}
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={() => {
+              if (
+                ds &&
+                ds.dataSource &&
+                ds.dataSource.data &&
+                ds.dataSource.data._data &&
+                ds.dataSource.data._data.length > 0
+              ) {
+                const dataArr = ds.dataSource.data._data;
+                const lastIdx = dataArr.length - 1;
+                const lastDate = dataArr[lastIdx][0];
+                const firstDateLast30 = dataArr[Math.max(0, lastIdx - 29)][0];
+                const firstDateFull = dataArr[0][0];
+
+                if (!last30Active) {
+                  setSelectedTimeRange({ start: firstDateLast30, end: lastDate });
+                  setKeepLast30Zoom(true);
+                  setLast30Active(true);
+                  if (chartRef.current && chartRef.current.chartObj) {
+                    chartRef.current.chartObj.setTimeSelection({
+                      start: firstDateLast30,
+                      end: lastDate,
+                    });
+                  }
+                  handleZoom(firstDateLast30, lastDate);
+                } else {
+                  setKeepLast30Zoom(false);
+                  setSelectedTimeRange({ start: firstDateFull, end: lastDate });
+                  setLast30Active(false);
+                  if (chartRef.current && chartRef.current.chartObj) {
+                    chartRef.current.chartObj.setTimeSelection({
+                      start: firstDateFull,
+                      end: lastDate,
+                    });
+                  }
+                  handleZoom(firstDateFull, lastDate);
+                }
+              }
+            }}
+          >
+            {last30Active ? "Full" : "Last 30d"}
+          </Button>
+        </Tooltip>
+        <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
+        <Button size="small" variant="outlined" onClick={openCurrentRepoPage}>
+          Open Repo
         </Button>
-      </div>
-      <EstimatedTimeProgress
-        text="Estimated Time Left"
-        totalTime={estimatedTime}
-      />
-      <ProgressBar value={progressValue} max={maxProgress} />
-      <div
-        id="chart-container"
-        style={{
-          marginLeft: "10px",
-        }}
-      >
+        </Box>
+      </Paper>
+
+      {/* Progress Indicators - Only show when actively loading */}
+      {loading && (
+        <Paper elevation={2} sx={{ p: 1.5, mb: 1.5 }}>
+          <EstimatedTimeProgress
+            text="Estimated Time Left"
+            totalTime={estimatedTime}
+          />
+          <ProgressBar value={progressValue} max={maxProgress} />
+        </Paper>
+      )}
+
+      {/* Chart Container */}
+      <Paper elevation={3} sx={{ p: 1.5 }}>
+        <Box id="chart-container">
         {ds != null && ds != chart_props && ds && ds.dataSource.data && (
           <ReactFC ref={chartRef} {...ds} />
         )}
-      </div>
-    </div>
+        </Box>
+      </Paper>
+    </Box>
   );
 }
 
