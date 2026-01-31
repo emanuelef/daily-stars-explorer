@@ -5,6 +5,7 @@ import TextField from "@mui/material/TextField";
 import FormControl from "@mui/material/FormControl";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Tooltip from "@mui/material/Tooltip";
+import Autocomplete from "@mui/material/Autocomplete";
 import Checkbox from "@mui/material/Checkbox";
 import Button from "@mui/material/Button";
 import InputLabel from "@mui/material/InputLabel";
@@ -13,6 +14,8 @@ import Select from "@mui/material/Select";
 import LoadingButton from "@mui/lab/LoadingButton";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import SendIcon from "@mui/icons-material/Send";
+import Box from "@mui/material/Box";
+import Paper from "@mui/material/Paper";
 import FusionCharts from "fusioncharts";
 import TimeSeries from "fusioncharts/fusioncharts.timeseries";
 import ReactFC from "react-fusioncharts";
@@ -23,7 +26,6 @@ import GammelTheme from "fusioncharts/themes/fusioncharts.theme.gammel";
 import CandyTheme from "fusioncharts/themes/fusioncharts.theme.candy";
 import ZuneTheme from "fusioncharts/themes/fusioncharts.theme.zune";
 import UmberTheme from "fusioncharts/themes/fusioncharts.theme.umber";
-import GitHubButton from "react-github-btn";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -164,8 +166,24 @@ function PRsTimeSeriesChart() {
 
   const [selectedRepo, setSelectedRepo] = useState(defaultRepo);
   const [checkedDateRange, setCheckedDateRange] = useState(false);
+  const [starsRepos, setStarsRepos] = useState([]);
 
   const currentSSE = useRef(null);
+
+  // Fetch available repos for autocomplete
+  useEffect(() => {
+    const fetchRepos = async () => {
+      try {
+        const response = await fetch(`${HOST}/allStarsKeys`);
+        if (!response.ok) throw new Error("Failed to fetch repos");
+        const data = await response.json();
+        setStarsRepos(data.sort());
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchRepos();
+  }, []);
 
   const downloadCSV = () => {
     const repoParsed = parseGitHubRepoURL(selectedRepo);
@@ -459,7 +477,7 @@ function PRsTimeSeriesChart() {
 
     if (res) {
       setTotalStars(res.stars);
-      setCreationDate(res.createdAt);
+      setCreationDate(res.createdAt.split('T')[0]);
 
       const { years, months, days } = intervalToDuration({
         start: parseISO(res.createdAt),
@@ -492,13 +510,35 @@ function PRsTimeSeriesChart() {
     startSSEUpates(repoParsed, callsNeeded, status.onGoing);
   };
 
-  const handleInputChange = async (event, setStateFunction) => {
-    const inputText = event.target.value;
-    setStateFunction(inputText);
+  const handleClickWithRepo = async (repo) => {
+    const repoParsed = parseGitHubRepoURL(repo);
+    if (repoParsed === null) return;
+    setSelectedRepo(repo);
+
+    setLoading(true);
+    const res = await fetchTotalStars(repoParsed);
+    if (res) {
+      setTotalStars(res.stars);
+      setCreationDate(res.createdAt.split('T')[0]);
+      const { years, months, days } = intervalToDuration({
+        start: parseISO(res.createdAt),
+        end: Date.now(),
+      });
+      setAge(`${years && years !== 0 ? `${years}y ` : ""}${months && months !== 0 ? `${months}m ` : ""}${days && days !== 0 ? `${days}d ` : ""}`);
+    }
+    const status = await fetchStatus(repoParsed);
+    setProgressValue(0);
+    setMaxProgress(0);
+    if (!status.onGoing) {
+      fetchAllPRs(repoParsed);
+    }
+    const callsNeeded = Math.floor(res.stars / 100);
+    setMaxProgress(callsNeeded);
+    startSSEUpates(repoParsed, callsNeeded, status.onGoing);
   };
 
   return (
-    <div>
+    <Box sx={{ p: 1.5 }}>
       <ToastContainer
         position="top-center"
         autoClose={5000}
@@ -511,132 +551,100 @@ function PRsTimeSeriesChart() {
         pauseOnHover
         theme="dark"
       />
-      <div style={{ display: "flex", alignItems: "center" }}>
-        <TextField
-          style={{
-            marginTop: "20px",
-            marginRight: "20px",
-            marginLeft: "10px",
-            width: "500px",
-          }}
-          label="Enter a GitHub repository"
-          variant="outlined"
-          size="small"
-          value={selectedRepo}
-          onChange={(e) => handleInputChange(e, setSelectedRepo)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              handleClick();
-            }
-          }}
-        />
-        <LoadingButton
-          style={{
-            marginTop: "20px",
-            marginRight: "20px",
-            marginLeft: "10px",
-          }}
-          size="small"
-          onClick={handleClick}
-          endIcon={<SendIcon />}
-          loading={loading}
-          loadingPosition="end"
-          variant="contained"
-        >
-          <span>Fetch</span>
-        </LoadingButton>
-        {showForceRefetch && (
-          <Tooltip title={FORCE_REFETCH_TOOLTIP}>
-            <FormControlLabel
-              style={{
-                marginTop: "20px",
-              }}
-              control={
-                <Checkbox
-                  checked={forceRefetch}
-                  onChange={handleForceRefetchChange}
-                  name="forceRefetch"
-                />
+
+      {/* Main Controls */}
+      <Paper elevation={2} sx={{ p: 1.5, mb: 1.5 }}>
+        <Box sx={{ display: "flex", gap: 1.2, flexWrap: "wrap", alignItems: "center" }}>
+          <Autocomplete
+            freeSolo
+            disablePortal
+            id="combo-box-repo"
+            size="small"
+            options={starsRepos.map((el) => ({ label: el }))}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                sx={{ width: 400 }}
+                label="Enter a GitHub repository"
+                variant="outlined"
+                size="small"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleClickWithRepo(e.target.value);
+                  }
+                }}
+              />
+            )}
+            value={starsRepos.includes(selectedRepo) ? { label: selectedRepo } : selectedRepo ? { label: selectedRepo } : null}
+            onChange={(e, v, reason) => {
+              const repo = typeof v === "string" ? v : v?.label || "";
+              setSelectedRepo(repo);
+              if (reason === "selectOption" || reason === "createOption") {
+                handleClickWithRepo(repo);
               }
-              label="Force Refetch"
-            />
-          </Tooltip>
-        )}
-        <Tooltip title={INFO_TOOLTIP}>
-          <InfoOutlinedIcon
-            style={{ marginTop: "20px", marginRight: "10px", color: "grey" }}
+            }}
+            onInputChange={(e, v, reason) => {
+              if (reason === "input") setSelectedRepo(v);
+            }}
           />
-        </Tooltip>
-        <TextField
-          style={{
-            marginTop: "20px",
-            marginRight: "10px",
-            marginLeft: "10px",
-            width: "90px",
-          }}
-          size="small"
-          id="total-stars"
-          label="⭐ Total"
-          value={totalStars.toLocaleString()}
-          InputProps={{
-            readOnly: true,
-          }}
-        />
-        <TextField
-          style={{
-            marginTop: "20px",
-            marginRight: "10px",
-            marginLeft: "10px",
-            width: "210px",
-          }}
-          size="small"
-          id="creation-date"
-          label="Creation Date"
-          value={creationDate}
-          InputProps={{
-            readOnly: true,
-          }}
-        />
-        <TextField
-          style={{
-            marginTop: "20px",
-            marginRight: "10px",
-            marginLeft: "10px",
-            width: "120px",
-          }}
-          size="small"
-          id="age"
-          label="Age"
-          value={age}
-          InputProps={{
-            readOnly: true,
-          }}
-        />
-      </div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          marginTop: "10px",
-          marginLeft: "10px",
-          marginBottom: "10px",
-        }}
-      >
-        <div
-          style={{
-            width: "110px",
-          }}
-        >
-          <FormControl>
-            <InputLabel id="style-select-drop">Theme</InputLabel>
-            <Select
-              labelId="theme"
-              id="theme"
-              value={theme}
-              size="small"
-              label="Theme"
-              onChange={handleThemeChange}
-            >
+          <LoadingButton
+            size="small"
+            onClick={handleClick}
+            endIcon={<SendIcon />}
+            loading={loading}
+            loadingPosition="end"
+            variant="contained"
+          >
+            <span>Fetch</span>
+          </LoadingButton>
+          {showForceRefetch && (
+            <Tooltip title={FORCE_REFETCH_TOOLTIP}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={forceRefetch}
+                    onChange={handleForceRefetchChange}
+                    name="forceRefetch"
+                  />
+                }
+                label="Update"
+              />
+            </Tooltip>
+          )}
+          <Tooltip title={INFO_TOOLTIP}>
+            <InfoOutlinedIcon sx={{ color: "grey" }} />
+          </Tooltip>
+          <TextField
+            sx={{ width: 100 }}
+            size="small"
+            label="⭐ Total"
+            value={totalStars.toLocaleString()}
+            InputProps={{ readOnly: true }}
+          />
+          <TextField
+            sx={{ width: 180 }}
+            size="small"
+            label="Creation Date"
+            value={creationDate}
+            InputProps={{ readOnly: true }}
+          />
+          <TextField
+            sx={{ width: 120 }}
+            size="small"
+            label="Age"
+            value={age}
+            InputProps={{ readOnly: true }}
+          />
+        </Box>
+      </Paper>
+
+      {/* Controls & Actions */}
+      <Paper elevation={2} sx={{ p: 1.5, mb: 1.5 }}>
+        <Box sx={{ display: "flex", gap: 1.2, flexWrap: "wrap", alignItems: "center" }}>
+          <FormControl sx={{ width: 110 }} size="small">
+            <InputLabel>Theme</InputLabel>
+            <Select value={theme} label="Theme" onChange={handleThemeChange}>
               <MenuItem value={"fusion"}>Fusion</MenuItem>
               <MenuItem value={"candy"}>Candy</MenuItem>
               <MenuItem value={"gammel"}>Gammel</MenuItem>
@@ -644,88 +652,21 @@ function PRsTimeSeriesChart() {
               <MenuItem value={"umber"}>Umber</MenuItem>
             </Select>
           </FormControl>
-        </div>
+          <Button size="small" variant="outlined" onClick={downloadCSV}>CSV</Button>
+          <Button size="small" variant="outlined" onClick={downloadJSON}>JSON</Button>
+          <Button size="small" variant="outlined" onClick={openCurrentRepoPage}>Open Repo</Button>
+        </Box>
+      </Paper>
 
-        {/*      <CopyToClipboardButton
-          style={{
-            marginLeft: "10px",
-            marginRight: "30px",
-          }}
-          dateRange={checkedDateRange ? selectedTimeRange : null}
-          transformation={transformation}
-        />
-        <Tooltip title={INCLUDE_DATE_RANGE}>
-          {
-            <Checkbox
-              checked={checkedDateRange}
-              onChange={handleDateRangeCheckChange}
-              inputProps={{ "aria-label": "controlled" }}
-            />
-          }
-        </Tooltip>
-        <Typography variant="body2">With Date Range</Typography> */}
-        <Button
-          style={{
-            marginLeft: "10px",
-          }}
-          size="small"
-          variant="contained"
-          onClick={openCurrentRepoPage}
-        >
-          Open GH repo
-        </Button>
-
-        <Button
-          style={{
-            marginLeft: "10px",
-          }}
-          size="small"
-          variant="contained"
-          onClick={downloadCSV}
-        >
-          Download CSV
-        </Button>
-        <br />
-        <Button
-          style={{
-            marginLeft: "10px",
-            marginRight: "10px",
-          }}
-          size="small"
-          variant="contained"
-          onClick={downloadJSON}
-        >
-          Download Json
-        </Button>
-
-        <div
-          style={{
-            marginTop: "5px",
-            marginLeft: "10px",
-          }}
-        >
-          <GitHubButton
-            href="https://github.com/emanuelef/daily-stars-explorer"
-            data-color-scheme="no-preference: dark; light: dark_dimmed; dark: dark_high_contrast;"
-            data-size="large"
-            data-show-count="true"
-            aria-label="Star emanuelef/daily-stars-explorer on GitHub"
-          >
-            Star Me
-          </GitHubButton>
-        </div>
-      </div>
-      <div
-        id="chart-container"
-        style={{
-          marginLeft: "10px",
-        }}
-      >
-        {ds != null && ds != chart_props && ds && ds.dataSource.data && (
-          <ReactFC {...ds} />
-        )}
-      </div>
-    </div>
+      {/* Chart Container */}
+      <Paper elevation={3} sx={{ p: 1.5 }}>
+        <Box id="chart-container">
+          {ds != null && ds != chart_props && ds && ds.dataSource.data && (
+            <ReactFC {...ds} />
+          )}
+        </Box>
+      </Paper>
+    </Box>
   );
 }
 

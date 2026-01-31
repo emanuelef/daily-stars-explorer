@@ -31,6 +31,7 @@ import Diversity3OutlinedIcon from '@mui/icons-material/Diversity3Outlined';
 import AddBoxOutlinedIcon from '@mui/icons-material/AddBoxOutlined';
 import ArticleIcon from '@mui/icons-material/Article';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import StarOutlineRoundedIcon from '@mui/icons-material/StarOutlineRounded';
 
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -237,6 +238,45 @@ function App() {
               Info
             </MenuItem>
           </Menu>
+          {/* Subtle star link at bottom */}
+          <div style={{
+            position: 'absolute',
+            bottom: '12px',
+            left: 0,
+            right: 0,
+            display: 'flex',
+            justifyContent: 'center',
+          }}>
+            <Tooltip title="Star this project on GitHub" placement="right">
+              <a
+                href="https://github.com/emanuelef/daily-stars-explorer"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  color: 'rgba(0,0,0,0.5)',
+                  textDecoration: 'none',
+                  fontSize: '11px',
+                  padding: '6px 10px',
+                  borderRadius: '6px',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = 'rgba(0,0,0,0.8)';
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = 'rgba(0,0,0,0.5)';
+                  e.currentTarget.style.background = 'transparent';
+                }}
+              >
+                <StarOutlineRoundedIcon style={{ fontSize: '14px' }} />
+                {!collapsed && <span>Star</span>}
+              </a>
+            </Tooltip>
+          </div>
         </Sidebar>
         <section className="content">
           <Routes>
