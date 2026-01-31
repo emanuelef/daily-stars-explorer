@@ -61,7 +61,7 @@ func SSEHandler(currentSessions *session.SessionsLock) fiber.Handler {
 						continue
 					}
 
-					_, err = fmt.Fprintf(w, sseMessage)
+					_, err = fmt.Fprintf(w, "%s", sseMessage)
 					if err != nil {
 						log.Printf("Error while writing Data: %v\n", err)
 						continue
@@ -73,18 +73,16 @@ func SSEHandler(currentSessions *session.SessionsLock) fiber.Handler {
 						currentSessions.RemoveSession(&s)
 						keepAliveTickler.Stop()
 						loop = false
-						break
 					}
 
 				case <-keepAliveTickler.C:
-					fmt.Fprintf(w, keepAliveMsg)
+					fmt.Fprintf(w, "%s", keepAliveMsg)
 					err := w.Flush()
 					if err != nil {
 						log.Printf("Error while flushing: %v.\n", err)
 						currentSessions.RemoveSession(&s)
 						keepAliveTickler.Stop()
 						loop = false
-						break
 					}
 				}
 			}
