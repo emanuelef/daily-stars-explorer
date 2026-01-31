@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./App.css";
 
 import MainPage from "./MainPage";
 import TimeSeriesChart from "./TimeSeriesChart";
+import MobileStarsView from "./MobileStarsView";
 import HourlyStarsChart from "./HourlyStarsChart";
 import CompareChart from "./CompareChart";
 import IssuesTimeSeriesChart from "./IssuesTimeSeriesChart";
@@ -44,7 +45,14 @@ const darkTheme = createTheme({
 
 function App() {
   const [collapsed, setCollapsed] = useState(true);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const location = useLocation();
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   return (
     <ThemeProvider theme={darkTheme}>
@@ -232,11 +240,11 @@ function App() {
         </Sidebar>
         <section className="content">
           <Routes>
-            <Route path="/" element={<TimeSeriesChart />} />
-            <Route path="/:user/:repository" element={<TimeSeriesChart />} />
+            <Route path="/" element={isMobile ? <MobileStarsView /> : <TimeSeriesChart />} />
+            <Route path="/:user/:repository" element={isMobile ? <MobileStarsView /> : <TimeSeriesChart />} />
             <Route path="/limits" element={<MainPage />} />
             <Route path="/table" element={<Navigate to="/limits" replace />} />
-            <Route path="/starstimeline/:id" element={<TimeSeriesChart />} />
+            <Route path="/starstimeline/:id" element={isMobile ? <MobileStarsView /> : <TimeSeriesChart />} />
             <Route path="/hourly" element={<HourlyStarsChart />} />
             <Route path="/hourly/:user/:repository" element={<HourlyStarsChart />} />
             <Route path="/compare" element={<CompareChart />} />
