@@ -102,6 +102,17 @@ const MainPage = () => {
   const [resetLimitsTime, setResetLimitsTime] = useState(0);
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [activeOps, setActiveOps] = useState({ ongoingStars: [], busyClients: {}, totalActive: 0 });
+
+  const fetchActiveOps = async () => {
+    try {
+      const response = await fetch(`${HOST}/activeOps`);
+      const data = await response.json();
+      setActiveOps(data);
+    } catch (error) {
+      console.error("Error fetching active operations:", error);
+    }
+  };
 
   const fetchLimits = async () => {
     try {
@@ -134,6 +145,13 @@ const MainPage = () => {
   useEffect(() => {
     fetchLimits();
     const intervalId = setInterval(fetchLimits, 60000);
+    return () => clearInterval(intervalId);
+  }, []);
+
+  // Poll active operations every 5 seconds
+  useEffect(() => {
+    fetchActiveOps();
+    const intervalId = setInterval(fetchActiveOps, 5000);
     return () => clearInterval(intervalId);
   }, []);
 
@@ -232,6 +250,7 @@ const MainPage = () => {
         background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
         borderRadius: '16px',
         padding: '24px',
+        marginBottom: '24px',
         border: '1px solid rgba(59, 130, 246, 0.2)',
       }}>
         <h3 style={{ margin: '0 0 16px 0', color: '#fff', fontSize: '16px', fontWeight: '600' }}>
@@ -254,6 +273,97 @@ const MainPage = () => {
             This tool uses GraphQL queries which consume varying amounts of points depending on the complexity
             of the data being fetched.
           </div>
+        </div>
+      </div>
+
+      {/* Active Operations Card */}
+      <div style={{
+        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+        borderRadius: '16px',
+        padding: '24px',
+        border: '1px solid rgba(59, 130, 246, 0.2)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+          <h3 style={{ margin: 0, color: '#fff', fontSize: '16px', fontWeight: '600' }}>
+            🔄 Active Operations
+          </h3>
+          <span style={{
+            background: activeOps.totalActive > 0 ? '#10b981' : '#6b7280',
+            color: '#fff',
+            padding: '4px 12px',
+            borderRadius: '12px',
+            fontSize: '12px',
+            fontWeight: '600',
+          }}>
+            {activeOps.totalActive} active
+          </span>
+        </div>
+
+        {activeOps.totalActive === 0 ? (
+          <div style={{
+            padding: '24px',
+            textAlign: 'center',
+            color: '#6b7280',
+            fontSize: '14px',
+          }}>
+            No active operations
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {activeOps.ongoingStars.map((repo, index) => {
+              // Find which client is processing this repo
+              const clientKey = Object.entries(activeOps.busyClients || {})
+                .find(([_, r]) => r === repo)?.[0];
+
+              return (
+                <div
+                  key={index}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '12px 16px',
+                    background: 'rgba(16, 185, 129, 0.1)',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(16, 185, 129, 0.2)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      background: '#10b981',
+                      animation: 'pulse 2s infinite',
+                    }} />
+                    <span style={{ color: '#fff', fontSize: '14px', fontFamily: 'monospace' }}>
+                      {repo}
+                    </span>
+                  </div>
+                  {clientKey && (
+                    <span style={{
+                      color: '#9ca3af',
+                      fontSize: '12px',
+                      background: 'rgba(255,255,255,0.1)',
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                    }}>
+                      {clientKey}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <div style={{
+          marginTop: '16px',
+          fontSize: '11px',
+          color: '#6b7280',
+          textAlign: 'right',
+        }}>
+          Updates every 5 seconds
         </div>
       </div>
     </div>

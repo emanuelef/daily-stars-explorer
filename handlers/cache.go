@@ -93,6 +93,28 @@ func StatusHandler(
 	}
 }
 
+// ActiveOperationsHandler returns all currently active/ongoing operations
+func ActiveOperationsHandler(onGoingStars map[string]bool) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		// Get ongoing stars operations
+		ongoingRepos := make([]string, 0, len(onGoingStars))
+		for repo := range onGoingStars {
+			ongoingRepos = append(ongoingRepos, repo)
+		}
+
+		// Get busy clients from the client selector
+		busyClients := GetBusyClients()
+
+		data := map[string]any{
+			"ongoingStars": ongoingRepos,
+			"busyClients":  busyClients,
+			"totalActive":  len(ongoingRepos),
+		}
+
+		return c.JSON(data)
+	}
+}
+
 func DeleteRecentStarsCacheHandler(cacheStars *cache.Cache[string, types.StarsWithStatsResponse]) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		param := c.Query("repo")

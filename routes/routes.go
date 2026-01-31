@@ -82,6 +82,7 @@ func RegisterCacheRoutes(app *fiber.App, caches *Caches, onGoingStars map[string
 	app.Get("/allStarsCsv", handlers.AllStarsCSVHandler(caches.Stars))
 	app.Get("/status", handlers.StatusHandler(caches.Stars, onGoingStars))
 	app.Get("/deleteRecentStarsCache", handlers.DeleteRecentStarsCacheHandler(caches.Stars))
+	app.Get("/activeOps", handlers.ActiveOperationsHandler(onGoingStars))
 }
 
 // RegisterRequestStatsRoutes registers request statistics routes
