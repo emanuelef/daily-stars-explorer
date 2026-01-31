@@ -730,7 +730,7 @@ function ContributorsTimeSeriesChart() {
           size="small"
           id="total-stars"
           label="⭐ Total"
-          value={totalStars}
+          value={totalStars.toLocaleString()}
           InputProps={{
             readOnly: true,
           }}

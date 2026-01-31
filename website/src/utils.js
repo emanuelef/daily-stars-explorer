@@ -208,6 +208,12 @@ const formatNumber = (num) => {
   }
 }
 
+// Format number with locale-aware separators (e.g., 29,360 for US, 29.360 for Italy)
+const formatNumberFull = (num) => {
+  if (typeof num !== 'number' || isNaN(num)) return num;
+  return num.toLocaleString();
+}
+
 export {
   addRunningMedian,
   addRunningAverage,
@@ -218,4 +224,5 @@ export {
   calculateFirstDerivative,
   calculateSecondDerivative,
   formatNumber,
+  formatNumberFull,
 };

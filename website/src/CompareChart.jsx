@@ -29,10 +29,6 @@ import ZuneTheme from "fusioncharts/themes/fusioncharts.theme.zune";
 import UmberTheme from "fusioncharts/themes/fusioncharts.theme.umber";
 import CopyToClipboardButton from "./CopyToClipboardButton";
 
-import {
-  formatNumber,
-} from "./utils";
-
 const HOST = import.meta.env.VITE_HOST;
 const PREDICTOR_HOST = "https://emafuma.mywire.org:8082";
 
@@ -630,7 +626,7 @@ function CompareChart() {
           id="repo-increase"
           label="Increase"
           value={zoomedStars[selectedRepo] !== undefined
-            ? `${formatNumber(zoomedStars[selectedRepo])} (${zoomedStarsPercentageTotal[selectedRepo]}%)`
+            ? `${zoomedStars[selectedRepo].toLocaleString()} (${zoomedStarsPercentageTotal[selectedRepo]}%)`
             : "N/A"}
           InputProps={{
             readOnly: true,
@@ -663,7 +659,7 @@ function CompareChart() {
           id="repo2-increase"
           label="Increase"
           value={zoomedStars[selectedRepo2] !== undefined
-            ? `${formatNumber(zoomedStars[selectedRepo2])} (${zoomedStarsPercentageTotal[selectedRepo2]}%)`
+            ? `${zoomedStars[selectedRepo2].toLocaleString()} (${zoomedStarsPercentageTotal[selectedRepo2]}%)`
             : "N/A"}
           InputProps={{
             readOnly: true,

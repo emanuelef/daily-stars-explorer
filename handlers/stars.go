@@ -130,7 +130,9 @@ func AllStarsHandler(
 
 		if err := eg.Wait(); err != nil {
 			delete(onGoingStars, repo)
-			return err
+			log.Printf("Error fetching stars for %s: %v", repo, err)
+			status, message := classifyGitHubError(err)
+			return c.Status(status).SendString(message)
 		}
 
 		defer close(updateChannel)

@@ -16,7 +16,6 @@ import SendIcon from "@mui/icons-material/Send";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import Plot from "react-plotly.js";
 import { parseGitHubRepoURL } from "./githubUtils";
-import { formatNumber } from "./utils";
 
 const HOST = import.meta.env.VITE_HOST;
 
@@ -128,8 +127,10 @@ function HourlyStarsChart() {
   const [chartData, setChartData] = useState(null);
   const [rawData, setRawData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("");
   const [error, setError] = useState("");
   const [showError, setShowError] = useState(false);
+  const [retryAttempt, setRetryAttempt] = useState(0);
   const [starsRepos, setStarsRepos] = useState([]);
   const [lastDays, setLastDays] = useState(3);
   const [displayedLastDays, setDisplayedLastDays] = useState(3);
@@ -326,9 +327,20 @@ function HourlyStarsChart() {
     };
   };
 
-  const fetchHourlyStars = async (repo, days, complete = false) => {
+  const fetchHourlyStars = async (repo, days, complete = false, isRetry = false, retryCount = 0) => {
     try {
       setLoading(true);
+      
+      // Show informative loading message based on retry count
+      if (retryCount === 0) {
+        setLoadingMessage(rawData.length === 0 
+          ? "Fetching data... First-time fetch may take up to a minute for repos with many stars."
+          : "Fetching latest data...");
+      } else if (retryCount === 1) {
+        setLoadingMessage("Still processing... Large repos take longer. Please wait...");
+      } else {
+        setLoadingMessage("Almost there... Background processing is finishing up...");
+      }
 
       let url = `${HOST}/recentStarsByHour?repo=${repo}&lastDays=${days}`;
       if (complete) {
@@ -351,23 +363,46 @@ function HourlyStarsChart() {
         }
       }
 
+      // No client-side timeout - let the gateway timeout naturally and trigger retry logic
       const response = await fetch(url);
       if (!response.ok) {
-        setLoading(false);
         if (response.status === 404) {
+          setLoading(false);
+          setLoadingMessage("");
           setError(`Repository '${repo}' not found. Please check if the repository exists on GitHub.`);
           setShowError(true);
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        } else if (response.status === 504 || response.status === 502) {
+          // Gateway timeout - server is still processing, auto-retry without showing error
+          if (retryCount < 5) { // Max 5 retries = ~25-30 seconds of waiting
+            console.log(`Gateway timeout on attempt ${retryCount + 1}, retrying in 5s...`);
+            setTimeout(() => {
+              fetchHourlyStars(repo, days, complete, true, retryCount + 1);
+            }, 5000);
+            return; // Don't throw error, just wait and retry
+          } else {
+            // After 5 retries, show a helpful message
+            setLoading(false);
+            setLoadingMessage("");
+            setError(`This repository has a lot of data to process. Please try again in a minute - the server is caching the results in the background.`);
+            setShowError(true);
+            throw new Error(`Max retries reached`);
+          }
         } else {
+          setLoading(false);
+          setLoadingMessage("");
           setError("Internal Server Error. Please try again later.");
           setShowError(true);
+          throw new Error(`HTTP error! Status: ${response.status}`);
         }
-        throw new Error(`HTTP error! Status: ${response.status}`);
       }
       setShowError(false);
+      setRetryAttempt(0);
       
       let newData = await response.json();
       if (!newData) newData = [];
       setLoading(false);
+      setLoadingMessage("");
 
       let mergedData = newData;
 
@@ -402,7 +437,6 @@ function HourlyStarsChart() {
       
     } catch (error) {
       console.error(`An error occurred: ${error}`);
-      setLoading(false);
     }
   };
 
@@ -478,6 +512,12 @@ function HourlyStarsChart() {
           sx={{ mb: 2 }}
         >
           {error}
+        </Alert>
+      )}
+
+      {loading && loadingMessage && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          {loadingMessage}
         </Alert>
       )}
 
@@ -601,7 +641,7 @@ function HourlyStarsChart() {
           <StatCard
             icon="⭐"
             label={`Stars (${lastDays}d)`}
-            value={formatNumber(totalStars)}
+            value={totalStars.toLocaleString()}
             color="#fbbf24"
           />
           {chartData.topHour && (

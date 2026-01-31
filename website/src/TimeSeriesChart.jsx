@@ -154,15 +154,19 @@ function TimeSeriesChart() {
   const [zoomedStarsPercentageTotal, setZoomedStarsPercentageTotal] = useState(0);
 
   const handleZoom = (start, end) => {
-    if (ds && ds.dataSource && ds.dataSource.data) {
+    if (ds && ds.dataSource && ds.dataSource.data && ds.dataSource.data._data && ds.dataSource.data._data.length > 0) {
       const zoomedData = ds.dataSource.data._data.filter(
         (dataPoint) => dataPoint[0] >= start && dataPoint[0] <= end
       );
       const totalStarsSelection = zoomedData.reduce((sum, dataPoint) => sum + dataPoint[1], 0);
       setZoomedStars(totalStarsSelection);
-      setZoomedStarsPercentageTotal(
-        ((totalStarsSelection / ds.dataSource.data._data[ds.dataSource.data._data.length - 1][2]) * 100).toFixed(2)
-      );
+      
+      const lastDataPoint = ds.dataSource.data._data[ds.dataSource.data._data.length - 1];
+      if (lastDataPoint && lastDataPoint[2] !== undefined) {
+        setZoomedStarsPercentageTotal(
+          ((totalStarsSelection / lastDataPoint[2]) * 100).toFixed(2)
+        );
+      }
     }
   };
 
@@ -306,6 +310,20 @@ function TimeSeriesChart() {
   const [checkedDateRange, setCheckedDateRange] = useState(false);
 
   const currentSSE = useRef(null);
+  const isMountedRef = useRef(true);
+
+  // Cleanup SSE on unmount and mark component as unmounted
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (currentSSE.current) {
+        console.log("Cleanup: Closing SSE connection");
+        currentSSE.current.close();
+        currentSSE.current = null;
+      }
+    };
+  }, []);
 
   // Check if user is on a mobile device
   useEffect(() => {
@@ -724,6 +742,9 @@ function TimeSeriesChart() {
         if (response.status === 404) {
           setError(`Repository '${repo}' not found. Please check if the repository exists on GitHub.`);
           setShowError(true);
+        } else if (response.status === 429) {
+          setError("GitHub API rate limit exceeded. Please wait a few minutes and try again.");
+          setShowError(true);
         } else {
           setError("Internal Server Error. Please try again later.");
           setShowError(true);
@@ -749,6 +770,9 @@ function TimeSeriesChart() {
         setLoading(false);
         if (response.status === 404) {
           setError(`Repository '${repo}' not found. Please check if the repository exists on GitHub.`);
+          setShowError(true);
+        } else if (response.status === 429) {
+          setError("GitHub API rate limit exceeded. Please wait a few minutes and try again.");
           setShowError(true);
         } else {
           setError("Error checking repository status. Please try again later.");
@@ -871,7 +895,7 @@ function TimeSeriesChart() {
     console.log(starHistory.length);
 
     // Remove spike on first day if higher or equal than 98 percentile
-    if (starHistory.length > 2) {
+    if (res && starHistory.length > 2) {
       console.log(starHistory[0][1], res[2]);
       if (starHistory[0][1] >= res[2]) {
         // remove first element
@@ -1128,6 +1152,7 @@ function TimeSeriesChart() {
 
     fetch(fetchUrl)
       .then((response) => {
+        if (!isMountedRef.current) return null; // Component unmounted
         if (!response.ok) {
           setLoading(false);
           // Don't show errors for allStars API call - it will be retried automatically
@@ -1139,6 +1164,7 @@ function TimeSeriesChart() {
         return response.json();
       })
       .then((data) => {
+        if (!data || !isMountedRef.current) return; // Component unmounted or no data
         setLoading(false);
         const starHistory = data.stars;
         setCurrentStarsHistory(starHistory);
@@ -1349,11 +1375,12 @@ function TimeSeriesChart() {
       // Get the current star history and update it with today's data if needed
       const repoParsed = parseGitHubRepoURL(selectedRepo);
       setTimeout(async () => {
+        if (!isMountedRef.current) return; // Component unmounted
         const res = await fetchTotalStars(repoParsed);
-        if (res) {
+        if (res && isMountedRef.current) {
           const freshTotalStars = res.stars;
           fetchAllStars(repoParsed, false, freshTotalStars);
-        } else {
+        } else if (isMountedRef.current) {
           handleClick();
         }
       }, 1000); // Short delay for consistency
@@ -1366,6 +1393,7 @@ function TimeSeriesChart() {
       currentSSE.current = sse;
 
       sse.onerror = (err) => {
+        if (!isMountedRef.current) return; // Component unmounted
         console.log("on error", err);
         // Only show error if the SSE connection fails after some time (not on initial load)
         // This prevents showing errors that are part of the normal retry process
@@ -1386,6 +1414,7 @@ function TimeSeriesChart() {
       };
 
       sse.addEventListener("current-value", (event) => {
+        if (!isMountedRef.current) return; // Component unmounted
         const parsedData = JSON.parse(event.data);
         const currentValue = parsedData.data;
         setProgressValue(currentValue);
@@ -1399,13 +1428,14 @@ function TimeSeriesChart() {
           // Get the current star history and update it with today's data if needed
           const repo = parseGitHubRepoURL(selectedRepo);
           setTimeout(async () => {
+            if (!isMountedRef.current) return; // Component unmounted
             // Fetch the current total stars
             const res = await fetchTotalStars(repo);
-            if (res) {
+            if (res && isMountedRef.current) {
               const freshTotalStars = res.stars;
               // Use fetchAllStars with the current total stars to ensure it's properly updated
               fetchAllStars(repo, false, freshTotalStars);
-            } else {
+            } else if (isMountedRef.current) {
               // Fallback to handleClick if we couldn't fetch total stars
               handleClick();
             }
@@ -1722,11 +1752,11 @@ function TimeSeriesChart() {
           <InfoOutlinedIcon sx={{ color: "grey" }} />
         </Tooltip>
         <TextField
-          sx={{ width: 110 }}
+          sx={{ width: 120 }}
           size="small"
           id="total-stars"
           label="⭐ Total"
-          value={totalStars}
+          value={totalStars.toLocaleString()}
           InputProps={{
             readOnly: true,
           }}
@@ -1736,7 +1766,7 @@ function TimeSeriesChart() {
           size="small"
           id="last-10d"
           label="⭐ Last 10 d"
-          value={starsLast10d}
+          value={typeof starsLast10d === 'number' ? starsLast10d.toLocaleString() : starsLast10d}
           InputProps={{
             readOnly: true,
           }}
