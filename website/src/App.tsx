@@ -62,7 +62,7 @@ function App() {
         <Sidebar
           className="sidebar"
           collapsed={collapsed}
-          backgroundColor="rgb(51, 117, 117)"
+          backgroundColor="#1a1a2e"
           width={collapsed ? "70" : "200"}
         >
           <Menu
@@ -70,8 +70,11 @@ function App() {
               button: ({ level, active, disabled }) => {
                 if (level >= 0)
                   return {
-                    color: disabled ? "#f5d9ff" : "#07100d",
-                    backgroundColor: active ? "#cccccc" : "undefined",
+                    color: disabled ? "#6b7280" : "#e5e7eb",
+                    backgroundColor: active ? "rgba(59, 130, 246, 0.2)" : undefined,
+                    "&:hover": {
+                      backgroundColor: "rgba(59, 130, 246, 0.1)",
+                    },
                   };
               },
             }}
@@ -89,7 +92,7 @@ function App() {
                 </Tooltip>
               }
             >
-              <h2 style={{ color: "black" }}>Stars Explorer</h2>
+              <h2 style={{ color: "#fff", fontSize: "16px", fontWeight: 600 }}>Stars Explorer</h2>
             </MenuItem>
             <MenuItem
               component={<Link to="/starstimeline/:id" className="link" />}
@@ -256,7 +259,7 @@ function App() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '4px',
-                  color: 'rgba(0,0,0,0.5)',
+                  color: 'rgba(255,255,255,0.5)',
                   textDecoration: 'none',
                   fontSize: '11px',
                   padding: '6px 10px',
@@ -264,11 +267,11 @@ function App() {
                   transition: 'all 0.2s',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.color = 'rgba(0,0,0,0.8)';
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+                  e.currentTarget.style.color = 'rgba(255,255,255,0.8)';
+                  e.currentTarget.style.background = 'rgba(59,130,246,0.1)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.color = 'rgba(0,0,0,0.5)';
+                  e.currentTarget.style.color = 'rgba(255,255,255,0.5)';
                   e.currentTarget.style.background = 'transparent';
                 }}
               >

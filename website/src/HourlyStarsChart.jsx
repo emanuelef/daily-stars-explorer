@@ -578,7 +578,7 @@ function HourlyStarsChart() {
             width: isMobile ? "100%" : "auto",
             flexWrap: "wrap"
           }}>
-            <FormControl style={{ width: isMobile ? "calc(50% - 5px)" : "100px" }} size="small">
+            <FormControl style={{ width: isMobile ? "calc(50% - 5px)" : "120px" }} size="small">
               <InputLabel id="last-days-select">Days</InputLabel>
               <Select
                 labelId="last-days"
@@ -592,6 +592,7 @@ function HourlyStarsChart() {
                 <MenuItem value={3}>3 Days</MenuItem>
                 <MenuItem value={7}>7 Days</MenuItem>
                 <MenuItem value={14}>14 Days</MenuItem>
+                <MenuItem value={30}>30 Days</MenuItem>
               </Select>
             </FormControl>
             {!isMobile && (
