@@ -17,6 +17,17 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import Plot from "react-plotly.js";
 import { parseGitHubRepoURL } from "./githubUtils";
 
+// Hook for detecting mobile
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+  return isMobile;
+};
+
 const HOST = import.meta.env.VITE_HOST;
 
 const INFO_TOOLTIP =
@@ -142,6 +153,7 @@ function HourlyStarsChart() {
     return detected ? detected.value : 'UTC';
   });
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   const getTimeZoneOffset = (date, tz) => {
     try {
@@ -484,16 +496,6 @@ function HourlyStarsChart() {
     }
   }, [showError]);
 
-  const openCurrentRepoPage = () => {
-    const repoParsed = parseGitHubRepoURL(selectedRepo);
-    window.open("https://github.com/" + repoParsed, "_blank");
-  };
-
-  const goToDailyView = () => {
-    const repoParsed = parseGitHubRepoURL(selectedRepo);
-    navigate(`/${repoParsed}`);
-  };
-
   return (
     <div style={{ background: '#0f0f0f', minHeight: '100vh', padding: '20px' }}>
       {showError && (
@@ -525,11 +527,17 @@ function HourlyStarsChart() {
       <div style={{
         background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
         borderRadius: '16px',
-        padding: '24px',
-        marginBottom: '24px',
+        padding: isMobile ? '16px' : '24px',
+        marginBottom: isMobile ? '16px' : '24px',
         border: '1px solid rgba(59, 130, 246, 0.2)',
       }}>
-        <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
+        <div style={{
+          display: "flex",
+          alignItems: isMobile ? "stretch" : "center",
+          flexDirection: isMobile ? "column" : "row",
+          flexWrap: "wrap",
+          gap: isMobile ? "10px" : "12px"
+        }}>
           <Autocomplete
             freeSolo
             disablePortal
@@ -539,7 +547,7 @@ function HourlyStarsChart() {
             renderInput={(params) => (
               <TextField
                 {...params}
-                style={{ width: "400px" }}
+                style={{ width: isMobile ? "100%" : "400px" }}
                 label="Enter a GitHub repository"
                 variant="outlined"
                 size="small"
@@ -551,6 +559,7 @@ function HourlyStarsChart() {
                 }}
               />
             )}
+            style={{ width: isMobile ? "100%" : "auto" }}
             value={starsRepos.includes(selectedRepo) ? { label: selectedRepo } : selectedRepo ? { label: selectedRepo } : null}
             onChange={(e, v, reason) => {
               const repo = typeof v === "string" ? v : v?.label || "";
@@ -563,70 +572,66 @@ function HourlyStarsChart() {
               if (reason === "input") setSelectedRepo(v);
             }}
           />
-          <FormControl style={{ width: "120px" }}>
-            <InputLabel id="last-days-select">Days</InputLabel>
-            <Select
-              labelId="last-days"
-              id="last-days"
-              value={lastDays}
-              size="small"
-              label="Days"
-              onChange={handleLastDaysChange}
-            >
-              <MenuItem value={1}>1 Day</MenuItem>
-              <MenuItem value={3}>3 Days</MenuItem>
-              <MenuItem value={7}>7 Days</MenuItem>
-              <MenuItem value={14}>14 Days</MenuItem>
-              <MenuItem value={30}>30 Days</MenuItem>
-              <MenuItem value={60}>60 Days</MenuItem>
-            </Select>
-          </FormControl>
-          <Autocomplete
-            disablePortal
-            size="small"
-            options={TIMEZONES}
-            groupBy={(option) => option.region}
-            getOptionLabel={(option) => option.city}
-            value={TIMEZONES.find((opt) => opt.value === timeZone) || null}
-            onChange={(_, v) => v && setTimeZone(v.value)}
-            sx={{ width: 240 }}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Timezone"
+          <div style={{
+            display: "flex",
+            gap: "10px",
+            width: isMobile ? "100%" : "auto",
+            flexWrap: "wrap"
+          }}>
+            <FormControl style={{ width: isMobile ? "calc(50% - 5px)" : "100px" }} size="small">
+              <InputLabel id="last-days-select">Days</InputLabel>
+              <Select
+                labelId="last-days"
+                id="last-days"
+                value={lastDays}
                 size="small"
+                label="Days"
+                onChange={handleLastDaysChange}
+              >
+                <MenuItem value={1}>1 Day</MenuItem>
+                <MenuItem value={3}>3 Days</MenuItem>
+                <MenuItem value={7}>7 Days</MenuItem>
+                <MenuItem value={14}>14 Days</MenuItem>
+              </Select>
+            </FormControl>
+            {!isMobile && (
+              <Autocomplete
+                disablePortal
+                size="small"
+                options={TIMEZONES}
+                groupBy={(option) => option.region}
+                getOptionLabel={(option) => option.city}
+                value={TIMEZONES.find((opt) => opt.value === timeZone) || null}
+                onChange={(_, v) => v && setTimeZone(v.value)}
+                sx={{ width: 200 }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Timezone"
+                    size="small"
+                  />
+                )}
+                renderOption={(props, option) => (
+                  <li {...props} key={option.value}>
+                    <span style={{ fontWeight: 500 }}>{option.city}</span>
+                    <span style={{ marginLeft: 8, color: '#9ca3af', fontSize: '0.875rem' }}>
+                      {option.offset}
+                    </span>
+                  </li>
+                )}
               />
             )}
-            renderOption={(props, option) => (
-              <li {...props} key={option.value}>
-                <span style={{ fontWeight: 500 }}>{option.city}</span>
-                <span style={{ marginLeft: 8, color: '#9ca3af', fontSize: '0.875rem' }}>
-                  {option.offset}
-                </span>
-              </li>
-            )}
-          />
-          <Button
-            size="small"
-            onClick={handleClick}
-            variant="contained"
-            disabled={loading}
-            endIcon={loading ? <CircularProgress size={18} color="inherit" /> : <SendIcon />}
-          >
-            {loading ? "Loading..." : "Fetch"}
-          </Button>
-          <Tooltip title={INFO_TOOLTIP}>
-            <InfoOutlinedIcon style={{ color: "grey" }} />
-          </Tooltip>
-        </div>
-
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "16px" }}>
-          <Button size="small" variant="outlined" onClick={goToDailyView}>
-            Daily View
-          </Button>
-          <Button size="small" variant="outlined" onClick={openCurrentRepoPage}>
-            Open GH repo
-          </Button>
+            <Button
+              size="small"
+              onClick={handleClick}
+              variant="contained"
+              disabled={loading}
+              style={{ flex: isMobile ? 1 : "none" }}
+              endIcon={loading ? <CircularProgress size={18} color="inherit" /> : <SendIcon />}
+            >
+              {loading ? "Loading..." : "Fetch"}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -634,20 +639,28 @@ function HourlyStarsChart() {
       {chartData && (
         <div style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-          gap: "16px",
-          marginBottom: "24px"
+          gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: isMobile ? "10px" : "16px",
+          marginBottom: isMobile ? "16px" : "24px"
         }}>
           <StatCard
             icon="⭐"
-            label={`Stars (${lastDays}d)`}
+            label={`Stars (${displayedLastDays}d)`}
             value={totalStars.toLocaleString()}
             color="#fbbf24"
           />
-          {chartData.topHour && (
+          {chartData.bestHourLabel && (
+            <StatCard
+              icon="⏰"
+              label={`Best Hour (${TIMEZONES.find(t => t.value === timeZone)?.city || 'UTC'})`}
+              value={`${chartData.bestHourLabel}:00`}
+              color="#10b981"
+            />
+          )}
+          {!isMobile && chartData.topHour && (
             <StatCard
               icon="🏆"
-              label="Peak Hour (UTC)"
+              label={`Peak Hour (${TIMEZONES.find(t => t.value === timeZone)?.city || 'UTC'})`}
               value={(() => {
                 const iso = chartData.topHour.replace('Z', '');
                 const [date, time] = iso.split('T');
@@ -658,7 +671,7 @@ function HourlyStarsChart() {
               color="#ef4444"
             />
           )}
-          {chartData.topDay && (
+          {!isMobile && chartData.topDay && (
             <StatCard
               icon="📅"
               label="Peak Day"
@@ -669,14 +682,6 @@ function HourlyStarsChart() {
               color="#8b5cf6"
             />
           )}
-          {chartData.bestHourLabel && (
-            <StatCard
-              icon="⏰"
-              label="Best Hour(s)"
-              value={`${chartData.bestHourLabel}:00 (avg ${chartData.avgStarsLabel})`}
-              color="#10b981"
-            />
-          )}
         </div>
       )}
 
@@ -684,9 +689,9 @@ function HourlyStarsChart() {
       <div style={{
         background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
         borderRadius: '16px',
-        padding: '24px',
+        padding: isMobile ? '12px' : '24px',
         border: '1px solid rgba(59, 130, 246, 0.2)',
-        minHeight: 'clamp(360px, 60vh, 720px)',
+        minHeight: isMobile ? '300px' : 'clamp(360px, 60vh, 720px)',
         display: 'flex',
         flexDirection: 'column',
       }}>
@@ -697,14 +702,12 @@ function HourlyStarsChart() {
                 x: chartData.hours,
                 y: chartData.stars,
                 type: 'bar',
-                name: 'Hourly Stars',
+                name: 'Hourly',
                 marker: {
-                  color: chartData.stars.map((val, idx) =>
+                  color: chartData.stars.map((val) =>
                     `rgba(59, 130, 246, ${0.4 + (val / Math.max(...chartData.stars)) * 0.6})`
                   ),
-                  line: {
-                    width: 0
-                  }
+                  line: { width: 0 }
                 },
                 hovertemplate: '<b>%{x|%b %d, %H:%M}</b><br>Stars: %{y}<extra></extra>',
               },
@@ -713,10 +716,10 @@ function HourlyStarsChart() {
                 y: chartData.totalStarsData,
                 type: 'scatter',
                 mode: 'lines',
-                name: 'Total Stars',
+                name: 'Total',
                 line: {
                   color: '#10b981',
-                  width: 3,
+                  width: isMobile ? 2 : 3,
                   shape: 'spline',
                 },
                 fill: 'tozeroy',
@@ -726,58 +729,62 @@ function HourlyStarsChart() {
               },
             ]}
             layout={{
-              title: {
+              title: isMobile ? null : {
                 text: `Hourly Stars - ${displayedRepo}`,
-                font: { size: 24, color: '#ffffff', family: 'Inter, system-ui, sans-serif', weight: 700 },
+                font: { size: 20, color: '#ffffff', family: 'Inter, system-ui, sans-serif', weight: 700 },
                 x: 0.5,
                 xanchor: 'center',
               },
               xaxis: {
                 title: { text: '', font: { color: '#9ca3af' } },
                 type: 'date',
-                tickformat: lastDays <= 3 ? '%b %d %H:%M' : (lastDays <= 14 ? '%b %d' : '%m-%d'),
-                tickfont: { color: '#9ca3af', size: 11 },
+                tickformat: isMobile ? '%d %H:%M' : (displayedLastDays <= 3 ? '%b %d %H:%M' : (displayedLastDays <= 14 ? '%b %d' : '%m-%d')),
+                tickfont: { color: '#9ca3af', size: isMobile ? 9 : 11 },
                 gridcolor: 'rgba(255,255,255,0.05)',
                 showgrid: false,
-                rangeslider: { visible: lastDays > 7 }, // Add range slider for long periods
+                rangeslider: { visible: !isMobile && displayedLastDays > 7 },
               },
               yaxis: {
-                title: { text: 'Hourly Stars', font: { color: '#3b82f6', size: 13, weight: 600 } },
+                title: isMobile ? null : { text: 'Hourly Stars', font: { color: '#3b82f6', size: 12, weight: 600 } },
                 side: 'left',
-                tickfont: { color: '#9ca3af', size: 11 },
+                tickfont: { color: '#9ca3af', size: isMobile ? 9 : 11 },
                 gridcolor: 'rgba(255,255,255,0.08)',
                 zeroline: false,
               },
               yaxis2: {
-                title: { text: 'Total Stars', font: { color: '#10b981', size: 13, weight: 600 } },
+                title: isMobile ? null : { text: 'Total Stars', font: { color: '#10b981', size: 12, weight: 600 } },
                 overlaying: 'y',
                 side: 'right',
-                tickfont: { color: '#9ca3af', size: 11 },
+                tickfont: { color: '#9ca3af', size: isMobile ? 9 : 11 },
                 showgrid: false,
               },
               hovermode: 'x unified',
               showlegend: true,
               legend: {
-                x: 0.02,
-                y: 0.98,
+                x: isMobile ? 0.5 : 0.02,
+                y: isMobile ? 1.15 : 0.98,
+                xanchor: isMobile ? 'center' : 'left',
+                orientation: isMobile ? 'h' : 'v',
                 bgcolor: 'rgba(0,0,0,0.5)',
                 bordercolor: 'rgba(59, 130, 246, 0.3)',
                 borderwidth: 1,
-                font: { color: '#ffffff', size: 12 }
+                font: { color: '#ffffff', size: isMobile ? 10 : 12 }
               },
               paper_bgcolor: 'transparent',
               plot_bgcolor: 'transparent',
               font: { color: '#ffffff', family: 'Inter, system-ui, sans-serif' },
-              margin: { l: 60, r: 60, t: 80, b: lastDays > 7 ? 120 : 60 },
+              margin: isMobile
+                ? { l: 35, r: 35, t: 40, b: 40 }
+                : { l: 60, r: 60, t: 80, b: displayedLastDays > 7 ? 120 : 60 },
               shapes: [
                 ...((chartData.weekendBands) || []),
                 ...((chartData.dayStartShapes) || [])
               ],
-              bargap: 0.1,
+              bargap: isMobile ? 0.05 : 0.1,
             }}
             config={{
               responsive: true,
-              displayModeBar: true,
+              displayModeBar: !isMobile,
               displaylogo: false,
               modeBarButtonsToRemove: ['lasso2d', 'select2d'],
               toImageButtonOptions: {
@@ -790,7 +797,7 @@ function HourlyStarsChart() {
             }}
             style={{
               width: '100%',
-              height: 'clamp(320px, 55vh, 640px)',
+              height: isMobile ? '280px' : 'clamp(320px, 55vh, 640px)',
               flex: 1,
             }}
           />
@@ -799,12 +806,25 @@ function HourlyStarsChart() {
           <div style={{
             color: '#9ca3af',
             textAlign: 'center',
-            padding: '100px 20px',
-            fontSize: '18px',
+            padding: isMobile ? '60px 20px' : '100px 20px',
+            fontSize: isMobile ? '14px' : '18px',
           }}>
             👆 Click "Fetch" to load hourly stars data
           </div>
         )}
+      </div>
+
+      {/* Footer for mobile */}
+      <div style={{
+        textAlign: "center",
+        marginTop: "24px",
+        paddingBottom: "20px",
+        fontSize: "11px",
+        color: "#4b5563",
+        lineHeight: "1.6",
+      }}>
+        <div>For full features (compare, transforms, feeds, exports)</div>
+        <div>use a laptop or larger screen</div>
       </div>
     </div>
   );
