@@ -33,18 +33,12 @@ func AllIssuesHandler(
 ) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		param := c.Query("repo")
-
-		clientKeys := make([]string, 0, len(ghStatClients))
-		for k := range ghStatClients {
-			clientKeys = append(clientKeys, k)
-		}
-		randomIndex := rand.Intn(len(clientKeys))
-		clientKey := c.Query("client", clientKeys[randomIndex])
 		forceRefetch := c.Query("forceRefetch", "false") == "true"
+		overrideClient := c.Query("client", "")
 
-		client, ok := ghStatClients[clientKey]
-		if !ok {
-			return c.Status(404).SendString("Resource not found")
+		clientKey, client := SelectBestClient(ctx, ghStatClients, overrideClient)
+		if client == nil {
+			return c.Status(500).SendString("No GitHub API client available")
 		}
 
 		repo, err := url.QueryUnescape(param)
@@ -61,7 +55,7 @@ func AllIssuesHandler(
 		}
 
 		userAgent := c.Get("User-Agent")
-		log.Printf("Issues Request from IP: %s, Repo: %s User-Agent: %s\n", ip, repo, userAgent)
+		log.Printf("Issues Request from IP: %s, Repo: %s User-Agent: %s, Client: %s\n", ip, repo, userAgent, clientKey)
 
 		if strings.Contains(userAgent, "python-requests") {
 			return c.Status(404).SendString("Custom 404 Error: Resource not found")

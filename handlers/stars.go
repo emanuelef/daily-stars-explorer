@@ -35,19 +35,14 @@ func AllStarsHandler(
 ) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		param := c.Query("repo")
-
-		clientKeys := make([]string, 0, len(ghStatClients))
-		for k := range ghStatClients {
-			clientKeys = append(clientKeys, k)
-		}
-		randomIndex := rand.Intn(len(clientKeys))
-		clientKey := c.Query("client", clientKeys[randomIndex])
 		forceRefetch := c.Query("forceRefetch", "false") == "true"
+		overrideClient := c.Query("client", "")
 
-		client, ok := ghStatClients[clientKey]
-		if !ok {
-			return c.Status(404).SendString("Resource not found")
+		clientKey, client := SelectBestClient(ctx, ghStatClients, overrideClient)
+		if client == nil {
+			return c.Status(500).SendString("No GitHub API client available")
 		}
+		log.Printf("AllStars using client: %s", clientKey)
 
 		repo, err := url.QueryUnescape(param)
 		if err != nil {
@@ -99,6 +94,9 @@ func AllStarsHandler(
 
 		onGoingStars[repo] = true
 
+		// Mark this client as busy during the long-running operation
+		MarkClientBusy(clientKey, repo)
+
 		updateChannel := make(chan int)
 		var allStars []stats.StarsPerDay
 
@@ -130,6 +128,7 @@ func AllStarsHandler(
 
 		if err := eg.Wait(); err != nil {
 			delete(onGoingStars, repo)
+			MarkClientIdle(clientKey) // Mark client as available again
 			log.Printf("Error fetching stars for %s: %v", repo, err)
 			status, message := classifyGitHubError(err)
 			return c.Status(status).SendString(message)
@@ -166,6 +165,7 @@ func AllStarsHandler(
 
 		cacheStars.Set(repo, res, cache.WithExpiration(durationUntilEndOfDay))
 		delete(onGoingStars, repo)
+		MarkClientIdle(clientKey) // Mark client as available after successful completion
 
 		return c.JSON(res)
 	}
@@ -180,18 +180,13 @@ func RecentStarsHandler(
 	return func(c *fiber.Ctx) error {
 		param := c.Query("repo")
 		lastDaysStr := c.Query("lastDays", "30") // Default to 30 days if not provided
+		overrideClient := c.Query("client", "")
 
-		clientKeys := make([]string, 0, len(ghStatClients))
-		for k := range ghStatClients {
-			clientKeys = append(clientKeys, k)
+		clientKey, client := SelectBestClient(ctx, ghStatClients, overrideClient)
+		if client == nil {
+			return c.Status(500).SendString("No GitHub API client available")
 		}
-		randomIndex := rand.Intn(len(clientKeys))
-		clientKey := c.Query("client", clientKeys[randomIndex])
-
-		client, ok := ghStatClients[clientKey]
-		if !ok {
-			return c.Status(404).SendString("Resource not found")
-		}
+		log.Printf("RecentStars using client: %s", clientKey)
 
 		repo, err := url.QueryUnescape(param)
 		if err != nil {

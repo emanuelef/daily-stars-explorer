@@ -174,12 +174,12 @@ func TotalStarsHandler(
 ) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		param := c.Query("repo")
-		randomIndex := rand.Intn(len(maps.Keys(ghStatClients)))
-		clientKey := c.Query("client", maps.Keys(ghStatClients)[randomIndex])
-		client, ok := ghStatClients[clientKey]
-		if !ok {
-			return c.Status(404).SendString("Resource not found")
+		overrideClient := c.Query("client", "")
+		clientKey, client := SelectBestClient(ctx, ghStatClients, overrideClient)
+		if client == nil {
+			return c.Status(500).SendString("No GitHub API client available")
 		}
+		log.Printf("Using client: %s", clientKey)
 
 		repo, err := url.QueryUnescape(param)
 		if err != nil {
