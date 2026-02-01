@@ -503,7 +503,7 @@ function HourlyStarsChart() {
   }, [showError]);
 
   return (
-    <div style={{ background: currentTheme.background, minHeight: '100vh', padding: '20px' }}>
+    <div style={{ background: currentTheme.background, minHeight: '100vh', padding: '10px' }}>
       {showError && (
         <Alert
           severity="error"
@@ -532,9 +532,9 @@ function HourlyStarsChart() {
       {/* Controls Section */}
       <div style={{
         background: currentTheme.cardGradient,
-        borderRadius: '16px',
-        padding: isMobile ? '16px' : '24px',
-        marginBottom: isMobile ? '16px' : '24px',
+        borderRadius: '12px',
+        padding: isMobile ? '12px 16px' : '12px 16px',
+        marginBottom: '10px',
         border: `1px solid ${currentTheme.cardBorder}`,
       }}>
         <div style={{
@@ -647,8 +647,8 @@ function HourlyStarsChart() {
         <div style={{
           display: "grid",
           gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fit, minmax(180px, 1fr))",
-          gap: isMobile ? "10px" : "16px",
-          marginBottom: isMobile ? "16px" : "24px"
+          gap: "10px",
+          marginBottom: "10px"
         }}>
           <StatCard
             icon="⭐"
@@ -699,8 +699,8 @@ function HourlyStarsChart() {
       {/* Chart Container */}
       <div style={{
         background: currentTheme.cardGradient,
-        borderRadius: '16px',
-        padding: isMobile ? '12px' : '24px',
+        borderRadius: '12px',
+        padding: '12px 16px',
         border: `1px solid ${currentTheme.cardBorder}`,
         minHeight: isMobile ? '300px' : 'clamp(360px, 60vh, 720px)',
         display: 'flex',
@@ -825,18 +825,20 @@ function HourlyStarsChart() {
         )}
       </div>
 
-      {/* Footer for mobile */}
-      <div style={{
-        textAlign: "center",
-        marginTop: "24px",
-        paddingBottom: "20px",
-        fontSize: "11px",
-        color: "#4b5563",
-        lineHeight: "1.6",
-      }}>
-        <div>For full features (compare, transforms, feeds, exports)</div>
-        <div>use a laptop or larger screen</div>
-      </div>
+      {/* Footer for mobile only */}
+      {isMobile && (
+        <div style={{
+          textAlign: "center",
+          marginTop: "24px",
+          paddingBottom: "20px",
+          fontSize: "11px",
+          color: "#4b5563",
+          lineHeight: "1.6",
+        }}>
+          <div>For full features (compare, transforms, feeds, exports)</div>
+          <div>use a laptop or larger screen</div>
+        </div>
+      )}
     </div>
   );
 }
