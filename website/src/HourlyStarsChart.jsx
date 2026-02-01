@@ -16,6 +16,7 @@ import SendIcon from "@mui/icons-material/Send";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import Plot from "react-plotly.js";
 import { parseGitHubRepoURL } from "./githubUtils";
+import { useAppTheme } from "./ThemeContext";
 
 // Hook for detecting mobile
 const useIsMobile = () => {
@@ -98,9 +99,11 @@ const detectUserTimezone = () => {
 };
 
 // Stat Card Component for clean visual hierarchy
-const StatCard = ({ icon, label, value, color = "#3b82f6" }) => (
+const StatCard = ({ icon, label, value, color = "#3b82f6", isDark = true }) => (
   <div style={{
-    background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%)',
+    background: isDark
+      ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%)'
+      : 'linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(16, 185, 129, 0.08) 100%)',
     border: `1px solid ${color}33`,
     borderRadius: '12px',
     padding: '12px 16px',
@@ -111,7 +114,7 @@ const StatCard = ({ icon, label, value, color = "#3b82f6" }) => (
       fontSize: '11px',
       textTransform: 'uppercase',
       letterSpacing: '0.5px',
-      color: '#9ca3af',
+      color: isDark ? '#9ca3af' : '#6b7280',
       marginBottom: '4px',
       fontWeight: '500',
     }}>
@@ -120,7 +123,7 @@ const StatCard = ({ icon, label, value, color = "#3b82f6" }) => (
     <div style={{
       fontSize: '18px',
       fontWeight: '700',
-      color: '#fff',
+      color: isDark ? '#fff' : '#1a1a2e',
       lineHeight: '1.2',
     }}>
       {value}
@@ -134,6 +137,9 @@ function HourlyStarsChart() {
   if (user && repository) {
     defaultRepo = `${user}/${repository}`;
   }
+
+  const { theme, currentTheme } = useAppTheme();
+  const isDark = theme === 'dark';
 
   const [chartData, setChartData] = useState(null);
   const [rawData, setRawData] = useState([]);
@@ -497,7 +503,7 @@ function HourlyStarsChart() {
   }, [showError]);
 
   return (
-    <div style={{ background: '#0f0f0f', minHeight: '100vh', padding: '20px' }}>
+    <div style={{ background: currentTheme.background, minHeight: '100vh', padding: '20px' }}>
       {showError && (
         <Alert
           severity="error"
@@ -525,11 +531,11 @@ function HourlyStarsChart() {
 
       {/* Controls Section */}
       <div style={{
-        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+        background: currentTheme.cardGradient,
         borderRadius: '16px',
         padding: isMobile ? '16px' : '24px',
         marginBottom: isMobile ? '16px' : '24px',
-        border: '1px solid rgba(59, 130, 246, 0.2)',
+        border: `1px solid ${currentTheme.cardBorder}`,
       }}>
         <div style={{
           display: "flex",
@@ -649,6 +655,7 @@ function HourlyStarsChart() {
             label={`Stars (${displayedLastDays}d)`}
             value={totalStars.toLocaleString()}
             color="#fbbf24"
+            isDark={isDark}
           />
           {chartData.bestHourLabel && (
             <StatCard
@@ -656,6 +663,7 @@ function HourlyStarsChart() {
               label={`Best Hour (${TIMEZONES.find(t => t.value === timeZone)?.city || 'UTC'})`}
               value={`${chartData.bestHourLabel}:00`}
               color="#10b981"
+              isDark={isDark}
             />
           )}
           {!isMobile && chartData.topHour && (
@@ -670,6 +678,7 @@ function HourlyStarsChart() {
                 return `${day}-${month} ${hour}:00 (${chartData.topHourCount})`;
               })()}
               color="#ef4444"
+              isDark={isDark}
             />
           )}
           {!isMobile && chartData.topDay && (
@@ -681,6 +690,7 @@ function HourlyStarsChart() {
                 return `${day}-${month}-${year} (${chartData.topDayCount})`;
               })()}
               color="#8b5cf6"
+              isDark={isDark}
             />
           )}
         </div>
@@ -688,10 +698,10 @@ function HourlyStarsChart() {
 
       {/* Chart Container */}
       <div style={{
-        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+        background: currentTheme.cardGradient,
         borderRadius: '16px',
         padding: isMobile ? '12px' : '24px',
-        border: '1px solid rgba(59, 130, 246, 0.2)',
+        border: `1px solid ${currentTheme.cardBorder}`,
         minHeight: isMobile ? '300px' : 'clamp(360px, 60vh, 720px)',
         display: 'flex',
         flexDirection: 'column',

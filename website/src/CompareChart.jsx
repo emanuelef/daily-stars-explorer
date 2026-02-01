@@ -15,7 +15,6 @@ import Alert from "@mui/material/Alert";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
 import Box from "@mui/material/Box";
-import Paper from "@mui/material/Paper";
 import Divider from "@mui/material/Divider";
 import { Link } from "react-router-dom";
 import FusionCharts from "fusioncharts";
@@ -28,6 +27,7 @@ import CandyTheme from "fusioncharts/themes/fusioncharts.theme.candy";
 import ZuneTheme from "fusioncharts/themes/fusioncharts.theme.zune";
 import UmberTheme from "fusioncharts/themes/fusioncharts.theme.umber";
 import CopyToClipboardButton from "./CopyToClipboardButton";
+import { useAppTheme } from "./ThemeContext";
 
 const HOST = import.meta.env.VITE_HOST;
 const PREDICTOR_HOST = "https://emafuma.mywire.org:8082";
@@ -90,6 +90,9 @@ const isToday = (dateString) => {
 };
 
 function CompareChart() {
+  const { theme: appTheme, currentTheme } = useAppTheme();
+  const defaultChartTheme = appTheme === 'dark' ? 'candy' : 'fusion';
+
   const chart_props = {
     type: "timeseries",
     width: "100%",
@@ -123,7 +126,7 @@ function CompareChart() {
       },
       chart: {
         animation: "0",
-        theme: "candy",
+        theme: defaultChartTheme,
         exportEnabled: "1",
         exportMode: "client",
         exportFormats: "PNG=Export as PNG|PDF=Export as PDF",
@@ -175,7 +178,22 @@ function CompareChart() {
   const [ds, setds] = useState(chart_props);
   const [loading, setLoading] = useState(false);
 
-  const [theme, setTheme] = useState("candy");
+  const [theme, setTheme] = useState(defaultChartTheme);
+
+  // Sync chart theme with app theme
+  useEffect(() => {
+    setTheme(defaultChartTheme);
+    setds(prevDs => ({
+      ...prevDs,
+      dataSource: {
+        ...prevDs.dataSource,
+        chart: {
+          ...prevDs.dataSource.chart,
+          theme: defaultChartTheme
+        }
+      }
+    }));
+  }, [appTheme]);
 
   const [aggregation, setAggregation] = useState(
     queryParams.get("aggregation") || "none"
@@ -570,7 +588,7 @@ function CompareChart() {
   };
 
   return (
-    <Box sx={{ p: 1.5 }}>
+    <div style={{ background: currentTheme.background, minHeight: '100vh', padding: '10px' }}>
       <div>
         {open && (
           <Alert
@@ -598,7 +616,13 @@ function CompareChart() {
       </Alert>
 
       {/* Repository Selection */}
-      <Paper elevation={2} sx={{ p: 1.5, mb: 1.5 }}>
+      <div style={{
+        background: currentTheme.cardGradient,
+        borderRadius: '12px',
+        padding: '12px 16px',
+        marginBottom: '10px',
+        border: `1px solid ${currentTheme.cardBorder}`,
+      }}>
         <Box sx={{ display: "flex", gap: 1.2, flexWrap: "wrap", alignItems: "center" }}>
         <Autocomplete
           disablePortal
@@ -666,10 +690,16 @@ function CompareChart() {
           }}
         />
         </Box>
-      </Paper>
+      </div>
 
       {/* Controls & Actions */}
-      <Paper elevation={2} sx={{ p: 1.5, mb: 1.5 }}>
+      <div style={{
+        background: currentTheme.cardGradient,
+        borderRadius: '12px',
+        padding: '12px 16px',
+        marginBottom: '10px',
+        border: `1px solid ${currentTheme.cardBorder}`,
+      }}>
         <Box sx={{ display: "flex", gap: 1.2, flexWrap: "wrap", alignItems: "center" }}>
           <FormControl sx={{ width: 110 }} size="small">
             <InputLabel>Theme</InputLabel>
@@ -727,17 +757,22 @@ function CompareChart() {
             />
           </Tooltip>
         </Box>
-      </Paper>
+      </div>
 
       {/* Chart Container */}
-      <Paper elevation={3} sx={{ p: 1.5 }}>
+      <div style={{
+        background: currentTheme.cardGradient,
+        borderRadius: '12px',
+        padding: '12px 16px',
+        border: `1px solid ${currentTheme.cardBorder}`,
+      }}>
         <Box id="chart-container">
         {ds != null && ds != chart_props && ds && ds.dataSource.data && (
           <ReactFC {...ds} />
         )}
         </Box>
-      </Paper>
-    </Box>
+      </div>
+    </div>
   );
 }
 

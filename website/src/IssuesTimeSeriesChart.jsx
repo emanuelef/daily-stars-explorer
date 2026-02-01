@@ -15,7 +15,6 @@ import LoadingButton from "@mui/lab/LoadingButton";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import SendIcon from "@mui/icons-material/Send";
 import Box from "@mui/material/Box";
-import Paper from "@mui/material/Paper";
 import FusionCharts from "fusioncharts";
 import TimeSeries from "fusioncharts/fusioncharts.timeseries";
 import ReactFC from "react-fusioncharts";
@@ -28,6 +27,7 @@ import ZuneTheme from "fusioncharts/themes/fusioncharts.theme.zune";
 import UmberTheme from "fusioncharts/themes/fusioncharts.theme.umber";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { useAppTheme } from "./ThemeContext";
 
 const HOST = import.meta.env.VITE_HOST;
 
@@ -64,6 +64,9 @@ function IssuesTimeSeriesChart() {
   if (user && repository) {
     defaultRepo = `${user}/${repository}`;
   }
+
+  const { theme: appTheme, currentTheme } = useAppTheme();
+  const defaultChartTheme = appTheme === 'dark' ? 'candy' : 'fusion';
 
   const chart_props = {
     type: "timeseries",
@@ -120,7 +123,7 @@ function IssuesTimeSeriesChart() {
       },
       chart: {
         animation: "0",
-        theme: "candy",
+        theme: defaultChartTheme,
         exportEnabled: "1",
         exportMode: "client",
         exportFormats: "PNG=Export as PNG|PDF=Export as PDF",
@@ -144,7 +147,22 @@ function IssuesTimeSeriesChart() {
   const [showForceRefetch, setShowForceRefetch] = useState(false);
   const [forceRefetch, setForceRefetch] = useState(false);
 
-  const [theme, setTheme] = useState("candy");
+  const [theme, setTheme] = useState(defaultChartTheme);
+
+  // Sync chart theme with app theme
+  useEffect(() => {
+    setTheme(defaultChartTheme);
+    setds(prevDs => ({
+      ...prevDs,
+      dataSource: {
+        ...prevDs.dataSource,
+        chart: {
+          ...prevDs.dataSource.chart,
+          theme: defaultChartTheme
+        }
+      }
+    }));
+  }, [appTheme]);
 
   const [transformation, setTransformation] = useState(
     queryParams.get("transformation") || "none"
@@ -478,7 +496,7 @@ function IssuesTimeSeriesChart() {
   };
 
   return (
-    <Box sx={{ p: 1.5 }}>
+    <div style={{ background: currentTheme.background, minHeight: '100vh', padding: '10px' }}>
       <ToastContainer
         position="top-center"
         autoClose={5000}
@@ -489,11 +507,17 @@ function IssuesTimeSeriesChart() {
         pauseOnFocusLoss
         draggable
         pauseOnHover
-        theme="dark"
+        theme={appTheme}
       />
 
       {/* Main Controls */}
-      <Paper elevation={2} sx={{ p: 1.5, mb: 1.5 }}>
+      <div style={{
+        background: currentTheme.cardGradient,
+        borderRadius: '12px',
+        padding: '12px 16px',
+        marginBottom: '10px',
+        border: `1px solid ${currentTheme.cardBorder}`,
+      }}>
         <Box sx={{ display: "flex", gap: 1.2, flexWrap: "wrap", alignItems: "center" }}>
           <Autocomplete
             freeSolo
@@ -577,10 +601,16 @@ function IssuesTimeSeriesChart() {
             InputProps={{ readOnly: true }}
           />
         </Box>
-      </Paper>
+      </div>
 
       {/* Controls & Actions */}
-      <Paper elevation={2} sx={{ p: 1.5, mb: 1.5 }}>
+      <div style={{
+        background: currentTheme.cardGradient,
+        borderRadius: '12px',
+        padding: '12px 16px',
+        marginBottom: '10px',
+        border: `1px solid ${currentTheme.cardBorder}`,
+      }}>
         <Box sx={{ display: "flex", gap: 1.2, flexWrap: "wrap", alignItems: "center" }}>
           <FormControl sx={{ width: 110 }} size="small">
             <InputLabel>Theme</InputLabel>
@@ -594,17 +624,22 @@ function IssuesTimeSeriesChart() {
           </FormControl>
           <Button size="small" variant="outlined" onClick={openCurrentRepoPage}>Open Repo</Button>
         </Box>
-      </Paper>
+      </div>
 
       {/* Chart Container */}
-      <Paper elevation={3} sx={{ p: 1.5 }}>
+      <div style={{
+        background: currentTheme.cardGradient,
+        borderRadius: '12px',
+        padding: '12px 16px',
+        border: `1px solid ${currentTheme.cardBorder}`,
+      }}>
         <Box id="chart-container">
           {ds != null && ds != chart_props && ds && ds.dataSource.data && (
             <ReactFC {...ds} />
           )}
         </Box>
-      </Paper>
-    </Box>
+      </div>
+    </div>
   );
 }
 
