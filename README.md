@@ -1,5 +1,8 @@
 # daily-stars-explorer
 
+<img width="1509" height="826" alt="Screenshot 2026-02-01 at 09 19 23" src="https://github.com/user-attachments/assets/444f9f03-dc7f-433a-9502-f80c8181d9ce" />
+
+
 ## Table of Contents
 
 - [Introduction](#introduction)
