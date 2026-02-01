@@ -17,13 +17,13 @@ export const THEMES = {
   },
   light: {
     name: 'light',
-    background: '#f5f5f5',
-    cardGradient: 'linear-gradient(135deg, #ffffff 0%, #f0f4f8 100%)',
-    cardBorder: 'rgba(59, 130, 246, 0.3)',
+    background: '#eef2f6', // softer cool gray for better contrast
+    cardGradient: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)', // cleaner card look
+    cardBorder: 'rgba(148, 163, 184, 0.4)', // more visible, subtle border
     sidebarBg: '#ffffff',
-    textPrimary: '#1a1a2e',
-    textSecondary: '#374151',
-    textMuted: '#6b7280',
+    textPrimary: '#1e293b', // slate-900, less harsh than pure black
+    textSecondary: '#475569', // slate-600
+    textMuted: '#94a3b8', // slate-400
     accentBg: 'rgba(59, 130, 246, 0.15)',
     accentHover: 'rgba(59, 130, 246, 0.1)',
   },
