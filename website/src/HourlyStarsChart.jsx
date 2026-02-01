@@ -675,7 +675,7 @@ function HourlyStarsChart() {
                 const [date, time] = iso.split('T');
                 const [year, month, day] = date.split('-');
                 const hour = time.slice(0, 2);
-                return `${day}-${month} ${hour}:00 (${chartData.topHourCount})`;
+                return `${day}-${month} ${hour}:00 (${chartData.topHourCount.toLocaleString()})`;
               })()}
               color="#ef4444"
               isDark={isDark}
@@ -687,7 +687,7 @@ function HourlyStarsChart() {
               label="Peak Day"
               value={(() => {
                 const [year, month, day] = chartData.topDay.split('-');
-                return `${day}-${month}-${year} (${chartData.topDayCount})`;
+                return `${day}-${month}-${year} (${chartData.topDayCount.toLocaleString()})`;
               })()}
               color="#8b5cf6"
               isDark={isDark}
