@@ -245,13 +245,14 @@ const MobileStarsView = () => {
     fetchStars(selectedRepo);
   };
 
-  // Find max daily stars for scaling (use 95th percentile to avoid outliers)
-  const sortedDaily = [...starHistory].map(d => d.daily).sort((a, b) => a - b);
-  const p95Index = Math.floor(sortedDaily.length * 0.95);
-  const maxDaily = sortedDaily[p95Index] || Math.max(...starHistory.map(d => d.daily), 1);
-
   // Get recent data for display (last 30 days)
   const recentHistory = starHistory.slice(-30);
+
+  // Find max daily stars for scaling from the displayed data only
+  // Use 95th percentile to avoid outliers making all other bars too small
+  const sortedDaily = [...recentHistory].map(d => d.daily).sort((a, b) => a - b);
+  const p95Index = Math.floor(sortedDaily.length * 0.95);
+  const maxDaily = sortedDaily[p95Index] || Math.max(...recentHistory.map(d => d.daily), 1);
 
   return (
     <div style={{
