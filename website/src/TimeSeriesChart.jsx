@@ -36,7 +36,6 @@ import Alert from "@mui/material/Alert";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
 import Box from "@mui/material/Box";
-import Paper from "@mui/material/Paper";
 import Divider from "@mui/material/Divider";
 import {
   addRunningMedian,
@@ -151,7 +150,7 @@ function TimeSeriesChart() {
     defaultRepo = `${user}/${repository}`;
   }
 
-  const { theme: appTheme } = useAppTheme();
+  const { theme: appTheme, currentTheme } = useAppTheme();
   const defaultChartTheme = appTheme === 'dark' ? 'candy' : 'fusion';
 
   const [zoomedStars, setZoomedStars] = useState(0);
@@ -1641,7 +1640,7 @@ function TimeSeriesChart() {
   }, []);
 
   return (
-    <Box sx={{ p: 1.5 }}>
+    <div style={{ background: currentTheme.background, minHeight: '100vh', padding: '10px' }}>
       {showError && (
         <Alert
           severity="error"
@@ -1685,7 +1684,13 @@ function TimeSeriesChart() {
       )}
 
       {/* Main Controls */}
-      <Paper elevation={2} sx={{ p: 1.5, mb: 1.5 }}>
+      <div style={{
+        background: currentTheme.cardGradient,
+        borderRadius: '12px',
+        padding: '12px 16px',
+        marginBottom: '10px',
+        border: `1px solid ${currentTheme.cardBorder}`,
+      }}>
         <Box sx={{ display: "flex", gap: 1.2, flexWrap: "wrap", alignItems: "center" }}>
         <Autocomplete
           freeSolo
@@ -1811,10 +1816,16 @@ function TimeSeriesChart() {
           }}
         />
         </Box>
-      </Paper>
+      </div>
 
       {/* Controls & Actions */}
-      <Paper elevation={2} sx={{ p: 1.5, mb: 1.5 }}>
+      <div style={{
+        background: currentTheme.cardGradient,
+        borderRadius: '12px',
+        padding: '12px 16px',
+        marginBottom: '10px',
+        border: `1px solid ${currentTheme.cardBorder}`,
+      }}>
         <Box sx={{ display: "flex", gap: 1.2, flexWrap: "wrap", alignItems: "center" }}>
         <Tooltip title="Open mobile version">
           <IconButton
@@ -1974,28 +1985,39 @@ function TimeSeriesChart() {
           Open Repo
         </Button>
         </Box>
-      </Paper>
+      </div>
 
       {/* Progress Indicators - Only show when actively loading */}
       {loading && (
-        <Paper elevation={2} sx={{ p: 1.5, mb: 1.5 }}>
+        <div style={{
+          background: currentTheme.cardGradient,
+          borderRadius: '12px',
+          padding: '12px 16px',
+          marginBottom: '10px',
+          border: `1px solid ${currentTheme.cardBorder}`,
+        }}>
           <EstimatedTimeProgress
             text="Estimated Time Left"
             totalTime={estimatedTime}
           />
           <ProgressBar value={progressValue} max={maxProgress} />
-        </Paper>
+        </div>
       )}
 
       {/* Chart Container */}
-      <Paper elevation={3} sx={{ p: 1.5 }}>
+      <div style={{
+        background: currentTheme.cardGradient,
+        borderRadius: '12px',
+        padding: '12px 16px',
+        border: `1px solid ${currentTheme.cardBorder}`,
+      }}>
         <Box id="chart-container">
         {ds != null && ds != chart_props && ds && ds.dataSource.data && (
           <ReactFC ref={chartRef} {...ds} />
         )}
         </Box>
-      </Paper>
-    </Box>
+      </div>
+    </div>
   );
 }
 
