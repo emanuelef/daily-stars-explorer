@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import "./App.css";
 
 import MainPage from "./MainPage";
@@ -14,6 +14,7 @@ import ContributorsTimeSeriesChart from "./ContributorsTimeSeriesChart";
 import NewReposTimeSeriesChart from "./NewReposTimeSeriesChart";
 import InfoPage from "./InfoPage";
 import FeaturedReposPage from "./FeaturedReposPage";
+import { ThemeProvider as AppThemeProvider, useAppTheme } from "./ThemeContext";
 
 import { Sidebar, Menu, MenuItem } from "react-pro-sidebar";
 import { Routes, Route, Link, useLocation, Navigate } from "react-router-dom";
@@ -32,22 +33,19 @@ import AddBoxOutlinedIcon from '@mui/icons-material/AddBoxOutlined';
 import ArticleIcon from '@mui/icons-material/Article';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import StarOutlineRoundedIcon from '@mui/icons-material/StarOutlineRounded';
+import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined';
+import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined';
 
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import Tooltip from "@mui/material/Tooltip";
+import IconButton from "@mui/material/IconButton";
 
-const darkTheme = createTheme({
-  palette: {
-    mode: "dark",
-  },
-});
-
-
-function App() {
+function AppContent() {
   const [collapsed, setCollapsed] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const location = useLocation();
+  const { theme, currentTheme, toggleTheme } = useAppTheme();
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
@@ -55,14 +53,26 @@ function App() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  const muiTheme = useMemo(
+    () =>
+      createTheme({
+        palette: {
+          mode: theme === 'dark' ? 'dark' : 'light',
+        },
+      }),
+    [theme]
+  );
+
+  const isDark = theme === 'dark';
+
   return (
-    <ThemeProvider theme={darkTheme}>
+    <ThemeProvider theme={muiTheme}>
       <CssBaseline />
       <div className="app-container">
         <Sidebar
           className="sidebar"
           collapsed={collapsed}
-          backgroundColor="#1a1a2e"
+          backgroundColor={currentTheme.sidebarBg}
           width={collapsed ? "70" : "200"}
         >
           <Menu
@@ -70,10 +80,10 @@ function App() {
               button: ({ level, active, disabled }) => {
                 if (level >= 0)
                   return {
-                    color: disabled ? "#6b7280" : "#e5e7eb",
-                    backgroundColor: active ? "rgba(59, 130, 246, 0.2)" : undefined,
+                    color: disabled ? currentTheme.textMuted : currentTheme.textSecondary,
+                    backgroundColor: active ? currentTheme.accentBg : undefined,
                     "&:hover": {
-                      backgroundColor: "rgba(59, 130, 246, 0.1)",
+                      backgroundColor: currentTheme.accentHover,
                     },
                   };
               },
@@ -92,7 +102,7 @@ function App() {
                 </Tooltip>
               }
             >
-              <h2 style={{ color: "#fff", fontSize: "16px", fontWeight: 600 }}>Stars Explorer</h2>
+              <h2 style={{ color: currentTheme.textPrimary, fontSize: "16px", fontWeight: 600 }}>Stars Explorer</h2>
             </MenuItem>
             <MenuItem
               component={<Link to="/starstimeline/:id" className="link" />}
@@ -241,15 +251,32 @@ function App() {
               Info
             </MenuItem>
           </Menu>
-          {/* Subtle star link at bottom */}
+          {/* Bottom controls: theme toggle and star link */}
           <div style={{
             position: 'absolute',
             bottom: '12px',
             left: 0,
             right: 0,
             display: 'flex',
-            justifyContent: 'center',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '8px',
           }}>
+            <Tooltip title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"} placement="right">
+              <IconButton
+                onClick={toggleTheme}
+                size="small"
+                sx={{
+                  color: isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)',
+                  '&:hover': {
+                    backgroundColor: currentTheme.accentHover,
+                    color: isDark ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)',
+                  },
+                }}
+              >
+                {isDark ? <LightModeOutlinedIcon fontSize="small" /> : <DarkModeOutlinedIcon fontSize="small" />}
+              </IconButton>
+            </Tooltip>
             <Tooltip title="Star this project on GitHub" placement="right">
               <a
                 href="https://github.com/emanuelef/daily-stars-explorer"
@@ -259,7 +286,7 @@ function App() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '4px',
-                  color: 'rgba(255,255,255,0.5)',
+                  color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)',
                   textDecoration: 'none',
                   fontSize: '11px',
                   padding: '6px 10px',
@@ -267,11 +294,11 @@ function App() {
                   transition: 'all 0.2s',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.color = 'rgba(255,255,255,0.8)';
+                  e.currentTarget.style.color = isDark ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.8)';
                   e.currentTarget.style.background = 'rgba(59,130,246,0.1)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.color = 'rgba(255,255,255,0.5)';
+                  e.currentTarget.style.color = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
                   e.currentTarget.style.background = 'transparent';
                 }}
               >
@@ -313,6 +340,14 @@ function App() {
         </section>
       </div>
     </ThemeProvider>
+  );
+}
+
+function App() {
+  return (
+    <AppThemeProvider>
+      <AppContent />
+    </AppThemeProvider>
   );
 }
 

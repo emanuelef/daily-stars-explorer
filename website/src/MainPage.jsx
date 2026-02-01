@@ -7,13 +7,16 @@ import "react-toastify/dist/ReactToastify.css";
 import Button from "@mui/material/Button";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import CircularProgress from "@mui/material/CircularProgress";
+import { useAppTheme } from "./ThemeContext";
 
 const HOST = import.meta.env.VITE_HOST;
 
 // Stat Card Component
-const StatCard = ({ icon, label, value, color = "#3b82f6", subtext = "" }) => (
+const StatCard = ({ icon, label, value, color = "#3b82f6", subtext = "", isDark = true }) => (
   <div style={{
-    background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%)',
+    background: isDark
+      ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%)'
+      : 'linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(16, 185, 129, 0.08) 100%)',
     border: `1px solid ${color}33`,
     borderRadius: '12px',
     padding: '20px 24px',
@@ -24,7 +27,7 @@ const StatCard = ({ icon, label, value, color = "#3b82f6", subtext = "" }) => (
       fontSize: '12px',
       textTransform: 'uppercase',
       letterSpacing: '0.5px',
-      color: '#9ca3af',
+      color: isDark ? '#9ca3af' : '#6b7280',
       marginBottom: '8px',
       fontWeight: '500',
     }}>
@@ -33,7 +36,7 @@ const StatCard = ({ icon, label, value, color = "#3b82f6", subtext = "" }) => (
     <div style={{
       fontSize: '32px',
       fontWeight: '700',
-      color: '#fff',
+      color: isDark ? '#fff' : '#1a1a2e',
       lineHeight: '1.2',
     }}>
       {value}
@@ -41,7 +44,7 @@ const StatCard = ({ icon, label, value, color = "#3b82f6", subtext = "" }) => (
     {subtext && (
       <div style={{
         fontSize: '12px',
-        color: '#6b7280',
+        color: isDark ? '#6b7280' : '#9ca3af',
         marginTop: '4px',
       }}>
         {subtext}
@@ -51,7 +54,7 @@ const StatCard = ({ icon, label, value, color = "#3b82f6", subtext = "" }) => (
 );
 
 // Progress Bar Component
-const LimitsProgressBar = ({ remaining, total }) => {
+const LimitsProgressBar = ({ remaining, total, isDark = true }) => {
   const percentage = total > 0 ? (remaining / total) * 100 : 0;
   const getColor = () => {
     if (percentage > 50) return '#10b981';
@@ -66,14 +69,14 @@ const LimitsProgressBar = ({ remaining, total }) => {
         justifyContent: 'space-between',
         marginBottom: '8px',
         fontSize: '12px',
-        color: '#9ca3af',
+        color: isDark ? '#9ca3af' : '#6b7280',
       }}>
         <span>API Requests Used</span>
         <span>{total - remaining} / {total}</span>
       </div>
       <div style={{
         height: '8px',
-        background: 'rgba(255,255,255,0.1)',
+        background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
         borderRadius: '4px',
         overflow: 'hidden',
       }}>
@@ -97,6 +100,9 @@ const formatTime = (seconds) => {
 };
 
 const MainPage = () => {
+  const { theme, currentTheme } = useAppTheme();
+  const isDark = theme === 'dark';
+
   const [totalRequests, setTotalRequests] = useState(0);
   const [remainingRequests, setRemainingRequests] = useState(0);
   const [resetLimitsTime, setResetLimitsTime] = useState(0);
@@ -141,7 +147,7 @@ const MainPage = () => {
   const usagePercentage = totalRequests > 0 ? ((usedRequests / totalRequests) * 100).toFixed(1) : 0;
 
   return (
-    <div style={{ background: '#0f0f0f', minHeight: '100vh', padding: '20px' }}>
+    <div style={{ background: currentTheme.background, minHeight: '100vh', padding: '20px' }}>
       <ToastContainer
         position="top-center"
         autoClose={5000}
@@ -152,16 +158,16 @@ const MainPage = () => {
         pauseOnFocusLoss
         draggable
         pauseOnHover
-        theme="dark"
+        theme={theme}
       />
 
       {/* Header */}
       <div style={{
-        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+        background: currentTheme.cardGradient,
         borderRadius: '16px',
         padding: '24px',
         marginBottom: '24px',
-        border: '1px solid rgba(59, 130, 246, 0.2)',
+        border: `1px solid ${currentTheme.cardBorder}`,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
           <div>
@@ -169,14 +175,14 @@ const MainPage = () => {
               margin: 0,
               fontSize: '28px',
               fontWeight: '700',
-              color: '#fff',
+              color: currentTheme.textPrimary,
             }}>
               GitHub API Status
             </h1>
             <p style={{
               margin: '8px 0 0 0',
               fontSize: '14px',
-              color: '#9ca3af'
+              color: currentTheme.textMuted
             }}>
               Monitor your GitHub API rate limits
             </p>
@@ -191,7 +197,7 @@ const MainPage = () => {
           </Button>
         </div>
         {lastUpdated && (
-          <div style={{ marginTop: '12px', fontSize: '12px', color: '#6b7280' }}>
+          <div style={{ marginTop: '12px', fontSize: '12px', color: currentTheme.textMuted }}>
             Last updated: {lastUpdated.toLocaleTimeString()}
           </div>
         )}
@@ -210,6 +216,7 @@ const MainPage = () => {
           value={remainingRequests.toLocaleString()}
           color={remainingRequests > totalRequests * 0.5 ? "#10b981" : remainingRequests > totalRequests * 0.2 ? "#fbbf24" : "#ef4444"}
           subtext={`of ${totalRequests.toLocaleString()} total`}
+          isDark={isDark}
         />
         <StatCard
           icon="⏱️"
@@ -217,6 +224,7 @@ const MainPage = () => {
           value={formatTime(resetLimitsTime)}
           color="#3b82f6"
           subtext="until limit resets"
+          isDark={isDark}
         />
         <StatCard
           icon="📈"
@@ -224,32 +232,33 @@ const MainPage = () => {
           value={`${usagePercentage}%`}
           color={usagePercentage < 50 ? "#10b981" : usagePercentage < 80 ? "#fbbf24" : "#ef4444"}
           subtext={`${usedRequests.toLocaleString()} requests used`}
+          isDark={isDark}
         />
       </div>
 
       {/* Progress Bar Card */}
       <div style={{
-        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+        background: currentTheme.cardGradient,
         borderRadius: '16px',
         padding: '24px',
-        border: '1px solid rgba(59, 130, 246, 0.2)',
+        border: `1px solid ${currentTheme.cardBorder}`,
       }}>
-        <h3 style={{ margin: '0 0 16px 0', color: '#fff', fontSize: '16px', fontWeight: '600' }}>
+        <h3 style={{ margin: '0 0 16px 0', color: currentTheme.textPrimary, fontSize: '16px', fontWeight: '600' }}>
           Rate Limit Status
         </h3>
-        <LimitsProgressBar remaining={remainingRequests} total={totalRequests} />
+        <LimitsProgressBar remaining={remainingRequests} total={totalRequests} isDark={isDark} />
 
         <div style={{
           marginTop: '24px',
           padding: '16px',
-          background: 'rgba(59, 130, 246, 0.1)',
+          background: currentTheme.accentBg,
           borderRadius: '8px',
-          border: '1px solid rgba(59, 130, 246, 0.2)',
+          border: `1px solid ${currentTheme.cardBorder}`,
         }}>
-          <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '8px' }}>
+          <div style={{ fontSize: '12px', color: currentTheme.textMuted, marginBottom: '8px' }}>
             About GitHub API Limits
           </div>
-          <div style={{ fontSize: '14px', color: '#fff', lineHeight: '1.6' }}>
+          <div style={{ fontSize: '14px', color: currentTheme.textPrimary, lineHeight: '1.6' }}>
             GitHub's GraphQL API has a rate limit of 5,000 points per hour for authenticated requests.
             This tool uses GraphQL queries which consume varying amounts of points depending on the complexity
             of the data being fetched.

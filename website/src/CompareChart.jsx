@@ -28,6 +28,7 @@ import CandyTheme from "fusioncharts/themes/fusioncharts.theme.candy";
 import ZuneTheme from "fusioncharts/themes/fusioncharts.theme.zune";
 import UmberTheme from "fusioncharts/themes/fusioncharts.theme.umber";
 import CopyToClipboardButton from "./CopyToClipboardButton";
+import { useAppTheme } from "./ThemeContext";
 
 const HOST = import.meta.env.VITE_HOST;
 const PREDICTOR_HOST = "https://emafuma.mywire.org:8082";
@@ -90,6 +91,9 @@ const isToday = (dateString) => {
 };
 
 function CompareChart() {
+  const { theme: appTheme } = useAppTheme();
+  const defaultChartTheme = appTheme === 'dark' ? 'candy' : 'fusion';
+
   const chart_props = {
     type: "timeseries",
     width: "100%",
@@ -123,7 +127,7 @@ function CompareChart() {
       },
       chart: {
         animation: "0",
-        theme: "candy",
+        theme: defaultChartTheme,
         exportEnabled: "1",
         exportMode: "client",
         exportFormats: "PNG=Export as PNG|PDF=Export as PDF",
@@ -175,7 +179,22 @@ function CompareChart() {
   const [ds, setds] = useState(chart_props);
   const [loading, setLoading] = useState(false);
 
-  const [theme, setTheme] = useState("candy");
+  const [theme, setTheme] = useState(defaultChartTheme);
+
+  // Sync chart theme with app theme
+  useEffect(() => {
+    setTheme(defaultChartTheme);
+    setds(prevDs => ({
+      ...prevDs,
+      dataSource: {
+        ...prevDs.dataSource,
+        chart: {
+          ...prevDs.dataSource.chart,
+          theme: defaultChartTheme
+        }
+      }
+    }));
+  }, [appTheme]);
 
   const [aggregation, setAggregation] = useState(
     queryParams.get("aggregation") || "none"

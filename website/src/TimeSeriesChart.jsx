@@ -47,6 +47,7 @@ import {
   calculatePercentiles,
   formatNumber,
 } from "./utils";
+import { useAppTheme } from "./ThemeContext";
 
 // This needs to be refactored, focus is mostly on functionalities and implementing ideas
 // But it has reached a point where it's difficult to go over the code
@@ -150,6 +151,9 @@ function TimeSeriesChart() {
     defaultRepo = `${user}/${repository}`;
   }
 
+  const { theme: appTheme } = useAppTheme();
+  const defaultChartTheme = appTheme === 'dark' ? 'candy' : 'fusion';
+
   const [zoomedStars, setZoomedStars] = useState(0);
   const [zoomedStarsPercentageTotal, setZoomedStarsPercentageTotal] = useState(0);
 
@@ -221,7 +225,7 @@ function TimeSeriesChart() {
       //      datamarker: [],
       chart: {
         animation: "0",
-        theme: "candy",
+        theme: defaultChartTheme,
         exportEnabled: "1",
         exportMode: "client",
         exportFormats: "PNG=Export as PNG|PDF=Export as PDF",
@@ -291,7 +295,22 @@ function TimeSeriesChart() {
   const chartRef = useRef(null);
 
   const [feed, setFeed] = useState("none");
-  const [theme, setTheme] = useState("candy");
+  const [theme, setTheme] = useState(defaultChartTheme);
+
+  // Sync chart theme with app theme
+  useEffect(() => {
+    setTheme(defaultChartTheme);
+    setds(prevDs => ({
+      ...prevDs,
+      dataSource: {
+        ...prevDs.dataSource,
+        chart: {
+          ...prevDs.dataSource.chart,
+          theme: defaultChartTheme
+        }
+      }
+    }));
+  }, [appTheme]);
 
   const [transformation, setTransformation] = useState(
     queryParams.get("transformation") || "none"

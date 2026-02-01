@@ -1,12 +1,15 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { parseGitHubRepoURL } from "./githubUtils";
+import { useAppTheme } from "./ThemeContext";
 
 const HOST = import.meta.env.VITE_HOST;
 
 const MobileStarsView = () => {
   const navigate = useNavigate();
   const { user, repository } = useParams();
+  const { theme, currentTheme } = useAppTheme();
+  const isDark = theme === 'dark';
   const [repo, setRepo] = useState(user && repository ? `${user}/${repository}` : "helm/helm");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -253,9 +256,11 @@ const MobileStarsView = () => {
   return (
     <div style={{
       minHeight: "100vh",
-      background: "linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%)",
+      background: isDark
+        ? "linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%)"
+        : "linear-gradient(135deg, #f5f5f5 0%, #e8f0fe 100%)",
       padding: "16px",
-      color: "#fff",
+      color: isDark ? "#fff" : "#1a1a2e",
     }}>
       {/* Header */}
       <div style={{
@@ -301,8 +306,8 @@ const MobileStarsView = () => {
                 padding: "14px 16px",
                 borderRadius: "12px",
                 border: "1px solid rgba(59, 130, 246, 0.3)",
-                background: "rgba(255, 255, 255, 0.05)",
-                color: "#fff",
+                background: isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(255, 255, 255, 0.9)",
+                color: isDark ? "#fff" : "#1a1a2e",
                 fontSize: "16px",
                 outline: "none",
                 boxSizing: "border-box",
@@ -315,7 +320,7 @@ const MobileStarsView = () => {
                 top: "100%",
                 left: 0,
                 right: 0,
-                background: "#1a1a2e",
+                background: isDark ? "#1a1a2e" : "#ffffff",
                 border: "1px solid rgba(59, 130, 246, 0.3)",
                 borderRadius: "12px",
                 marginTop: "4px",
