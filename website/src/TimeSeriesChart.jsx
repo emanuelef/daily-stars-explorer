@@ -234,6 +234,7 @@ function TimeSeriesChart() {
       chart: {
         animation: "0",
         theme: defaultChartTheme,
+        paletteColors: "#3b82f6, #f59e0b, #10b981, #ec4899, #8b5cf6", // Blue-500, Amber-500, Emerald-500, Pink-500, Violet-500
         exportEnabled: "1",
         exportMode: "client",
         exportFormats: "PNG=Export as PNG|PDF=Export as PDF",
@@ -1213,7 +1214,7 @@ function TimeSeriesChart() {
           label: `${peak.Stars.toLocaleString()} is the maximum number of new stars in one day`,
           style: {
             marker: {
-              fill: "#30EE47",
+              fill: "#10b981", // Emerald-500 - softer and more professional than bright green
             },
           },
         })) : [];

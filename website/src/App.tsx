@@ -73,7 +73,10 @@ function AppContent() {
           className="sidebar"
           collapsed={collapsed}
           backgroundColor={currentTheme.sidebarBg}
-          width={collapsed ? "70" : "200"}
+          width={collapsed ? "70px" : "200px"}
+          rootStyles={{
+            borderColor: currentTheme.cardBorder,
+          }}
         >
           <Menu
             menuItemStyles={{

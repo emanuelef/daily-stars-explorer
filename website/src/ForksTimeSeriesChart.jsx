@@ -168,6 +168,7 @@ function ForksTimeSeriesChart() {
       chart: {
         animation: "0",
         theme: defaultChartTheme,
+        paletteColors: "#60a5fa, #fbbf24, #10b981, #f472b6, #a78bfa",
         exportEnabled: "1",
         exportMode: "client",
         exportFormats: "PNG=Export as PNG|PDF=Export as PDF",

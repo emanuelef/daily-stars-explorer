@@ -478,9 +478,14 @@ const MobileStarsView = () => {
             alignItems: "center",
           }}>
             <span>Daily Stars (Last 30 days)</span>
-            <span style={{ fontSize: "11px", color: "#6b7280", fontWeight: "400" }}>
-              max: {Math.max(...recentHistory.map(d => d.daily))}
-            </span>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: "13px", color: "#fbbf24", fontWeight: "600" }}>
+                max: {Math.max(...recentHistory.map(d => d.daily)).toLocaleString()}
+              </div>
+              <div style={{ fontSize: "12px", color: "#6b7280", fontWeight: "400" }}>
+                total: {recentHistory.reduce((sum, d) => sum + d.daily, 0).toLocaleString()}
+              </div>
+            </div>
           </div>
           <div style={{
             display: "flex",

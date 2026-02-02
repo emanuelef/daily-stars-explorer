@@ -136,6 +136,8 @@ function CompareChart() {
       chart: {
         animation: "0",
         theme: defaultChartTheme,
+        // Blue-500, Orange-500, Emerald-500, Purple-500, Pink-500
+        paletteColors: "#3b82f6, #f97316, #10b981, #8b5cf6, #ec4899",
         exportEnabled: "1",
         exportMode: "client",
         exportFormats: "PNG=Export as PNG|PDF=Export as PDF",
@@ -645,6 +647,22 @@ function CompareChart() {
               label="Repository 1"
               variant="outlined"
               size="small"
+              InputProps={{
+                ...params.InputProps,
+                startAdornment: (
+                  <div
+                    style={{
+                      width: 12,
+                      height: 12,
+                      backgroundColor: "#3b82f6",
+                      marginRight: 8,
+                      marginLeft: 4,
+                      borderRadius: 2,
+                      flexShrink: 0,
+                    }}
+                  />
+                ),
+              }}
             />
           )}
           value={selectedRepo}
@@ -678,6 +696,22 @@ function CompareChart() {
               label="Repository 2"
               variant="outlined"
               size="small"
+              InputProps={{
+                ...params.InputProps,
+                startAdornment: (
+                  <div
+                    style={{
+                      width: 12,
+                      height: 12,
+                      backgroundColor: "#f97316",
+                      marginRight: 8,
+                      marginLeft: 4,
+                      borderRadius: 2,
+                      flexShrink: 0,
+                    }}
+                  />
+                ),
+              }}
             />
           )}
           value={selectedRepo2}

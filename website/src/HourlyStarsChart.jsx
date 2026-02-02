@@ -349,15 +349,17 @@ function HourlyStarsChart() {
     try {
       setLoading(true);
       
-      // Show informative loading message based on retry count
+      // Show informative loading message based on retry count and repo size
       if (retryCount === 0) {
         setLoadingMessage(rawData.length === 0 
-          ? "Fetching data... First-time fetch may take up to a minute for repos with many stars."
+          ? "Fetching data... First-time fetch may take up to 3 minutes for repos with 100k+ stars."
           : "Fetching latest data...");
-      } else if (retryCount === 1) {
-        setLoadingMessage("Still processing... Large repos take longer. Please wait...");
+      } else if (retryCount < 4) {
+        setLoadingMessage(`Still processing... (attempt ${retryCount + 1}/12) - Large repos take longer. Please wait...`);
+      } else if (retryCount < 8) {
+        setLoadingMessage(`Processing continues... (attempt ${retryCount + 1}/12) - Almost there...`);
       } else {
-        setLoadingMessage("Almost there... Background processing is finishing up...");
+        setLoadingMessage(`Final stages... (attempt ${retryCount + 1}/12) - Background processing is completing...`);
       }
 
       let url = `${HOST}/recentStarsByHour?repo=${repo}&lastDays=${days}`;
@@ -392,14 +394,17 @@ function HourlyStarsChart() {
           throw new Error(`HTTP error! Status: ${response.status}`);
         } else if (response.status === 504 || response.status === 502) {
           // Gateway timeout - server is still processing, auto-retry without showing error
-          if (retryCount < 5) { // Max 5 retries = ~25-30 seconds of waiting
-            console.log(`Gateway timeout on attempt ${retryCount + 1}, retrying in 5s...`);
+          // For large repos (100k+ stars), processing can take 2-3 minutes
+          // Use exponential backoff: 5s, 10s, 15s, 20s, 25s, 30s... up to 12 retries (~3 minutes total)
+          if (retryCount < 12) {
+            const backoffDelay = Math.min(5000 + (retryCount * 2500), 30000); // Cap at 30s
+            console.log(`Gateway timeout on attempt ${retryCount + 1}, retrying in ${backoffDelay/1000}s...`);
             setTimeout(() => {
               fetchHourlyStars(repo, days, complete, true, retryCount + 1);
-            }, 5000);
+            }, backoffDelay);
             return; // Don't throw error, just wait and retry
           } else {
-            // After 5 retries, show a helpful message
+            // After 12 retries (~3 minutes), show a helpful message
             setLoading(false);
             setLoadingMessage("");
             setError(`This repository has a lot of data to process. Please try again in a minute - the server is caching the results in the background.`);
@@ -544,6 +549,17 @@ function HourlyStarsChart() {
           flexWrap: "wrap",
           gap: isMobile ? "10px" : "12px"
         }}>
+          {/* Back button for mobile */}
+          {isMobile && (
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => navigate(`/mobile/${selectedRepo}`)}
+              sx={{ alignSelf: 'flex-start' }}
+            >
+              ← Back to Daily View
+            </Button>
+          )}
           <Autocomplete
             freeSolo
             disablePortal
