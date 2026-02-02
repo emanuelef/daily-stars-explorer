@@ -132,6 +132,15 @@ function ForksTimeSeriesChart() {
           },
         },
       },
+      plotconfig: {
+        line: {
+          style: {
+            plot: {
+              "stroke-width": "2.5"
+            }
+          }
+        }
+      },
       yAxis: [
         {
           plot: {

@@ -102,6 +102,15 @@ function CompareChart() {
       caption: { text: "Stars" },
       data: null,
       series: "Repo",
+      plotconfig: {
+        line: {
+          style: {
+            plot: {
+              "stroke-width": "2.5"
+            }
+          }
+        }
+      },
       yAxis: [
         {
           plot: {

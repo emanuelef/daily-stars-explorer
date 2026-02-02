@@ -93,6 +93,15 @@ function IssuesTimeSeriesChart() {
       caption: { text: "Issues" },
       data: null,
       //series: "Category",
+      plotconfig: {
+        line: {
+          style: {
+            plot: {
+              "stroke-width": "2.5"
+            }
+          }
+        }
+      },
       yAxis: [
         {
           plot: {
