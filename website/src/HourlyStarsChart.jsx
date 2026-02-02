@@ -544,7 +544,7 @@ function HourlyStarsChart() {
       }}>
         <div style={{
           display: "flex",
-          alignItems: isMobile ? "stretch" : "center",
+          alignItems: "center",
           flexDirection: isMobile ? "column" : "row",
           flexWrap: "wrap",
           gap: isMobile ? "10px" : "12px"
@@ -554,8 +554,8 @@ function HourlyStarsChart() {
             <Button
               size="small"
               variant="outlined"
-              onClick={() => navigate(`/mobile/${selectedRepo}`)}
-              sx={{ alignSelf: 'flex-start' }}
+              onClick={() => navigate(`/${selectedRepo}`)}
+              sx={{ alignSelf: 'center', flexShrink: 0 }}
             >
               ← Back to Daily View
             </Button>
