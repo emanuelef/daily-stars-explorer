@@ -888,7 +888,7 @@ function TimeSeriesChart() {
 
         // Update the starsLast10d value to include today's stars
         const updatedLast10DaysStars = calculateStarsLast10Days(starHistory);
-        setStarsLast10d(updatedLast10DaysStars.toString());
+        setStarsLast10d(updatedLast10DaysStars);
         console.log("Updated last 10 days stars count:", updatedLast10DaysStars);
       } else {
         console.log("Star history is not complete until yesterday. Not adding current day's data point.");
@@ -1194,14 +1194,14 @@ function TimeSeriesChart() {
         const maxPeriods = data.maxPeriods ? data.maxPeriods.map((period) => ({
           start: period.StartDay,
           end: period.EndDay,
-          label: `${period.TotalStars} is the highest number of new stars in a 10 day period`,
+          label: `${period.TotalStars.toLocaleString()} is the highest number of new stars in a 10 day period`,
           timeformat: "%d-%m-%Y",
           type: "full",
         })) : [];
         const maxPeaks = data.maxPeaks ? data.maxPeaks.map((peak) => ({
           start: peak.Day,
           timeformat: "%d-%m-%Y",
-          label: `${peak.Stars} is the maximum number of new stars in one day`,
+          label: `${peak.Stars.toLocaleString()} is the maximum number of new stars in one day`,
           style: {
             marker: {
               fill: "#30EE47",
