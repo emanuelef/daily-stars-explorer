@@ -35,19 +35,34 @@ function NewReposTimeSeriesChart() {
   const chart_props = {
     type: "timeseries",
     width: "100%",
-    height: "88%",
+    height: "80%",
     dataEmptyMessage: "Fetching data...",
+    styleDefinition: {
+      colorstyle: {
+        fill: "#ffff00",
+      },
+    },
     dataSource: {
       tooltip: {
         style: {
           container: {
             "border-color": "#000000",
-            "background-color": "#75748D",
+            "background-color": "#1a1a1a",
+            boxShadow: "0 4px 8px rgba(0,0,0,0.2)"
           },
           text: {
             color: "#FFFFFF",
           },
         },
+      },
+      plotconfig: {
+        line: {
+          style: {
+            plot: {
+              "stroke-width": "2.5"
+            }
+          }
+        }
       },
       caption: { text: "New GitHub Repositories Created Daily" },
       data: null,
@@ -75,6 +90,7 @@ function NewReposTimeSeriesChart() {
       chart: {
         animation: "0",
         theme: "candy",
+        paletteColors: "#3b82f6, #f59e0b, #10b981, #ec4899, #8b5cf6",
         exportEnabled: "1",
         exportMode: "client",
         exportFormats: "PNG=Export as PNG|PDF=Export as PDF",
