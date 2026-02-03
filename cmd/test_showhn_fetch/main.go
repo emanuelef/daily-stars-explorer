@@ -61,7 +61,9 @@ func main() {
 		fmt.Printf("Error making request: %v\n", err)
 		os.Exit(1)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	var result struct {
 		Hits []struct {

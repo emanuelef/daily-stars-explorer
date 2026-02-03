@@ -76,7 +76,7 @@ func SSEHandler(currentSessions *session.SessionsLock) fiber.Handler {
 					}
 
 				case <-keepAliveTickler.C:
-					fmt.Fprintf(w, "%s", keepAliveMsg)
+					_, _ = fmt.Fprintf(w, "%s", keepAliveMsg)
 					err := w.Flush()
 					if err != nil {
 						log.Printf("Error while flushing: %v.\n", err)

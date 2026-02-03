@@ -136,7 +136,7 @@ func extractShowHNPosts(n *html.Node) ([]ShowHNPost, error) {
 				} else if n.Type == html.ElementNode && n.Data == "span" {
 					// Check for time ago
 					for _, attr := range n.Attr {
-						if attr.Key == "class" && attr.Val == "age" && n.FirstChild != nil && n.FirstChild.Type == html.ElementNode && n.FirstChild.Data == "a" {
+						if attr.Key == "class" && (attr.Val == "age" || attr.Val == "score") && n.FirstChild != nil && n.FirstChild.Type == html.ElementNode && n.FirstChild.Data == "a" {
 							if n.FirstChild.FirstChild != nil {
 								timeAgo = n.FirstChild.FirstChild.Data
 							}

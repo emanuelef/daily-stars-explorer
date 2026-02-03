@@ -50,8 +50,6 @@ func AllStarsCSVHandler(cacheStars *cache.Cache[string, types.StarsWithStatsResp
 			return err
 		}
 
-		repo = fmt.Sprintf("%s", repo)
-
 		if res, hit := cacheStars.Get(repo); hit {
 			csvData, err := utils.GenerateCSVData(repo, res.Stars)
 			if err != nil {
@@ -78,8 +76,6 @@ func StatusHandler(
 		if err != nil {
 			return err
 		}
-
-		repo = fmt.Sprintf("%s", repo)
 
 		_, cached := cacheStars.Get(repo)
 		_, onGoing := onGoingStars[repo]
@@ -108,7 +104,6 @@ func DeleteRecentStarsCacheHandler(cacheStars *cache.Cache[string, types.StarsWi
 		if err != nil {
 			return err
 		}
-		repo = fmt.Sprintf("%s", repo)
 		repo = strings.ToLower(repo)
 
 		cached, found := cacheStars.Get(repo)

@@ -62,7 +62,9 @@ func FetchHackerNewsArticles(query string, minPoints int) ([]Article, error) {
 		if err != nil {
 			return nil, err
 		}
-		defer resp.Body.Close()
+		defer func() {
+			_ = resp.Body.Close()
+		}()
 
 		if resp.StatusCode != http.StatusOK {
 			log.Fatalf("Error: %v", resp.Status)

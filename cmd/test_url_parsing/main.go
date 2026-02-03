@@ -39,7 +39,7 @@ func extractGitHubURL(content string) string {
 
 		// Handle URLs with text prefixes like "months:", "Link]", etc.
 		// Example: months: [https://github.com/user/repo](https://github.com/user/repo
-		prefixedURLRegex := regexp.MustCompile(`(?:months:|Link[\]\)]|APK[\]\)]|GitHub:|Github[\]\)]|\⁦|https?://)?\s*(?:\[|\()?(?:https?://)?github\.com/([^/\s\]\)]+/[^/\s\]\)]+)`)
+		prefixedURLRegex := regexp.MustCompile(`(?:months:|Link[\]\)]|APK[\]\)]|GitHub:|Github[\]\)]|\u2066|https?://)?\s*(?:\[|\()?(?:https?://)?github\.com/([^/\s\]\)]+/[^/\s\]\)]+)`)
 		prefixMatches := prefixedURLRegex.FindStringSubmatch(line)
 		if len(prefixMatches) > 1 {
 			// Clean the repo name from any trailing characters
@@ -66,7 +66,7 @@ func main() {
 		"https://months: [https://github.com/getlilac/lilac](https://github.com/getlilac/lilac",
 		"https://[MCPJam](https://github.com/MCPJam/inspector",
 		"https://[https://github.com/NevaMind-AI/memU](https://github.com/NevaMind-AI/memU",
-		"https://⁦https://github.com/clidey/dory",
+		"https://\u2066https://github.com/clidey/dory",
 		"https://[Leaflet](https://github.com/Leaflet/Leaflet",
 		"https://[https://github.com/TrueTheos/Aniki](https://github.com/TrueTheos/Aniki",
 		"https://[https://github.com/spel987/PolyUploader](https://github.com/spel987/PolyUploader/",
