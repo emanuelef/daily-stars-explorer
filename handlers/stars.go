@@ -388,7 +388,8 @@ func RecentStarsByHourHandler(
 		// Use a background context with timeout for the GitHub API call
 		// This prevents the fetch from being cancelled if the HTTP request times out (e.g. 504 Gateway Timeout)
 		// allowing the cache to be populated for subsequent requests.
-		bgCtx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+		// Increased to 20 minutes for very large repos (e.g., openclaw with many stars)
+		bgCtx, cancel := context.WithTimeout(context.Background(), 20*time.Minute)
 		defer cancel()
 
 		if len(cachedHourly) == 0 {
