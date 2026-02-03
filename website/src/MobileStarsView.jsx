@@ -21,6 +21,14 @@ const MobileStarsView = () => {
   const [starsRepos, setStarsRepos] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [filteredRepos, setFilteredRepos] = useState([]);
+  const [pinnedRepos, setPinnedRepos] = useState(() => {
+    try {
+      const saved = localStorage.getItem('pinned-repos');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const eventSourceRef = useRef(null);
   const isMountedRef = useRef(true);
   const inputRef = useRef(null);
@@ -49,6 +57,31 @@ const MobileStarsView = () => {
     };
     fetchRepos();
   }, []);
+
+  // Sync pinned repos with localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('pinned-repos', JSON.stringify(pinnedRepos));
+    } catch (e) {
+      console.error('Failed to save pinned repos:', e);
+    }
+  }, [pinnedRepos]);
+
+  const togglePin = (repoName) => {
+    setPinnedRepos(prev => {
+      if (prev.includes(repoName)) {
+        return prev.filter(r => r !== repoName);
+      } else {
+        return [...prev, repoName];
+      }
+    });
+  };
+
+  const clearPinned = () => {
+    if (window.confirm('Clear all pinned repositories?')) {
+      setPinnedRepos([]);
+    }
+  };
 
   // Fetch on initial mount or when URL params change
   useEffect(() => {
@@ -267,6 +300,7 @@ const MobileStarsView = () => {
       <div style={{
         textAlign: "center",
         marginBottom: "20px",
+        position: "relative",
       }}>
         <h1 style={{
           fontSize: "24px",
@@ -282,6 +316,71 @@ const MobileStarsView = () => {
           GitHub Repository Star History
         </p>
       </div>
+
+      {/* Pinned Repos Quick Access */}
+      {pinnedRepos.length > 0 && (
+        <div style={{
+          background: isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(255, 255, 255, 0.9)",
+          borderRadius: "12px",
+          padding: "12px",
+          marginBottom: "16px",
+          border: "1px solid rgba(59, 130, 246, 0.3)",
+        }}>
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+            <span style={{ fontSize: "12px", color: "#6b7280" }}>📌</span>
+            {pinnedRepos.slice(0, 2).map(r => (
+              <div
+                key={r}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "6px 10px",
+                  borderRadius: "8px",
+                  background: isDark ? "rgba(59, 130, 246, 0.2)" : "rgba(59, 130, 246, 0.1)",
+                  border: "1px solid rgba(59, 130, 246, 0.3)",
+                  fontSize: "13px",
+                }}
+              >
+                <span
+                  onClick={() => {
+                    setRepo(r);
+                    fetchStars(r);
+                    navigate(`/${r}`);
+                  }}
+                  style={{ cursor: "pointer", flex: 1 }}
+                >
+                  {r}
+                </span>
+                <span
+                  onClick={() => togglePin(r)}
+                  style={{ cursor: "pointer", fontSize: "16px", lineHeight: 1 }}
+                >
+                  ×
+                </span>
+              </div>
+            ))}
+            {pinnedRepos.length > 2 && (
+              <span style={{ fontSize: "11px", color: "#6b7280" }}>
+                +{pinnedRepos.length - 2} more
+              </span>
+            )}
+            <button
+              onClick={clearPinned}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "#6b7280",
+                fontSize: "11px",
+                cursor: "pointer",
+                padding: "4px 8px",
+              }}
+            >
+              Clear All
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Search Form with Autocomplete */}
       <form onSubmit={handleSubmit} style={{ marginBottom: "20px", position: "relative" }}>
@@ -348,6 +447,20 @@ const MobileStarsView = () => {
               </div>
             )}
           </div>
+          <button
+            onClick={() => togglePin(repo)}
+            type="button"
+            style={{
+              padding: "14px 16px",
+              borderRadius: "12px",
+              border: "none",
+              background: pinnedRepos.includes(repo) ? "#3b82f6" : "rgba(255,255,255,0.1)",
+              fontSize: "20px",
+              cursor: "pointer",
+            }}
+          >
+            📌
+          </button>
           <button
             type="submit"
             disabled={loading}
@@ -608,6 +721,25 @@ const MobileStarsView = () => {
       }}>
         <div>For full features (compare, transforms, feeds, exports)</div>
         <div>use a laptop or larger screen</div>
+        {totalStars > 0 && (
+          <div style={{ marginTop: "12px" }}>
+            <a
+              href={`https://github.com/${repo}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                color: "#3b82f6",
+                textDecoration: "none",
+                fontSize: "12px",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
+              }}
+            >
+              View on GitHub →
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );
