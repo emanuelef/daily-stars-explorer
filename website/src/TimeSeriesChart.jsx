@@ -16,6 +16,8 @@ import LoadingButton from "@mui/lab/LoadingButton";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import SendIcon from "@mui/icons-material/Send";
 import SmartphoneIcon from "@mui/icons-material/Smartphone";
+import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
+import PushPinIcon from "@mui/icons-material/PushPin";
 import FusionCharts from "fusioncharts";
 import TimeSeries from "fusioncharts/fusioncharts.timeseries";
 import ReactFC from "react-fusioncharts";
@@ -298,6 +300,14 @@ function TimeSeriesChart() {
   const [showFeedbackBanner, setShowFeedbackBanner] = useState(true);
   const [keepLast30Zoom, setKeepLast30Zoom] = useState(false);
   const [last30Active, setLast30Active] = useState(false); // false: button applies last 30; true: button restores full timeline
+  const [pinnedRepos, setPinnedRepos] = useState(() => {
+    try {
+      const saved = localStorage.getItem('pinned-repos');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
 
   const currentHNnews = useRef({});
   const currentPeaks = useRef([]);
@@ -369,6 +379,15 @@ function TimeSeriesChart() {
     };
   }, []);
 
+  // Sync pinned repos with localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('pinned-repos', JSON.stringify(pinnedRepos));
+    } catch (e) {
+      console.error('Failed to save pinned repos:', e);
+    }
+  }, [pinnedRepos]);
+
   // Fetch available repos on mount (like in CompareChart)
   useEffect(() => {
     const fetchRepos = async () => {
@@ -383,6 +402,22 @@ function TimeSeriesChart() {
     };
     fetchRepos();
   }, []);
+
+  const togglePin = (repo) => {
+    setPinnedRepos(prev => {
+      if (prev.includes(repo)) {
+        return prev.filter(r => r !== repo);
+      } else {
+        return [...prev, repo];
+      }
+    });
+  };
+
+  const clearPinned = () => {
+    if (window.confirm('Clear all pinned repositories?')) {
+      setPinnedRepos([]);
+    }
+  };
 
   const handleDateRangeCheckChange = (event) => {
     setCheckedDateRange(event.target.checked);
@@ -1693,6 +1728,75 @@ function TimeSeriesChart() {
         </Alert>
       )}
 
+      {/* Pinned Repos Quick Access */}
+      {pinnedRepos.length > 0 && (
+        <div style={{
+          background: currentTheme.cardGradient,
+          borderRadius: '12px',
+          padding: '10px 16px',
+          marginBottom: '10px',
+          border: `1px solid ${currentTheme.cardBorder}`,
+        }}>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+            <Tooltip title="Pinned repositories">
+              <PushPinIcon sx={{ fontSize: 16, color: currentTheme.textMuted }} />
+            </Tooltip>
+
+            {pinnedRepos.map(repo => (
+              <Box
+                key={repo}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  background: currentTheme.accentBg,
+                  border: `1px solid ${currentTheme.cardBorder}`,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  '&:hover': {
+                    background: currentTheme.accentHover,
+                    borderColor: '#3b82f6',
+                  }
+                }}
+              >
+                <span
+                  onClick={() => {
+                    setSelectedRepo(repo);
+                    handleClickWithRepo(repo);
+                  }}
+                  style={{
+                    fontSize: '13px',
+                    color: currentTheme.textPrimary,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {repo}
+                </span>
+                <CloseIcon
+                  onClick={() => togglePin(repo)}
+                  sx={{
+                    fontSize: 16,
+                    color: currentTheme.textMuted,
+                    cursor: 'pointer',
+                    '&:hover': { color: '#ef4444' }
+                  }}
+                />
+              </Box>
+            ))}
+            <Button
+              size="small"
+              variant="text"
+              onClick={clearPinned}
+              sx={{ fontSize: '11px', minWidth: 'auto', px: 1 }}
+            >
+              Clear All
+            </Button>
+          </Box>
+        </div>
+      )}
+
       {/* Main Controls */}
       <div style={{
         background: currentTheme.cardGradient,
@@ -1768,6 +1872,18 @@ function TimeSeriesChart() {
         >
           <span>Fetch</span>
         </LoadingButton>
+        <Tooltip title={pinnedRepos.includes(selectedRepo) ? "Unpin repository" : "Pin repository"}>
+          <IconButton
+            size="small"
+            onClick={() => togglePin(selectedRepo)}
+            sx={{
+              color: pinnedRepos.includes(selectedRepo) ? '#3b82f6' : currentTheme.textMuted,
+              '&:hover': { color: '#3b82f6' }
+            }}
+          >
+            {pinnedRepos.includes(selectedRepo) ? <PushPinIcon fontSize="small" /> : <PushPinOutlinedIcon fontSize="small" />}
+          </IconButton>
+        </Tooltip>
         {showForceRefetch && (
           <Tooltip title={FORCE_REFETCH_TOOLTIP}>
             <FormControlLabel
