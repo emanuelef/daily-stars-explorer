@@ -29,7 +29,19 @@
     }
 
     .sidebar {
-        display: none;
+        display: none !important;
+    }
+
+    .github-star-link {
+        display: none !important;
+    }
+
+    .github-star-button-container {
+        display: none !important;
+    }
+
+    .github-corner {
+        display: none !important;
     }
 
     .content {

@@ -76,6 +76,7 @@ function AppContent() {
           width={collapsed ? "70px" : "200px"}
           rootStyles={{
             borderColor: currentTheme.cardBorder,
+            display: isMobile ? 'none' : 'flex',
           }}
         >
           <Menu
@@ -282,6 +283,7 @@ function AppContent() {
             </Tooltip>
             <Tooltip title="Star this project on GitHub" placement="right">
               <a
+                className="github-star-link"
                 href="https://github.com/emanuelef/daily-stars-explorer"
                 target="_blank"
                 rel="noopener noreferrer"
