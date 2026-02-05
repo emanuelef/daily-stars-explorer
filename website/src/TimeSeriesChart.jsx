@@ -602,6 +602,58 @@ function TimeSeriesChart() {
     options.dataSource.xAxis.timemarker = [...youtube, ...currentPeaks.current];
   }
 
+  const fetchGitHubMentionsFeed = async (options) => {
+    try {
+      const repo = parseGitHubRepoURL(selectedRepo);
+      const response = await fetch(`${HOST}/ghmentions?repo=${repo}&limit=100`);
+      
+      if (!response.ok) {
+        console.error('Failed to fetch GitHub mentions');
+        return;
+      }
+
+      const data = await response.json();
+      const mapMentions = {};
+
+      data.mentions.forEach(mention => {
+        const date = new Date(mention.CreatedAt);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        const formattedDate = `${day}-${month}-${year}`;
+
+        mapMentions[formattedDate] = {
+          HNURL: mention.URL
+        };
+      });
+
+      currentHNnews.current = mapMentions;
+
+      let mentions = data.mentions.slice(0, 100).map(mention => {
+        let date = new Date(mention.CreatedAt);
+        let formattedDate = `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}`;
+
+        const typeEmoji = mention.Type === 'Issue' ? '🐛' : mention.Type === 'PullRequest' ? '🔧' : '💬';
+        const repoShort = mention.Repository.split('/')[1] || mention.Repository;
+
+        return {
+          start: formattedDate,
+          label: `${typeEmoji} ${mention.Title}<br>${repoShort} - ${mention.State}`,
+          timeformat: "%d-%m-%Y",
+          style: {
+            marker: {
+              fill: mention.Type === 'Issue' ? '#ff9800' : mention.Type === 'PullRequest' ? '#8250df' : '#0969da',
+            },
+          },
+        };
+      });
+
+      options.dataSource.xAxis.timemarker = [...mentions, ...currentPeaks.current];
+    } catch (error) {
+      console.error('Error fetching GitHub mentions:', error);
+    }
+  }
+
   const fetchPredictions = async (repo) => {
     try {
       setLoading(true);
@@ -1154,6 +1206,9 @@ function TimeSeriesChart() {
         break;
       case "releases":
         await fetchReleasesFeed(options);
+        break;
+      case "ghmentions":
+        await fetchGitHubMentionsFeed(options);
         break;
       case "none":
         options.dataSource.xAxis.timemarker = currentPeaks.current;
@@ -1863,6 +1918,7 @@ function TimeSeriesChart() {
               <MenuItem value={"releases"}>Releases</MenuItem>
               <MenuItem value={"hacker"}>HNews</MenuItem>
               <MenuItem value={"reddit"}>Reddit</MenuItem>
+              <MenuItem value={"ghmentions"}>GitHub</MenuItem>
               <MenuItem value={"youtube"}>YouTube</MenuItem>
             </Select>
           </FormControl>

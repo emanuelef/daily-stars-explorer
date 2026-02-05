@@ -1,13 +1,17 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"os"
 	"strconv"
 	"time"
 
 	cache "github.com/Code-Hex/go-generics-cache"
 	"github.com/emanuelef/gh-repo-stats-server/news"
+	"github.com/emanuelef/gh-repo-stats-server/types"
+	"github.com/emanuelef/gh-repo-stats-server/utils"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -199,5 +203,64 @@ func RedditReposHandler(cacheRedditGitHub *cache.Cache[string, []news.RedditGitH
 		}
 
 		return c.JSON(posts)
+	}
+}
+
+func GitHubMentionsHandler(cacheGitHubMentions *cache.Cache[string, types.GitHubMentionsResponse]) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		repo := c.Query("repo", "")
+		if repo == "" {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "repo parameter is required (e.g., ?repo=owner/repo)",
+			})
+		}
+
+		// Check cache first
+		if res, hit := cacheGitHubMentions.Get(repo); hit {
+			return c.JSON(res)
+		}
+
+		// Get limit parameter
+		limit, err := strconv.Atoi(c.Query("limit", "50"))
+		if err != nil || limit <= 0 {
+			limit = 50
+		}
+		if limit > 100 {
+			limit = 100
+		}
+
+		// Create GitHub client using PAT
+		pat := os.Getenv("PAT")
+		if pat == "" {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "GitHub PAT not configured",
+			})
+		}
+
+		client := utils.NewClientWithPAT(pat)
+
+		// Fetch mentions
+		result, err := client.GetRepoMentions(context.Background(), repo, limit)
+		if err != nil {
+			log.Printf("Error fetching GitHub mentions for %s: %v", repo, err)
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to fetch GitHub mentions",
+			})
+		}
+
+		// Convert to response type
+		response := types.GitHubMentionsResponse{
+			TargetRepo:        result.TargetRepo,
+			TotalMentions:     result.TotalMentions,
+			IssuesCount:       result.IssuesCount,
+			PullRequestsCount: result.PullRequestsCount,
+			DiscussionsCount:  result.DiscussionsCount,
+			Mentions:          result.Mentions,
+		}
+
+		// Cache for 4 hours
+		cacheGitHubMentions.Set(repo, response, cache.WithExpiration(4*time.Hour))
+
+		return c.JSON(response)
 	}
 }

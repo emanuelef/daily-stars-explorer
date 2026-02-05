@@ -30,6 +30,7 @@ type Caches struct {
 	ShowHN            *cache.Cache[string, []news.ShowHNPost]
 	RedditGitHub      *cache.Cache[string, []news.RedditGitHubPost]
 	RecentStarsByHour *cache.Cache[string, []types.HourlyStars]
+	GitHubMentions    *cache.Cache[string, types.GitHubMentionsResponse]
 }
 
 // OnGoingMaps holds all the ongoing operation tracking maps
@@ -59,6 +60,7 @@ func RegisterNewsRoutes(app *fiber.App, caches *Caches) {
 	app.Get("/youtube", handlers.YouTubeHandler(caches.YouTube))
 	app.Get("/showhn", handlers.ShowHNHandler(caches.ShowHN))
 	app.Get("/redditrepos", handlers.RedditReposHandler(caches.RedditGitHub))
+	app.Get("/ghmentions", handlers.GitHubMentionsHandler(caches.GitHubMentions))
 }
 
 // RegisterGitHubStatsRoutes registers GitHub statistics routes
