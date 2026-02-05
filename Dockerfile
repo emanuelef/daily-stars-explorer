@@ -7,6 +7,10 @@ RUN ls -la /build/dist
 
 FROM golang:1.26-rc-alpine AS builder
 WORKDIR /app
+# Copy go.mod and go.sum first to cache dependencies
+COPY go.mod go.sum ./
+RUN go mod download
+# Then copy source code
 COPY main.go .
 COPY cache ./cache
 COPY config ./config
@@ -17,9 +21,6 @@ COPY routes ./routes
 COPY session ./session
 COPY types ./types
 COPY utils ./utils
-COPY go.mod .
-COPY go.sum .
-RUN go mod download
 RUN go build -o gh_stats_app ./main.go
 
 FROM alpine:latest AS runner
