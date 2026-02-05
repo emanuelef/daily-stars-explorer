@@ -461,7 +461,10 @@ function TimeSeriesChart() {
   };
 
   useEffect(() => {
-    updateGraph(currentStarsHistory);
+    if (currentStarsHistory.length > 0) {
+      setLoading(true);
+      updateGraph(currentStarsHistory).finally(() => setLoading(false));
+    }
   }, [transformation, feed]);
 
   const handleForceRefetchChange = (event) => {
@@ -609,10 +612,23 @@ function TimeSeriesChart() {
       
       if (!response.ok) {
         console.error('Failed to fetch GitHub mentions');
+        // Clear old mentions and only show peaks
+        currentHNnews.current = {};
+        options.dataSource.xAxis.timemarker = currentPeaks.current;
         return;
       }
 
       const data = await response.json();
+      
+      // Check if mentions exist and are not empty
+      if (!data.mentions || data.mentions.length === 0) {
+        console.log('No GitHub mentions found for this repository');
+        // Clear old mentions and only show peaks
+        currentHNnews.current = {};
+        options.dataSource.xAxis.timemarker = currentPeaks.current;
+        return;
+      }
+
       const mapMentions = {};
 
       data.mentions.forEach(mention => {
@@ -649,8 +665,12 @@ function TimeSeriesChart() {
       });
 
       options.dataSource.xAxis.timemarker = [...mentions, ...currentPeaks.current];
+      console.log(`Found ${mentions.length} GitHub mentions`);
     } catch (error) {
       console.error('Error fetching GitHub mentions:', error);
+      // Clear old mentions and only show peaks on error
+      currentHNnews.current = {};
+      options.dataSource.xAxis.timemarker = currentPeaks.current;
     }
   }
 
@@ -1248,6 +1268,8 @@ function TimeSeriesChart() {
   const fetchAllStars = async (repo, ignoreForceRefetch = false, currentTotalStars = 0) => {
     setCurrentStarsHistory([]);
     setStarsLast10d("");
+    // Clear old mentions when fetching new repo data
+    currentHNnews.current = {};
 
     // 1. Check status first
     const status = await fetchStatus(repo);
