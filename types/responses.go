@@ -42,3 +42,12 @@ type HourlyStars struct {
 	Stars      int    `json:"stars"`
 	TotalStars int    `json:"totalStars"`
 }
+
+type GitHubMentionsResponse struct {
+	TargetRepo        string                  `json:"targetRepo"`
+	TotalMentions     int                     `json:"totalMentions"`
+	IssuesCount       int                     `json:"issuesCount"`
+	PullRequestsCount int                     `json:"pullRequestsCount"`
+	DiscussionsCount  int                     `json:"discussionsCount"`
+	Mentions          []repostats.RepoMention `json:"mentions"`
+}

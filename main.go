@@ -61,6 +61,7 @@ func main() {
 	cacheShowHN := cache.New[string, []news.ShowHNPost]()
 	cacheRedditGitHub := cache.New[string, []news.RedditGitHubPost]()
 	cacheRecentStarsByHour := cache.New[string, []types.HourlyStars]()
+	cacheGitHubMentions := cache.New[string, types.GitHubMentionsResponse]()
 
 	onGoingStars := make(map[string]bool)
 	onGoingIssues := make(map[string]bool)
@@ -117,6 +118,7 @@ func main() {
 	app.Use("/redditrepos", rateLimiterFeed)
 	app.Use("/reddit", rateLimiterFeed)
 	app.Use("/hackernews", rateLimiterFeed)
+	app.Use("/ghmentions", rateLimiterFeed)
 	app.Use("/allReleases", rateLimiter)
 	app.Use(recover.New())
 	app.Use(cors.New())
@@ -139,6 +141,7 @@ func main() {
 		ShowHN:            cacheShowHN,
 		RedditGitHub:      cacheRedditGitHub,
 		RecentStarsByHour: cacheRecentStarsByHour,
+		GitHubMentions:    cacheGitHubMentions,
 	}
 
 	// Initialize ongoing operations map
