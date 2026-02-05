@@ -438,6 +438,12 @@ function TimeSeriesChart() {
   };
 
   const handleFeedChange = (event) => {
+    // Clear old feed markers immediately before switching
+    currentHNnews.current = {};
+    const options = { ...ds };
+    options.dataSource.xAxis.timemarker = currentPeaks.current;
+    setds(options);
+    
     setFeed(event.target.value);
   };
 
