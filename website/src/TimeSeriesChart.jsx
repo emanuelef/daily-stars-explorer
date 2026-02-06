@@ -312,6 +312,7 @@ function TimeSeriesChart() {
   const currentHNnews = useRef({});
   const currentPeaks = useRef([]);
   const chartRef = useRef(null);
+  const currentRepoRef = useRef(defaultRepo); // Track current repo for async operations
 
   const [feed, setFeed] = useState("none");
   const [theme, setTheme] = useState(defaultChartTheme);
@@ -1272,6 +1273,9 @@ function TimeSeriesChart() {
   };
 
   const fetchAllStars = async (repo, ignoreForceRefetch = false, currentTotalStars = 0) => {
+    // Update the current repo ref to track which repo we're fetching
+    currentRepoRef.current = repo;
+
     setCurrentStarsHistory([]);
     setStarsLast10d("");
     // Clear old mentions when fetching new repo data
@@ -1299,10 +1303,13 @@ function TimeSeriesChart() {
     fetch(fetchUrl)
       .then((response) => {
         if (!isMountedRef.current) return null; // Component unmounted
+        if (currentRepoRef.current !== repo) return null; // Stale request
         if (!response.ok) {
           setLoading(false);
-          // Don't show errors for allStars API call - it will be retried automatically
-          // Silent fail - the data will be fetched again later if needed
+          if (response.status === 429) {
+            setError("GitHub API rate limit exceeded. Please wait a few minutes and try again.");
+            setShowError(true);
+          }
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
         // Clear any existing errors on successful API call
@@ -1311,6 +1318,7 @@ function TimeSeriesChart() {
       })
       .then((data) => {
         if (!data || !isMountedRef.current) return; // Component unmounted or no data
+        if (currentRepoRef.current !== repo) return; // Stale request - different repo was requested
         setLoading(false);
         const starHistory = data.stars;
         setCurrentStarsHistory(starHistory);
@@ -1366,6 +1374,7 @@ function TimeSeriesChart() {
 
           fetch(`${HOST}/recentStars?repo=${repo}&lastDays=${daysMissing}`)
             .then(res => {
+              if (currentRepoRef.current !== repo) return null; // Stale request
               if (res.ok) {
                 // Clear any existing errors on successful API call
                 setShowError(false);
@@ -1373,6 +1382,7 @@ function TimeSeriesChart() {
               return res.json();
             })
             .then(recentData => {
+              if (!recentData || currentRepoRef.current !== repo) return; // Stale request
               const existingDays = new Set(starHistory.map(d => d[0]));
               const merged = [
                 ...starHistory,
@@ -1386,6 +1396,7 @@ function TimeSeriesChart() {
               setLoading(false); // <--- Hide spinner after fetch
             })
             .catch((error) => {
+              if (currentRepoRef.current !== repo) return; // Stale request
               console.error("Error fetching recent stars:", error);
               setLoading(false); // <--- Hide spinner on error
               setError("Failed to fetch recent star data. Using cached data instead.");
@@ -1516,17 +1527,19 @@ function TimeSeriesChart() {
 
   const startSSEUpates = (repo, callsNeeded, onGoing) => {
     console.log(repo, callsNeeded, onGoing);
+    // Update current repo ref for SSE callbacks
+    currentRepoRef.current = repo;
+
     // If callsNeeded is 0, immediately fetch and update the graph (no SSE needed)
     if (callsNeeded === 0) {
-      // Get the current star history and update it with today's data if needed
-      const repoParsed = parseGitHubRepoURL(selectedRepo);
       setTimeout(async () => {
         if (!isMountedRef.current) return; // Component unmounted
-        const res = await fetchTotalStars(repoParsed);
-        if (res && isMountedRef.current) {
+        if (currentRepoRef.current !== repo) return; // Stale request
+        const res = await fetchTotalStars(repo);
+        if (res && isMountedRef.current && currentRepoRef.current === repo) {
           const freshTotalStars = res.stars;
-          fetchAllStars(repoParsed, false, freshTotalStars);
-        } else if (isMountedRef.current) {
+          fetchAllStars(repo, false, freshTotalStars);
+        } else if (isMountedRef.current && currentRepoRef.current === repo) {
           handleClick();
         }
       }, 1000); // Short delay for consistency
@@ -1540,6 +1553,8 @@ function TimeSeriesChart() {
 
       sse.onerror = (err) => {
         if (!isMountedRef.current) return; // Component unmounted
+        // Ignore errors if we switched to a different repo (intentional close)
+        if (currentRepoRef.current !== repo) return;
         console.log("on error", err);
         // Only show error if the SSE connection fails after some time (not on initial load)
         // This prevents showing errors that are part of the normal retry process
@@ -1561,6 +1576,12 @@ function TimeSeriesChart() {
 
       sse.addEventListener("current-value", (event) => {
         if (!isMountedRef.current) return; // Component unmounted
+        if (currentRepoRef.current !== repo) {
+          // A different repo was requested, close this SSE
+          console.log("Stale SSE event, closing");
+          sse.close();
+          return;
+        }
         const parsedData = JSON.parse(event.data);
         const currentValue = parsedData.data;
         setProgressValue(currentValue);
@@ -1571,17 +1592,16 @@ function TimeSeriesChart() {
           console.log("CLOSE SSE");
           closeSSE();
 
-          // Get the current star history and update it with today's data if needed
-          const repo = parseGitHubRepoURL(selectedRepo);
           setTimeout(async () => {
             if (!isMountedRef.current) return; // Component unmounted
+            if (currentRepoRef.current !== repo) return; // Stale request
             // Fetch the current total stars
             const res = await fetchTotalStars(repo);
-            if (res && isMountedRef.current) {
+            if (res && isMountedRef.current && currentRepoRef.current === repo) {
               const freshTotalStars = res.stars;
               // Use fetchAllStars with the current total stars to ensure it's properly updated
               fetchAllStars(repo, false, freshTotalStars);
-            } else if (isMountedRef.current) {
+            } else if (isMountedRef.current && currentRepoRef.current === repo) {
               // Fallback to handleClick if we couldn't fetch total stars
               handleClick();
             }
@@ -1614,6 +1634,12 @@ function TimeSeriesChart() {
       setLoading(false);
       return;
     }
+
+    // Close any existing SSE connection before starting a new request
+    closeSSE();
+
+    // Update the current repo ref immediately
+    currentRepoRef.current = repoParsed;
 
     // Clear any previous errors when starting a valid fetch
     setShowError(false);
@@ -1688,6 +1714,12 @@ function TimeSeriesChart() {
       setLoading(false);
       return;
     }
+
+    // Close any existing SSE connection before starting a new request
+    closeSSE();
+
+    // Update the current repo ref immediately
+    currentRepoRef.current = repoParsed;
 
     // Clear any previous errors when starting a valid fetch
     setShowError(false);
