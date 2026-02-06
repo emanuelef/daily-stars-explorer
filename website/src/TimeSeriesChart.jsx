@@ -884,7 +884,7 @@ function TimeSeriesChart() {
           setError(`Repository '${repo}' not found. Please check if the repository exists on GitHub.`);
           setShowError(true);
         } else if (response.status === 429) {
-          setError("GitHub API rate limit exceeded. Please wait a few minutes and try again.");
+          setError("⏱️ Rate limit exceeded. Please wait before trying again.");
           setShowError(true);
         } else {
           setError("Internal Server Error. Please try again later.");
@@ -913,7 +913,7 @@ function TimeSeriesChart() {
           setError(`Repository '${repo}' not found. Please check if the repository exists on GitHub.`);
           setShowError(true);
         } else if (response.status === 429) {
-          setError("GitHub API rate limit exceeded. Please wait a few minutes and try again.");
+          setError("⏱️ Rate limit exceeded. Please wait before trying again.");
           setShowError(true);
         } else {
           setError("Error checking repository status. Please try again later.");
@@ -1277,135 +1277,148 @@ function TimeSeriesChart() {
     // Clear old mentions when fetching new repo data
     currentHNnews.current = {};
 
-    // 1. Check status first
-    const status = await fetchStatus(repo);
+    try {
+      // 1. Check status first
+      const status = await fetchStatus(repo);
 
-    // If status fetch failed, exit early
-    if (!status) {
-      setLoading(false);
-      return;
-    }
-
-    if (status.onGoing) {
-      // If fetching is ongoing, do NOT call recentStars, just wait for SSE
-      return;
-    }
-
-    let fetchUrl = `${HOST}/allStars?repo=${repo}`;
-    if (forceRefetch && !ignoreForceRefetch) {
-      fetchUrl += "&forceRefetch=true";
-    }
-
-    fetch(fetchUrl)
-      .then((response) => {
-        if (!isMountedRef.current) return null; // Component unmounted
-        if (!response.ok) {
-          setLoading(false);
-          // Don't show errors for allStars API call - it will be retried automatically
-          // Silent fail - the data will be fetched again later if needed
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        // Clear any existing errors on successful API call
-        setShowError(false);
-        return response.json();
-      })
-      .then((data) => {
-        if (!data || !isMountedRef.current) return; // Component unmounted or no data
+      // If status fetch failed, exit early
+      if (!status) {
         setLoading(false);
-        const starHistory = data.stars;
-        setCurrentStarsHistory(starHistory);
+        return;
+      }
 
-        // Set starsLast10d from server response
-        setStarsLast10d(data.newLast10Days);
+      if (status.onGoing) {
+        // If fetching is ongoing, do NOT call recentStars, just wait for SSE
+        return;
+      }
 
-        // Process max periods and peaks data for the chart markers
-        const maxPeriods = data.maxPeriods ? data.maxPeriods.map((period) => ({
-          start: period.StartDay,
-          end: period.EndDay,
-          label: `${period.TotalStars.toLocaleString()} is the highest number of new stars in a 10 day period`,
-          timeformat: "%d-%m-%Y",
-          type: "full",
-        })) : [];
-        const maxPeaks = data.maxPeaks ? data.maxPeaks.map((peak) => ({
-          start: peak.Day,
-          timeformat: "%d-%m-%Y",
-          label: `${peak.Stars.toLocaleString()} is the maximum number of new stars in one day`,
-          style: {
-            marker: {
-              fill: "#10b981", // Emerald-500 - softer and more professional than bright green
-            },
-          },
-        })) : [];
-        currentPeaks.current = maxPeriods.concat(maxPeaks);
+      let fetchUrl = `${HOST}/allStars?repo=${repo}`;
+      if (forceRefetch && !ignoreForceRefetch) {
+        fetchUrl += "&forceRefetch=true";
+      }
 
-        const totalStarsToUse = currentTotalStars || (data.stars && data.stars.length > 0 ? data.stars[data.stars.length - 1][2] : 0);
-
-        // Check if yesterday is present
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const formattedYesterday = `${String(yesterday.getDate()).padStart(2, '0')}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${yesterday.getFullYear()}`;
-        const hasYesterday = starHistory.some(d => d[0] === formattedYesterday);
-
-        if (status.cached && !hasYesterday) {
-          // Find the last date in the cached history
-          let lastCachedDate = null;
-          if (starHistory.length > 0) {
-            lastCachedDate = starHistory[starHistory.length - 1][0]; // format: dd-mm-yyyy
-          }
-
-          // Calculate days missing from last cached date to yesterday
-          let daysMissing = 7; // fallback
-          if (lastCachedDate) {
-            const [d, m, y] = lastCachedDate.split("-").map(Number);
-            const lastDateObj = new Date(y, m - 1, d);
-            const diffMs = yesterday - lastDateObj;
-            daysMissing = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
-          }
-
-          setLoading(true); // <--- Show spinner while fetching recentStars
-
-          fetch(`${HOST}/recentStars?repo=${repo}&lastDays=${daysMissing}`)
-            .then(res => {
-              if (res.ok) {
-                // Clear any existing errors on successful API call
-                setShowError(false);
-              }
-              return res.json();
-            })
-            .then(recentData => {
-              const existingDays = new Set(starHistory.map(d => d[0]));
-              const merged = [
-                ...starHistory,
-                ...recentData.stars.filter(d => !existingDays.has(d[0]))
-              ];
-              setCurrentStarsHistory(merged);
-
-              // Important change here: Update the graph with data AND title together
-              updateGraphWithTitle(merged, repo, totalStarsToUse);
-
-              setLoading(false); // <--- Hide spinner after fetch
-            })
-            .catch((error) => {
-              console.error("Error fetching recent stars:", error);
-              setLoading(false); // <--- Hide spinner on error
-              setError("Failed to fetch recent star data. Using cached data instead.");
-              setShowError(true);
-              // Fall back to using the cached data we already have
-
-              // Important change here: Update the graph with data AND title together
-              updateGraphWithTitle(starHistory, repo, totalStarsToUse);
-            });
+      const response = await fetch(fetchUrl);
+      
+      if (!isMountedRef.current) return; // Component unmounted
+      
+      if (!response.ok) {
+        setLoading(false);
+        // Show specific error messages for different status codes
+        if (response.status === 429) {
+          setError("⏱️ Rate limit exceeded. Please wait before trying again.");
+        } else if (response.status === 404) {
+          setError("Repository not found. Please check the repository name and try again.");
+        } else if (response.status >= 500) {
+          setError("Server error. Please try again later.");
         } else {
-          // Important change here: Update the graph with data AND title together
+          setError(`Failed to fetch star history (Error ${response.status}). Please try again.`);
+        }
+        setShowError(true);
+        return;
+      }
+      
+      // Clear any existing errors on successful API call
+      setShowError(false);
+      const data = await response.json();
+      
+      if (!isMountedRef.current) return; // Component unmounted
+      
+      setLoading(false);
+      const starHistory = data.stars;
+      setCurrentStarsHistory(starHistory);
+
+      // Set starsLast10d from server response
+      setStarsLast10d(data.newLast10Days);
+
+      // Process max periods and peaks data for the chart markers
+      const maxPeriods = data.maxPeriods ? data.maxPeriods.map((period) => ({
+        start: period.StartDay,
+        end: period.EndDay,
+        label: `${period.TotalStars.toLocaleString()} is the highest number of new stars in a 10 day period`,
+        timeformat: "%d-%m-%Y",
+        type: "full",
+      })) : [];
+      const maxPeaks = data.maxPeaks ? data.maxPeaks.map((peak) => ({
+        start: peak.Day,
+        timeformat: "%d-%m-%Y",
+        label: `${peak.Stars.toLocaleString()} is the maximum number of new stars in one day`,
+        style: {
+          marker: {
+            fill: "#10b981", // Emerald-500 - softer and more professional than bright green
+          },
+        },
+      })) : [];
+      currentPeaks.current = maxPeriods.concat(maxPeaks);
+
+      const totalStarsToUse = currentTotalStars || (data.stars && data.stars.length > 0 ? data.stars[data.stars.length - 1][2] : 0);
+
+      // Check if yesterday is present
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const formattedYesterday = `${String(yesterday.getDate()).padStart(2, '0')}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${yesterday.getFullYear()}`;
+      const hasYesterday = starHistory.some(d => d[0] === formattedYesterday);
+
+      if (status.cached && !hasYesterday) {
+        // Find the last date in the cached history
+        let lastCachedDate = null;
+        if (starHistory.length > 0) {
+          lastCachedDate = starHistory[starHistory.length - 1][0]; // format: dd-mm-yyyy
+        }
+
+        // Calculate days missing from last cached date to yesterday
+        let daysMissing = 7; // fallback
+        if (lastCachedDate) {
+          const [d, m, y] = lastCachedDate.split("-").map(Number);
+          const lastDateObj = new Date(y, m - 1, d);
+          const diffMs = yesterday - lastDateObj;
+          daysMissing = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+        }
+
+        setLoading(true);
+
+        try {
+          const res = await fetch(`${HOST}/recentStars?repo=${repo}&lastDays=${daysMissing}`);
+          
+          if (!res.ok) {
+            setLoading(false);
+            if (res.status === 429) {
+              setError("⏱️ Rate limit exceeded. Please wait before trying again.");
+              setShowError(true);
+            } else {
+              setError(`Failed to fetch recent star data (Error ${res.status}). Using cached data instead.`);
+              setShowError(true);
+            }
+            updateGraphWithTitle(starHistory, repo, totalStarsToUse);
+            return;
+          }
+          
+          setShowError(false);
+          const recentData = await res.json();
+          
+          const existingDays = new Set(starHistory.map(d => d[0]));
+          const merged = [
+            ...starHistory,
+            ...recentData.stars.filter(d => !existingDays.has(d[0]))
+          ];
+          setCurrentStarsHistory(merged);
+
+          updateGraphWithTitle(merged, repo, totalStarsToUse);
+          setLoading(false);
+        } catch (error) {
+          console.error("Error fetching recent stars:", error);
+          setLoading(false);
+          // Don't show error for recentStars failure, just use cached data
           updateGraphWithTitle(starHistory, repo, totalStarsToUse);
         }
-      })
-      .catch((e) => {
-        console.error(`An error occurred in fetchAllStars: ${e}`);
-        setLoading(false);
-        // Don't show errors for allStars API call - it will be retried automatically
-        // if this is part of the automatic retry process
-      });
+      } else {
+        updateGraphWithTitle(starHistory, repo, totalStarsToUse);
+      }
+    } catch (e) {
+      console.error(`An error occurred in fetchAllStars: ${e}`);
+      setLoading(false);
+      setError("Network error. Please check your connection and try again.");
+      setShowError(true);
+    }
   };
 
   // New function that combines updating graph data and title
