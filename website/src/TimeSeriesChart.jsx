@@ -1595,7 +1595,7 @@ function TimeSeriesChart() {
               // Fallback to handleClick if we couldn't fetch total stars
               handleClick();
             }
-          }, 2000);
+          }, 1000);
 
           setLoading(false);
         }
@@ -1628,19 +1628,22 @@ function TimeSeriesChart() {
     // Close any existing SSE connection before starting a new request
     closeSSE();
 
+    // Check if switching to a different repo before updating the ref
+    const isSameRepo = currentRepoRef.current === repoParsed;
+
     // Update the current repo ref immediately
     currentRepoRef.current = repoParsed;
 
     // Clear any previous errors when starting a valid fetch
     setShowError(false);
 
-    // Update graph title immediately to show we're fetching new repo
+    // Update graph title immediately and clear data if switching repos
     setds(prevDs => ({
       ...prevDs,
       dataSource: {
         ...prevDs.dataSource,
         caption: { text: `Stars ${repoParsed}` },
-        data: null // Clear old data
+        ...(isSameRepo ? {} : { data: null })
       }
     }));
 
@@ -1718,19 +1721,22 @@ function TimeSeriesChart() {
     // Close any existing SSE connection before starting a new request
     closeSSE();
 
+    // Check if switching to a different repo before updating the ref
+    const isSameRepo = currentRepoRef.current === repoParsed;
+
     // Update the current repo ref immediately
     currentRepoRef.current = repoParsed;
 
     // Clear any previous errors when starting a valid fetch
     setShowError(false);
 
-    // Update graph title immediately to show we're fetching new repo
+    // Update graph title immediately and clear data if switching repos
     setds(prevDs => ({
       ...prevDs,
       dataSource: {
         ...prevDs.dataSource,
         caption: { text: `Stars ${repoParsed}` },
-        data: null // Clear old data
+        ...(isSameRepo ? {} : { data: null })
       }
     }));
 
