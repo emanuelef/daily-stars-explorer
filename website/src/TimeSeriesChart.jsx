@@ -885,7 +885,7 @@ function TimeSeriesChart() {
           setError(`Repository '${repo}' not found. Please check if the repository exists on GitHub.`);
           setShowError(true);
         } else if (response.status === 429) {
-          setError("GitHub API rate limit exceeded. Please wait a few minutes and try again.");
+          setError("⏱️ Rate limit exceeded. Please wait before trying again.");
           setShowError(true);
         } else {
           setError("Internal Server Error. Please try again later.");
@@ -914,7 +914,7 @@ function TimeSeriesChart() {
           setError(`Repository '${repo}' not found. Please check if the repository exists on GitHub.`);
           setShowError(true);
         } else if (response.status === 429) {
-          setError("GitHub API rate limit exceeded. Please wait a few minutes and try again.");
+          setError("⏱️ Rate limit exceeded. Please wait before trying again.");
           setShowError(true);
         } else {
           setError("Error checking repository status. Please try again later.");
@@ -1306,10 +1306,7 @@ function TimeSeriesChart() {
         if (currentRepoRef.current !== repo) return null; // Stale request
         if (!response.ok) {
           setLoading(false);
-          if (response.status === 429) {
-            setError("GitHub API rate limit exceeded. Please wait a few minutes and try again.");
-            setShowError(true);
-          }
+          // Don't show errors for allStars API call - it will be retried automatically
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
         // Clear any existing errors on successful API call
@@ -1318,7 +1315,7 @@ function TimeSeriesChart() {
       })
       .then((data) => {
         if (!data || !isMountedRef.current) return; // Component unmounted or no data
-        if (currentRepoRef.current !== repo) return; // Stale request - different repo was requested
+        if (currentRepoRef.current !== repo) return; // Stale request
         setLoading(false);
         const starHistory = data.stars;
         setCurrentStarsHistory(starHistory);
@@ -1414,8 +1411,6 @@ function TimeSeriesChart() {
       .catch((e) => {
         console.error(`An error occurred in fetchAllStars: ${e}`);
         setLoading(false);
-        // Don't show errors for allStars API call - it will be retried automatically
-        // if this is part of the automatic retry process
       });
   };
 

@@ -1,11 +1,16 @@
 FROM node:24-alpine AS website
 ENV VITE_HOST=""
 WORKDIR /build
+# Copy package files first to cache npm install
+COPY website/package.json website/package-lock.json ./
+RUN npm install --force
+# Then copy source code (changes here won't invalidate npm install cache)
 COPY website .
-RUN npm install --force && npm run build
-RUN ls -la /build/dist
+RUN npm run build
 
-FROM golang:1.26-rc-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.26-rc-alpine AS builder
+ARG TARGETOS
+ARG TARGETARCH
 WORKDIR /app
 # Copy go.mod and go.sum first to cache dependencies
 COPY go.mod go.sum ./
@@ -21,7 +26,7 @@ COPY routes ./routes
 COPY session ./session
 COPY types ./types
 COPY utils ./utils
-RUN go build -o gh_stats_app ./main.go
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o gh_stats_app ./main.go
 
 FROM alpine:latest AS runner
 WORKDIR /home/app
