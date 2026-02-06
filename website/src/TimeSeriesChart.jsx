@@ -1551,12 +1551,7 @@ function TimeSeriesChart() {
         // Ignore errors if we switched to a different repo (intentional close)
         if (currentRepoRef.current !== repo) return;
         console.log("on error", err);
-        // Only show error if the SSE connection fails after some time (not on initial load)
-        // This prevents showing errors that are part of the normal retry process
-        if (currentSSE.current && currentSSE.current.readyState === 2) { // CLOSED state
-          setError("Error connecting to the server for live updates. Data updates may be delayed.");
-          setShowError(true);
-        }
+        // Don't show error banner - SSE errors are usually transient and data will load
         setLoading(false);
       };
 
@@ -1639,6 +1634,16 @@ function TimeSeriesChart() {
     // Clear any previous errors when starting a valid fetch
     setShowError(false);
 
+    // Update graph title immediately to show we're fetching new repo
+    setds(prevDs => ({
+      ...prevDs,
+      dataSource: {
+        ...prevDs.dataSource,
+        caption: { text: `Stars ${repoParsed}` },
+        data: null // Clear old data
+      }
+    }));
+
     navigate(`/${repoParsed}`, {
       replace: false,
     });
@@ -1718,6 +1723,16 @@ function TimeSeriesChart() {
 
     // Clear any previous errors when starting a valid fetch
     setShowError(false);
+
+    // Update graph title immediately to show we're fetching new repo
+    setds(prevDs => ({
+      ...prevDs,
+      dataSource: {
+        ...prevDs.dataSource,
+        caption: { text: `Stars ${repoParsed}` },
+        data: null // Clear old data
+      }
+    }));
 
     navigate(`/${repoParsed}`, {
       replace: false,
