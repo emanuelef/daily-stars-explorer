@@ -112,6 +112,10 @@ func main() {
 		},
 	})
 
+	app.Use(recover.New())
+	app.Use(cors.New())
+	app.Use(compress.New())
+
 	app.Use("/allStars", rateLimiter)
 	app.Use("/youtube", rateLimiterFeed)
 	app.Use("/showhn", rateLimiterFeed)
@@ -120,9 +124,6 @@ func main() {
 	app.Use("/hackernews", rateLimiterFeed)
 	app.Use("/ghmentions", rateLimiterFeed)
 	app.Use("/allReleases", rateLimiter)
-	app.Use(recover.New())
-	app.Use(cors.New())
-	app.Use(compress.New())
 
 	// Initialize caches struct
 	caches := &routes.Caches{
