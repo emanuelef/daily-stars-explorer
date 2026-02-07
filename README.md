@@ -74,7 +74,7 @@ https://github.com/emanuelef/daily-stars-explorer/assets/48717/9b14f989-ffc2-4b5
 
 ## Mobile (limited functionalities)
 
-<img width="800" height="2172" alt="screencapture-emanuelef-github-io-daily-stars-explorer-2026-02-07-16_57_12" src="https://github.com/user-attachments/assets/f4b6119d-fd5e-42d1-a0ae-0d54a3200132" />
+<img width="400" alt="screencapture-emanuelef-github-io-daily-stars-explorer-2026-02-07-16_57_12" src="https://github.com/user-attachments/assets/f4b6119d-fd5e-42d1-a0ae-0d54a3200132" />
 
 ---
 
