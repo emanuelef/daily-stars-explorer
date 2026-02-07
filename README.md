@@ -1,139 +1,164 @@
-# daily-stars-explorer
+# Daily Stars Explorer
 
-<img width="1509" height="826" alt="Screenshot 2026-02-01 at 09 19 23" src="https://github.com/user-attachments/assets/444f9f03-dc7f-433a-9502-f80c8181d9ce" />
+**Explore the full history of any GitHub repository.**
 
+<p align="center">
+  <img width="800" alt="Daily Stars Explorer Screenshot" src="https://github.com/user-attachments/assets/444f9f03-dc7f-433a-9502-f80c8181d9ce" />
+</p>
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Features](#features)
-- [Project Limitations](#project-limitations)
-- [Contributing](#contributing)
-
-## Introduction
-
-Do you ever wonder about the complete history of stars for GitHub repositories? GitHub's REST APIs come with certain limitations, allowing you to retrieve only up to 40,000 stars per repository. For those tracking a repository with more stars, this limitation can be quite frustrating.
-
-Don't be blinded by stars! While they show popularity, they don't guarantee quality.  
-Underdog libraries with amazing potential often have low counts.  
-Remember, even high-starred repos can fizzle out - stars can decline, too!  
-In my quest for code, I've found hidden gems with few stars that were perfect, while some popular choices were bloated or on the way down.  
-A growing or stable star count, rather than just a total high number, suggests sustainable interest and community engagement.
-
-In [Factors contributing to daily stars](./website/src/info.md#factors-contributing-to-daily-stars) I explain what are the reasons why some repos can get high number of stars.
-
-## Hosted version
-
-There's a [version hosted](https://emanuelef.github.io/daily-stars-explorer/#/helm/helm) that is using my PAT.  
-A new project was created to make this more mobile friendly and can be found [here](https://emanuelef.github.io/daily-stars-mobile).
-
-
-## Run locally or self-host using Docker image
-
-If you want to run locally or self-host you can use the docker image available in `ghcr`. 
-
-Requirements:
-- Docker
-- GitHub account to generate a [Personal Access Token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) (PAT) to call GH APIs
-- A `.env` file and you can refer to [.env.example](.env.example).  
-  
-Only `PAT` is required, the others are needed if you want to visualise the feeds from different providers.  
-`PAT` can be generated with no access to any of your repos, is just needed to call GraphQL APIs on public reposistories.  
-
-```bash
-docker run --rm --name daily-stars-explorer --env-file .env -p 8080:8080 ghcr.io/emanuelef/daily-stars-explorer:latest
-```
-
-Then access the UI at `localhost:8080`.  
-Note: If you've previously run the application and encounter errors accessing the `/assets` path, hard refresh your browser to ensure the latest version of the UI is loaded. This can usually be done by pressing Ctrl+Shift+R (Windows/Linux) or Cmd+Shift+R (macOS).  
-
-## Run locally
-
-### Backend in Go
-
-```sh
-# Make sure you have Go installed
-cp .env.example .env   # Create your environment file
-go run main.go
-```
-An `.env` file is needed as described in the previous section.
-The backend runs on port 8080.
-
-### Frontend Web
-
-```sh
-cd website
-npm install
-npm start
-```
-
-## Demo
-
-[Demo Video](https://www.loom.com/share/b1728c0305e74a8ebf1e23c419c84549?sid=3bdcbbf6-d205-4157-bed5-825d4ba5f5e3)
-
-## Single repo
-
-https://github.com/emanuelef/daily-stars-explorer/assets/48717/f5e96d63-3807-43fb-9838-3de56355124e
-
-https://emanuelef.github.io/daily-stars-explorer/#/kubernetes/kubernetes
-
-## Compare
-
-https://github.com/emanuelef/daily-stars-explorer/assets/48717/9b14f989-ffc2-4b54-a17c-03284f0327f5
-
-https://emanuelef.github.io/daily-stars-explorer/#/compare
-
-## Articles
-
-- [How to get full history of GitHub stars](https://medium.com/@emafuma/how-to-get-full-history-of-github-stars-f03cc93183a7)
-- [Building a Cost-Free, Always-On Personal Project Stack](https://medium.com/@emafuma/building-a-cost-free-always-on-personal-project-stack-3eaa02ac16b6)
-- [Introducing My GitHub Stars History Project: Unlocking the Full Star Story Beyond 40K and Daily Trends](https://www.reddit.com/r/github/comments/17e31ab/introducing_my_github_stars_history_project/)
-- [GitHub Daily Stars Explorer: New Features and User-Requested Improvements](https://medium.com/@emafuma/github-daily-stars-explorer-new-features-and-user-requested-improvements-f2805ac98cfd)
-
-## Features
-
-### Full History of Stars
-
-My project offers you the ability to access the full history of stars for a GitHub repository. It not only shows you the stars per day but also provides a cumulative stars graph. This way, you can visualize how a repository's popularity has evolved over time.
-
-### Generate CSV and JSON
-
-Easily save the star history as CSV or JSON files, with a daily and cumulative star count for each day since the repository's creation.
-
-### Caching and Data Refresh
-
-To keep things efficient, I've implemented a caching mechanism. Once you've fetched the history of stars, the data is cached for seven days. During this period, you have the option to refresh the data up to the current day. Please note that the graph will display data up to the last complete UTC day.
-
-### Compare Repositories
-
-For those curious about how two repositories stack up against each other, my project offers a comparison feature. While stars might not be the sole determinant of a project's worth, this comparison can provide valuable insights.
-
-### Aggregates and trends
-
-Go to https://github.com/emanuelef/daily-stars-explorer/blob/main/aggregate.md for the explanation of the current ways of aggregating the data and the trends that are calcualted.
+<p align="center">
+  <a href="https://emanuelef.github.io/daily-stars-explorer/#/helm/helm"><strong>Try the Live Demo →</strong></a>
+</p>
 
 ---
 
-## Project Limitations
+## About
 
-### Fetching Time
+A tool to explore the **complete history** of any GitHub repository. Not just stars, but commits, forks, PRs, issues, and contributors over time.
 
-The time it takes to retrieve all stars depends on the total number of stars. To overcome the 40,000-star limit, I leveraged the GitHub GraphQL API. Unfortunately, this doesn't allow for parallel requests. The workaround is to fetch the first half of the stars from the beginning and the other half from the end simultaneously, which can be time-consuming for large repositories.
+Unlike other star history tools that show a straight line from 40K to the current count, this one shows the actual daily data for repos with 40K+ stars.
 
-Retrieving the complete star history for Kubernetes typically takes about 3 minutes.
+---
 
-### Rate Limits
+## ✨ Features at a Glance
 
-With a single Personal Access Token (PAT), you can query up to 500,000 stars per hour. If this limit has already been reached, you will need to wait until the next hourly refresh. In the future, I intend to implement the option to use your own PAT, similar to other star history tools.
+| Feature | What it does |
+|---------|-------------|
+| 📈 **Full Star History** | Complete daily star counts for any repo |
+| ⏰ **Hourly Stars** | Hour-by-hour activity with timezone support |
+| 🔀 **Compare Repos** | Side-by-side comparison of any two repositories |
+| 📊 **Activity Timelines** | Commits, PRs, Issues, Forks, Contributors over time |
+| 📌 **Pin Favorites** | Bookmark repos for quick access without retyping |
+| 📰 **Feed Mentions** | See when repos were mentioned on HN, Reddit, YouTube, GitHub |
+| 💾 **Export Data** | Download as CSV or JSON |
+| 🌙 **Dark Mode** | Easy on the eyes |
 
-### Limited Error Handling
+---
 
-Currently, my project has limited error handling. I plan to improve this aspect, which includes implementing warnings to alert users when the rate limit might hinder the completion of the star retrieval.
+## 🎯 Why Use This?
 
-### UI and Code Quality
+**Stars are a bit controversial, but clearly valued.** Many repos show them prominently and even ask for them.
+
+They don't always correlate with quality though. Plenty of great tools stay small, while others blow up due to timing, distribution, or hitting the right audience.
+
+See [Factors contributing to daily stars](https://github.com/emanuelef/daily-stars-explorer/blob/main/website/src/info.md#factors-contributing-to-daily-stars) for an explanation of why some repos get high numbers of stars.
+
+Still, getting stars feels good and can be motivating. Feedback and engagement matter even more.
+
+This tool shows you the trajectory so you can make informed decisions about which libraries to use, which projects to contribute to, and which ones to watch.
+
+---
+
+## 🖥️ Live Demo
+
+**[emanuelef.github.io/daily-stars-explorer](https://emanuelef.github.io/daily-stars-explorer/#/helm/helm)**
+
+No signup. No installation. No cookies. No ads. Just paste a repo and explore.
+
+---
+
+## 📸 Screenshots
+
+### Star History with Feed Mentions
+See exactly when a repo went viral and why.
+
+https://github.com/emanuelef/daily-stars-explorer/assets/48717/f5e96d63-3807-43fb-9838-3de56355124e
+
+### Compare Mode
+
+https://github.com/emanuelef/daily-stars-explorer/assets/48717/9b14f989-ffc2-4b54-a17c-03284f0327f5
+
+---
+
+## 🚀 Run locally or self-host using Docker image
+
+If you want to run locally or self-host you can use the docker image available in ghcr.
+
+**Requirements:**
+
+- Docker
+- GitHub account to generate a Personal Access Token (PAT) to call GH APIs
+- A `.env` file (refer to `.env.example`)
+
+> **Note:** Only PAT is required. The other environment variables are needed if you want to visualize feeds from different providers (HN, Reddit, YouTube).
+> 
+> PAT can be generated with no access to any of your repos—it's just needed to call GraphQL APIs on public repositories. Get one at [github.com/settings/tokens](https://github.com/settings/tokens)
+
+### Docker
+
+```bash
+# 1. Create .env with your GitHub PAT
+echo "PAT=your_github_token" > .env
+
+# 2. Run
+docker run --rm --env-file .env -p 8080:8080 ghcr.io/emanuelef/daily-stars-explorer:latest
+```
+
+Open `localhost:8080`. Done.
+
+> **Note:** Without a PAT, GitHub's GraphQL API won't work and the REST API is limited to 60 requests/hour (essentially unusable for this tool). With a PAT you get 5,000 requests/hour.
+
+### Local Development
+
+```bash
+# Backend
+cp .env.example .env && go run main.go
+
+# Frontend (separate terminal)
+cd website && npm install && npm start
+```
+
+---
+
+## 📖 How It Works
+
+1. **Enter any GitHub repo** (e.g., `kubernetes/kubernetes`)
+2. **Wait for the fetch** (large repos take ~3 min, we fetch from both ends simultaneously)
+3. **Explore the data** with interactive charts, filters, and exports
+4. **Data is cached** for 7 days with option to refresh
+
+---
+
+## 📊 Aggregates and Trends
+
+The tool offers various ways to aggregate and analyze star data beyond simple daily counts.
+
+See [aggregate.md](https://github.com/emanuelef/daily-stars-explorer/blob/main/aggregate.md) for a detailed explanation of:
+- Available aggregation methods (moving averages, LOESS smoothing, derivatives, etc.)
+- How trends are calculated and predicted
+- Use cases for different visualization modes
+
+---
+
+## ⚠️ Limitations
+
+| What | Details |
+|------|---------|
+| **Initial fetch time** | Large repos (100K+ stars) take ~3 minutes for the first fetch. The tool fetches star history from both ends simultaneously to speed things up. |
+| **Cached data** | Once a repo is fully fetched, it's cached for 7 days. Subsequent visits only fetch the delta (new stars since last update), which takes just seconds. |
+| **Rate limits** | With a GitHub PAT, you can fetch ~500K stars per hour. Without a PAT, you're limited to 60 requests/hour (not practical for this tool). |
+
+---
+
+## � Known Issues & Areas for Improvement
+
+**Limited Error Handling**
+
+Currently, the project has limited error handling. I plan to improve this aspect, which includes implementing warnings to alert users when the rate limit might hinder the completion of the star retrieval.
+
+**UI and Code Quality**
 
 I'm aware that the user interface and code quality have room for improvement. Your feedback and suggestions are welcome as I continue to refine these aspects.
 
-## Contributing
+---
 
-Contributions are welcome! Feel free to open an issue or create a pull request.
+## �📚 Learn More
+
+- [How to get full history of GitHub stars](https://medium.com/@emafuma/how-to-get-full-history-of-github-stars-f03cc93183a7)
+- [Building a Cost-Free, Always-On Personal Project Stack](https://medium.com/@emafuma/building-a-cost-free-always-on-personal-project-stack-3eaa02ac16b6)
+
+---
+
+## 🤝 Contributing
+
+PRs welcome! [Open an issue](https://github.com/emanuelef/daily-stars-explorer/issues) or submit a pull request.
