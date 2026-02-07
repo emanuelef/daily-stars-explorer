@@ -24,12 +24,12 @@ Unlike other star history tools that show a straight line from 40K to the curren
 
 | Feature | What it does |
 |---------|-------------|
-| 📈 **Full Star History** | Complete daily star counts for any repo, even 100K+ stars |
+| 📈 **Full Star History** | Complete daily star counts for any repo |
 | ⏰ **Hourly Stars** | Hour-by-hour activity with timezone support |
 | 🔀 **Compare Repos** | Side-by-side comparison of any two repositories |
 | 📊 **Activity Timelines** | Commits, PRs, Issues, Forks, Contributors over time |
-| 📌 **Pin Favorites** | Save repos to your personal dashboard |
-| 📰 **Feed Mentions** | See when repos were mentioned on HN, Reddit, YouTube |
+| 📌 **Pin Favorites** | Bookmark repos for quick access without retyping |
+| 📰 **Feed Mentions** | See when repos were mentioned on HN, Reddit, YouTube, GitHub |
 | 💾 **Export Data** | Download as CSV or JSON |
 | 🌙 **Dark Mode** | Easy on the eyes |
 
@@ -40,6 +40,8 @@ Unlike other star history tools that show a straight line from 40K to the curren
 **Stars are a bit controversial, but clearly valued.** Many repos show them prominently and even ask for them.
 
 They don't always correlate with quality though. Plenty of great tools stay small, while others blow up due to timing, distribution, or hitting the right audience.
+
+See [Factors contributing to daily stars](https://github.com/emanuelef/daily-stars-explorer/blob/main/website/src/info.md#factors-contributing-to-daily-stars) for an explanation of why some repos get high numbers of stars.
 
 Still, getting stars feels good and can be motivating. Feedback and engagement matter even more.
 
@@ -63,7 +65,6 @@ See exactly when a repo went viral and why.
 https://github.com/emanuelef/daily-stars-explorer/assets/48717/f5e96d63-3807-43fb-9838-3de56355124e
 
 ### Compare Mode
-Which framework should you bet on?
 
 https://github.com/emanuelef/daily-stars-explorer/assets/48717/9b14f989-ffc2-4b54-a17c-03284f0327f5
 
