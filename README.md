@@ -16,7 +16,7 @@
 
 A tool to explore the **complete history** of any GitHub repository. Not just stars, but commits, forks, PRs, issues, and contributors over time.
 
-GitHub's API limits star history to 40K. This tool has no limits.
+Unlike other star history tools that show a straight line from 40K to the current count, this one shows the actual daily data for repos with 40K+ stars.
 
 ---
 
@@ -86,6 +86,8 @@ docker run --rm --env-file .env -p 8080:8080 ghcr.io/emanuelef/daily-stars-explo
 Open `localhost:8080`. Done.
 
 > **Note:** PAT only needs public repo access. Get one at [github.com/settings/tokens](https://github.com/settings/tokens)
+>
+> Without a PAT, GitHub's GraphQL API won't work and the REST API is limited to 60 requests/hour (essentially unusable for this tool). With a PAT you get 5,000 requests/hour.
 
 ### Local Development
 
@@ -127,5 +129,3 @@ cd website && npm install && npm start
 ## 🤝 Contributing
 
 PRs welcome! [Open an issue](https://github.com/emanuelef/daily-stars-explorer/issues) or submit a pull request.
-
-**If this helped you, consider giving it a ⭐**
