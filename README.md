@@ -140,7 +140,19 @@ See [aggregate.md](https://github.com/emanuelef/daily-stars-explorer/blob/main/a
 
 ---
 
-## 📚 Learn More
+## � Known Issues & Areas for Improvement
+
+**Limited Error Handling**
+
+Currently, the project has limited error handling. I plan to improve this aspect, which includes implementing warnings to alert users when the rate limit might hinder the completion of the star retrieval.
+
+**UI and Code Quality**
+
+I'm aware that the user interface and code quality have room for improvement. Your feedback and suggestions are welcome as I continue to refine these aspects.
+
+---
+
+## �📚 Learn More
 
 - [How to get full history of GitHub stars](https://medium.com/@emafuma/how-to-get-full-history-of-github-stars-f03cc93183a7)
 - [Building a Cost-Free, Always-On Personal Project Stack](https://medium.com/@emafuma/building-a-cost-free-always-on-personal-project-stack-3eaa02ac16b6)
