@@ -53,7 +53,7 @@ This tool shows you the trajectory so you can make informed decisions about whic
 
 **[emanuelef.github.io/daily-stars-explorer](https://emanuelef.github.io/daily-stars-explorer/#/helm/helm)**
 
-No signup. No installation. No cookies. No ads. Just paste a repo and explore.
+No signup. No cookies. No ads. Just paste a repo and explore.
 
 ---
 
