@@ -72,7 +72,17 @@ https://github.com/emanuelef/daily-stars-explorer/assets/48717/9b14f989-ffc2-4b5
 
 ## 🚀 Run locally or self-host using Docker image
 
-The Docker image is publicly available on GitHub Container Registry.
+If you want to run locally or self-host you can use the docker image available in ghcr.
+
+**Requirements:**
+
+- Docker
+- GitHub account to generate a Personal Access Token (PAT) to call GH APIs
+- A `.env` file (refer to `.env.example`)
+
+> **Note:** Only PAT is required. The other environment variables are needed if you want to visualize feeds from different providers (HN, Reddit, YouTube).
+> 
+> PAT can be generated with no access to any of your repos—it's just needed to call GraphQL APIs on public repositories. Get one at [github.com/settings/tokens](https://github.com/settings/tokens)
 
 ### Docker
 
@@ -86,9 +96,7 @@ docker run --rm --env-file .env -p 8080:8080 ghcr.io/emanuelef/daily-stars-explo
 
 Open `localhost:8080`. Done.
 
-> **Note:** PAT only needs public repo access. Get one at [github.com/settings/tokens](https://github.com/settings/tokens)
->
-> Without a PAT, GitHub's GraphQL API won't work and the REST API is limited to 60 requests/hour (essentially unusable for this tool). With a PAT you get 5,000 requests/hour.
+> **Note:** Without a PAT, GitHub's GraphQL API won't work and the REST API is limited to 60 requests/hour (essentially unusable for this tool). With a PAT you get 5,000 requests/hour.
 
 ### Local Development
 
