@@ -30,7 +30,7 @@ This tool shows you the complete timeline so you can make informed decisions abo
 ## What You Can Do
 
 ### Multiple Timelines
-Not just stars - explore **commits**, **forks**, **pull requests**, **issues**, and **contributors** over time. See the full picture of a project's health and momentum.
+Not just stars. Explore **commits**, **forks**, **pull requests**, **issues**, and **contributors** over time. See the full picture of a project's health and momentum.
 
 ### Compare Repositories
 Put projects side-by-side. Which one is trending up? Which peaked years ago? Make data-driven choices.
@@ -45,7 +45,7 @@ See what's trending across GitHub, Hacker News, and other sources. Discover proj
 Download complete history as CSV or JSON. Daily and cumulative counts for every day since creation.
 
 ### Full Star History
-While GitHub's API limits you to 40K stars, this tool fetches the complete history for any repository - no matter how popular.
+While GitHub's API limits you to 40K stars, this tool fetches the complete history for any repository, no matter how popular.
 
 ---
 
@@ -54,7 +54,7 @@ While GitHub's API limits you to 40K stars, this tool fetches the complete histo
 ### Requirements
 
 - Docker (recommended) or Go + Node.js
-- GitHub [Personal Access Token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) (PAT) - only needs public repo access
+- GitHub [Personal Access Token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) (PAT). Only needs public repo access.
 
 ### Docker
 
@@ -121,4 +121,4 @@ https://github.com/emanuelef/daily-stars-explorer/assets/48717/9b14f989-ffc2-4b5
 
 ## Contributing
 
-Found this useful? Give it a star! Contributions welcome - [open an issue](https://github.com/emanuelef/daily-stars-explorer/issues) or submit a PR.
+Found this useful? Give it a star! Contributions welcome. [Open an issue](https://github.com/emanuelef/daily-stars-explorer/issues) or submit a PR.
