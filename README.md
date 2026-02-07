@@ -37,13 +37,11 @@ Unlike other star history tools that show a straight line from 40K to the curren
 
 ## 🎯 Why Use This?
 
-**Don't be blinded by star counts.**
+**Stars are a bit controversial, but clearly valued.** Many repos show them prominently and even ask for them.
 
-- A repo with 50K stars might be dead
-- A repo with 500 stars might be exploding
-- The **trend** tells you more than the total
+They don't always correlate with quality though. Plenty of great tools stay small, while others blow up due to timing, distribution, or hitting the right audience.
 
-A growing or stable star count suggests sustainable interest and community engagement.
+Still, getting stars feels good and can be motivating. Feedback and engagement matter even more.
 
 This tool shows you the trajectory so you can make informed decisions about which libraries to use, which projects to contribute to, and which ones to watch.
 
@@ -112,12 +110,24 @@ cd website && npm install && npm start
 
 ---
 
+## 📊 Aggregates and Trends
+
+The tool offers various ways to aggregate and analyze star data beyond simple daily counts.
+
+See [aggregate.md](https://github.com/emanuelef/daily-stars-explorer/blob/main/aggregate.md) for a detailed explanation of:
+- Available aggregation methods (moving averages, LOESS smoothing, derivatives, etc.)
+- How trends are calculated and predicted
+- Use cases for different visualization modes
+
+---
+
 ## ⚠️ Limitations
 
 | What | Details |
 |------|---------|
-| Fetch time | ~3 min for 100K star repos |
-| Rate limit | 500K stars/hour per PAT |
+| **Initial fetch time** | Large repos (100K+ stars) take ~3 minutes for the first fetch. The tool fetches star history from both ends simultaneously to speed things up. |
+| **Cached data** | Once a repo is fully fetched, it's cached for 7 days. Subsequent visits only fetch the delta (new stars since last update), which takes just seconds. |
+| **Rate limits** | With a GitHub PAT, you can fetch ~500K stars per hour. Without a PAT, you're limited to 60 requests/hour (not practical for this tool). |
 
 ---
 
