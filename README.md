@@ -3,7 +3,7 @@
 **Explore the full history of any GitHub repository.**
 
 <p align="center">
-  <img width="800" alt="Daily Stars Explorer Screenshot" src="https://github.com/user-attachments/assets/444f9f03-dc7f-433a-9502-f80c8181d9ce" />
+  <img width="800" height="826" alt="Daily Stars Explorer Screenshot"" src="https://github.com/user-attachments/assets/f99a0e66-e5ec-4e2c-a9d8-206def211fe4" />
 </p>
 
 <p align="center">
