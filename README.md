@@ -1,125 +1,131 @@
-# Daily Stars Explorer
+# ⭐ Daily Stars Explorer
 
-<img width="1509" height="826" alt="Screenshot 2026-02-01 at 09 19 23" src="https://github.com/user-attachments/assets/444f9f03-dc7f-433a-9502-f80c8181d9ce" />
+**The complete GitHub analytics tool you didn't know you needed.**
 
-## Hosted Version
+<p align="center">
+  <img width="800" alt="Daily Stars Explorer Screenshot" src="https://github.com/user-attachments/assets/444f9f03-dc7f-433a-9502-f80c8181d9ce" />
+</p>
 
-A free hosted version is available at **[emanuelef.github.io/daily-stars-explorer](https://emanuelef.github.io/daily-stars-explorer/#/helm/helm)**
-
----
-
-## Why This Tool?
-
-Don't be blinded by stars! While they show popularity, they don't guarantee quality.
-
-- Underdog libraries with amazing potential often have low counts
-- Even high-starred repos can fizzle out
-- A **growing or stable trend** suggests sustainable interest and community engagement
-
-This tool shows you the complete timeline so you can make informed decisions about which projects to use, contribute to, or watch.
-
-> Learn more about [what drives daily stars](./website/src/info.md#factors-contributing-to-daily-stars)
+<p align="center">
+  <a href="https://emanuelef.github.io/daily-stars-explorer/#/helm/helm"><strong>Try the Live Demo →</strong></a>
+</p>
 
 ---
 
-## Features
+## What is this?
 
-### Full Star History
-Access the complete history of stars for any GitHub repository, even those with 100K+ stars (GitHub's API limits you to 40K). View stars per day and cumulative graphs to see how popularity evolved over time.
+A tool to explore the **complete history** of any GitHub repository. Not just stars, but commits, forks, PRs, issues, and contributors over time.
 
-### Hourly Stars
-Track star activity hour by hour. See exactly when repos get attention and spot viral moments in real time.
-
-### Multiple Timelines
-Not just stars. Explore **commits**, **forks**, **pull requests**, **issues**, and **contributors** over time to see the full picture of a project's health.
-
-### Compare Repositories
-Put projects side by side. Which one is trending up? Which peaked years ago? Make data-driven choices.
-
-### Track Your Favorites
-Pin repositories you care about. Build a personal dashboard of projects to watch.
-
-### Feeds
-See what's trending across GitHub, Hacker News, and other sources. Discover projects before they blow up.
-
-### Export Data
-Download complete history as CSV or JSON with daily and cumulative counts for every day since creation.
-
-### Smart Caching
-Data is cached for seven days. You can refresh to get the latest data up to the current day.
+GitHub's API limits star history to 40K. This tool has no limits.
 
 ---
 
-## Self-Host or Run Locally
+## ✨ Features at a Glance
 
-### Using Docker
+| Feature | What it does |
+|---------|-------------|
+| 📈 **Full Star History** | Complete daily star counts for any repo, even 100K+ stars |
+| ⏰ **Hourly Stars** | Hour-by-hour activity with timezone support |
+| 🔀 **Compare Repos** | Side-by-side comparison of any two repositories |
+| 📊 **Activity Timelines** | Commits, PRs, Issues, Forks, Contributors over time |
+| 📌 **Pin Favorites** | Save repos to your personal dashboard |
+| 📰 **Feed Mentions** | See when repos were mentioned on HN, Reddit, YouTube |
+| 💾 **Export Data** | Download as CSV or JSON |
+| 🌙 **Dark Mode** | Easy on the eyes |
 
-Requirements:
-- Docker
-- A GitHub [Personal Access Token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) (PAT)
+---
 
-The PAT only needs access to public repositories. Create a `.env` file based on [.env.example](.env.example). Only `PAT` is required; other variables are for optional feed integrations.
+## 🎯 Why Use This?
+
+**Don't be blinded by star counts.**
+
+- A repo with 50K stars might be dead
+- A repo with 500 stars might be exploding
+- The **trend** tells you more than the total
+
+This tool shows you the trajectory so you can make informed decisions about which libraries to use, which projects to contribute to, and which ones to watch.
+
+---
+
+## 🖥️ Live Demo
+
+**[emanuelef.github.io/daily-stars-explorer](https://emanuelef.github.io/daily-stars-explorer/#/helm/helm)**
+
+No signup. No installation. Just paste a repo and explore.
+
+---
+
+## 📸 Screenshots
+
+### Star History with Feed Mentions
+See exactly when a repo went viral and why.
+
+https://github.com/emanuelef/daily-stars-explorer/assets/48717/f5e96d63-3807-43fb-9838-3de56355124e
+
+### Compare Mode
+Which framework should you bet on?
+
+https://github.com/emanuelef/daily-stars-explorer/assets/48717/9b14f989-ffc2-4b54-a17c-03284f0327f5
+
+---
+
+## 🚀 Self-Host
+
+Want to run your own instance? Easy.
+
+### Docker (30 seconds)
 
 ```bash
-docker run --rm --name daily-stars-explorer --env-file .env -p 8080:8080 ghcr.io/emanuelef/daily-stars-explorer:latest
+# 1. Create .env with your GitHub PAT
+echo "PAT=your_github_token" > .env
+
+# 2. Run
+docker run --rm --env-file .env -p 8080:8080 ghcr.io/emanuelef/daily-stars-explorer:latest
 ```
 
-Then access the UI at `localhost:8080`.
+Open `localhost:8080`. Done.
 
-> **Note:** If you see errors loading `/assets`, hard refresh your browser (Ctrl+Shift+R or Cmd+Shift+R).
+> **Note:** PAT only needs public repo access. Get one at [github.com/settings/tokens](https://github.com/settings/tokens)
 
 ### Local Development
 
-**Backend (Go)**
 ```bash
-cp .env.example .env   # Add your PAT
-go run main.go         # Runs on port 8080
-```
+# Backend
+cp .env.example .env && go run main.go
 
-**Frontend (React)**
-```bash
-cd website
-npm install
-npm start
+# Frontend (separate terminal)
+cd website && npm install && npm start
 ```
 
 ---
 
-## Demo
+## 📖 How It Works
 
-[Watch the demo video](https://www.loom.com/share/b1728c0305e74a8ebf1e23c419c84549?sid=3bdcbbf6-d205-4157-bed5-825d4ba5f5e3)
-
-### Single Repository
-https://github.com/emanuelef/daily-stars-explorer/assets/48717/f5e96d63-3807-43fb-9838-3de56355124e
-
-[Try it: kubernetes/kubernetes](https://emanuelef.github.io/daily-stars-explorer/#/kubernetes/kubernetes)
-
-### Compare Mode
-https://github.com/emanuelef/daily-stars-explorer/assets/48717/9b14f989-ffc2-4b54-a17c-03284f0327f5
-
-[Try it: Compare repositories](https://emanuelef.github.io/daily-stars-explorer/#/compare)
+1. **Enter any GitHub repo** (e.g., `kubernetes/kubernetes`)
+2. **Wait for the fetch** (large repos take ~3 min, we fetch from both ends simultaneously)
+3. **Explore the data** with interactive charts, filters, and exports
+4. **Data is cached** for 7 days with option to refresh
 
 ---
 
-## Limitations
+## ⚠️ Limitations
 
-**Fetching Time:** Large repos take longer. Kubernetes (~100K stars) takes about 3 minutes. We fetch from both ends simultaneously to speed things up.
-
-**Rate Limits:** 500K stars/hour per PAT. If exceeded, wait for the hourly refresh.
+| What | Details |
+|------|---------|
+| Fetch time | ~3 min for 100K star repos |
+| Rate limit | 500K stars/hour per PAT |
 
 ---
 
-## Articles
+## 📚 Learn More
 
 - [How to get full history of GitHub stars](https://medium.com/@emafuma/how-to-get-full-history-of-github-stars-f03cc93183a7)
 - [Building a Cost-Free, Always-On Personal Project Stack](https://medium.com/@emafuma/building-a-cost-free-always-on-personal-project-stack-3eaa02ac16b6)
-- [Introducing My GitHub Stars History Project](https://www.reddit.com/r/github/comments/17e31ab/introducing_my_github_stars_history_project/)
-- [GitHub Daily Stars Explorer: New Features](https://medium.com/@emafuma/github-daily-stars-explorer-new-features-and-user-requested-improvements-f2805ac98cfd)
 
 ---
 
-## Contributing
+## 🤝 Contributing
 
-Contributions welcome! Feel free to open an issue or create a pull request.
+PRs welcome! [Open an issue](https://github.com/emanuelef/daily-stars-explorer/issues) or submit a pull request.
 
-If you find this useful, consider giving it a star!
+**If this helped you, consider giving it a ⭐**
