@@ -68,6 +68,11 @@ https://github.com/emanuelef/daily-stars-explorer/assets/48717/f5e96d63-3807-43f
 
 https://github.com/emanuelef/daily-stars-explorer/assets/48717/9b14f989-ffc2-4b54-a17c-03284f0327f5
 
+## Hourly Mode
+
+<img width="1506" height="824" alt="Screenshot 2026-02-07 at 16 54 58" src="https://github.com/user-attachments/assets/950d9992-fa56-4453-bf0b-ac3c791e1daa" />
+
+
 ---
 
 ## 🚀 Run locally or self-host using Docker image
