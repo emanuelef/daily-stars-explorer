@@ -121,7 +121,7 @@ cd website && npm install && npm start
 ## 📖 How It Works
 
 1. **Enter any GitHub repo** (e.g., `kubernetes/kubernetes`)
-2. **Wait for the fetch** (large repos take ~3 min, we fetch from both ends simultaneously)
+2. **Wait for the fetch** (repos with 100K+ stars take ~3 min, we fetch from both ends simultaneously)
 3. **Explore the data** with interactive charts, filters, and exports
 4. **Data is cached** for 7 days with option to refresh
 
@@ -142,13 +142,13 @@ See [aggregate.md](https://github.com/emanuelef/daily-stars-explorer/blob/main/a
 
 | What | Details |
 |------|---------|
-| **Initial fetch time** | Large repos (100K+ stars) take ~3 minutes for the first fetch. The tool fetches star history from both ends simultaneously to speed things up. |
+| **Initial fetch time** | Repos with 100K+ stars take ~3 minutes for the first fetch. The tool fetches star history from both ends simultaneously to speed things up. |
 | **Cached data** | Once a repo is fully fetched, it's cached for 7 days. Subsequent visits only fetch the delta (new stars since last update), which takes just seconds. |
 | **Rate limits** | With a GitHub PAT, you can fetch ~500K stars per hour. Without a PAT, you're limited to 60 requests/hour (not practical for this tool). |
 
 ---
 
-## � Known Issues & Areas for Improvement
+## 🚧 Known Issues & Areas for Improvement
 
 **Limited Error Handling**
 
@@ -160,7 +160,7 @@ I'm aware that the user interface and code quality have room for improvement. Yo
 
 ---
 
-## �📚 Learn More
+## 📚 Learn More
 
 - [How to get full history of GitHub stars](https://medium.com/@emafuma/how-to-get-full-history-of-github-stars-f03cc93183a7)
 - [Building a Cost-Free, Always-On Personal Project Stack](https://medium.com/@emafuma/building-a-cost-free-always-on-personal-project-stack-3eaa02ac16b6)
