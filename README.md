@@ -1,6 +1,6 @@
-# ⭐ Daily Stars Explorer
+# Daily Stars Explorer
 
-**The complete GitHub analytics tool you didn't know you needed.**
+**Explore the full history of any GitHub repository.**
 
 <p align="center">
   <img width="800" alt="Daily Stars Explorer Screenshot" src="https://github.com/user-attachments/assets/444f9f03-dc7f-433a-9502-f80c8181d9ce" />
@@ -43,6 +43,8 @@ Unlike other star history tools that show a straight line from 40K to the curren
 - A repo with 500 stars might be exploding
 - The **trend** tells you more than the total
 
+A growing or stable star count suggests sustainable interest and community engagement.
+
 This tool shows you the trajectory so you can make informed decisions about which libraries to use, which projects to contribute to, and which ones to watch.
 
 ---
@@ -69,11 +71,11 @@ https://github.com/emanuelef/daily-stars-explorer/assets/48717/9b14f989-ffc2-4b5
 
 ---
 
-## 🚀 Self-Host
+## 🚀 Run locally or self-host using Docker image
 
-Want to run your own instance? Easy.
+The Docker image is publicly available on GitHub Container Registry.
 
-### Docker (30 seconds)
+### Docker
 
 ```bash
 # 1. Create .env with your GitHub PAT
