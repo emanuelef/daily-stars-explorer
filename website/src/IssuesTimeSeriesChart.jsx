@@ -28,6 +28,7 @@ import UmberTheme from "fusioncharts/themes/fusioncharts.theme.umber";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useAppTheme } from "./ThemeContext";
+import { useLastRepo } from "./RepoContext";
 
 const HOST = import.meta.env.VITE_HOST;
 
@@ -59,7 +60,8 @@ const isToday = (dateString) => {
 };
 
 function IssuesTimeSeriesChart() {
-  let defaultRepo = "helm/helm";
+  const { lastRepo, setLastRepo } = useLastRepo();
+  let defaultRepo = lastRepo;
   const { user, repository } = useParams();
   if (user && repository) {
     defaultRepo = `${user}/${repository}`;
@@ -437,6 +439,7 @@ function IssuesTimeSeriesChart() {
       return;
     }
 
+    setLastRepo(repoParsed);
     setLoading(true);
 
     const res = await fetchTotalStars(repoParsed);
@@ -481,6 +484,7 @@ function IssuesTimeSeriesChart() {
   const handleClickWithRepo = async (repo) => {
     const repoParsed = parseGitHubRepoURL(repo);
     if (repoParsed === null) return;
+    setLastRepo(repoParsed);
     setSelectedRepo(repo);
 
     setLoading(true);

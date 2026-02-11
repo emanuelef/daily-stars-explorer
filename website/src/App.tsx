@@ -15,6 +15,7 @@ import NewReposTimeSeriesChart from "./NewReposTimeSeriesChart";
 import InfoPage from "./InfoPage";
 import FeaturedReposPage from "./FeaturedReposPage";
 import { ThemeProvider as AppThemeProvider, useAppTheme } from "./ThemeContext";
+import { RepoProvider } from "./RepoContext";
 
 import { Sidebar, Menu, MenuItem } from "react-pro-sidebar";
 import { Routes, Route, Link, useLocation, Navigate } from "react-router-dom";
@@ -350,9 +351,11 @@ function AppContent() {
 
 function App() {
   return (
-    <AppThemeProvider>
-      <AppContent />
-    </AppThemeProvider>
+    <RepoProvider>
+      <AppThemeProvider>
+        <AppContent />
+      </AppThemeProvider>
+    </RepoProvider>
   );
 }
 
