@@ -1,0 +1,57 @@
+# Cursor Rules — Daily Stars Explorer
+
+## Project
+
+Full-stack app: Go backend (Fiber v2) + React frontend (Vite/MUI).
+Visualizes GitHub repo star history, activity data, and social media mentions.
+
+## Architecture
+
+- Modular handler pattern: handlers are factory functions returning `fiber.Handler`
+- Dependencies grouped in `routes.Caches` and `routes.OnGoingMaps` structs
+- Route registration centralized in `routes/routes.go`
+- In-memory caching with 7-day TTL (`config.DayCached`)
+- Dual GitHub PAT support via `ClientSelector` in `handlers/client_selector.go`
+
+## Backend conventions (Go)
+
+- Handler factory pattern:
+  ```go
+  func MyHandler(deps...) fiber.Handler {
+      return func(c *fiber.Ctx) error { ... }
+  }
+  ```
+- New endpoints: handler in `handlers/`, route in `routes/routes.go`, wire in `main.go`
+- Tests with testify, files next to source (`*_test.go`)
+- Error responses: `c.Status(code).JSON(fiber.Map{"error": msg})`
+- Always use `SelectBestClient()` for GitHub API calls
+- Check/set `onGoingMaps` before long operations to prevent duplicates
+
+## Frontend conventions (React + TypeScript)
+
+- React 19, MUI v7, Highcharts + Plotly for charts
+- State via React Context (`ThemeContext`, `RepoContext`) — no Redux
+- React Router v7 with `/:user/:repository` URL params
+- ESLint strict: `--max-warnings 0`
+- Base path: `/daily-stars-explorer/`
+- Use `.tsx` for new files (`.jsx` is legacy)
+- Use `date-fns` for dates, `PapaParse` for CSV
+- SSE at `/sse` for real-time progress updates
+
+## Commands
+
+```bash
+go test ./...                    # Backend tests
+go build ./...                   # Backend build
+cd website && npm run build      # Frontend build
+cd website && npm run lint       # Frontend lint
+docker compose up --build        # Full stack
+```
+
+## Do not
+
+- Commit `.env` files or tokens
+- Add Redux or other state libraries — use Context
+- Use moment.js — use date-fns
+- Skip `onGoingMaps` checks before long API operations
+- Ignore ESLint warnings — they must be zero
