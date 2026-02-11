@@ -2,15 +2,17 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { parseGitHubRepoURL } from "./githubUtils";
 import { useAppTheme } from "./ThemeContext";
+import { useLastRepo } from "./RepoContext";
 
 const HOST = import.meta.env.VITE_HOST;
 
 const MobileStarsView = () => {
   const navigate = useNavigate();
   const { user, repository } = useParams();
+  const { lastRepo, setLastRepo } = useLastRepo();
   const { theme, currentTheme } = useAppTheme();
   const isDark = theme === 'dark';
-  const [repo, setRepo] = useState(user && repository ? `${user}/${repository}` : "helm/helm");
+  const [repo, setRepo] = useState(user && repository ? `${user}/${repository}` : lastRepo);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [starHistory, setStarHistory] = useState([]);
@@ -85,7 +87,7 @@ const MobileStarsView = () => {
 
   // Fetch on initial mount or when URL params change
   useEffect(() => {
-    const initialRepo = user && repository ? `${user}/${repository}` : "helm/helm";
+    const initialRepo = user && repository ? `${user}/${repository}` : lastRepo;
     setRepo(initialRepo);
     fetchStars(initialRepo);
   }, [user, repository]);
@@ -109,6 +111,7 @@ const MobileStarsView = () => {
     const parsed = parseGitHubRepoURL(repoName);
     const normalizedRepo = parsed || repoName;
 
+    setLastRepo(normalizedRepo);
     setLoading(true);
     setError("");
     setProgress(0);

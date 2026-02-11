@@ -49,6 +49,7 @@ import {
   formatNumber,
 } from "./utils";
 import { useAppTheme } from "./ThemeContext";
+import { useLastRepo } from "./RepoContext";
 
 // This needs to be refactored, focus is mostly on functionalities and implementing ideas
 // But it has reached a point where it's difficult to go over the code
@@ -146,7 +147,8 @@ const calculateStarsLast10Days = (starHistory) => {
 };
 
 function TimeSeriesChart() {
-  let defaultRepo = "helm/helm";
+  const { lastRepo, setLastRepo } = useLastRepo();
+  let defaultRepo = lastRepo;
   const { user, repository } = useParams();
   if (user && repository) {
     defaultRepo = `${user}/${repository}`;
@@ -1625,6 +1627,8 @@ function TimeSeriesChart() {
       return;
     }
 
+    setLastRepo(repoParsed);
+
     // Close any existing SSE connection before starting a new request
     closeSSE();
 
@@ -1717,6 +1721,8 @@ function TimeSeriesChart() {
       setLoading(false);
       return;
     }
+
+    setLastRepo(repoParsed);
 
     // Close any existing SSE connection before starting a new request
     closeSSE();

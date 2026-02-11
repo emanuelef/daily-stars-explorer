@@ -20,6 +20,7 @@ import Box from "@mui/material/Box";
 import Plot from "react-plotly.js";
 import { parseGitHubRepoURL } from "./githubUtils";
 import { useAppTheme } from "./ThemeContext";
+import { useLastRepo } from "./RepoContext";
 
 // Hook for detecting mobile
 const useIsMobile = () => {
@@ -135,7 +136,8 @@ const StatCard = ({ icon, label, value, color = "#3b82f6", isDark = true }) => (
 );
 
 function HourlyStarsChart() {
-  let defaultRepo = "helm/helm";
+  const { lastRepo, setLastRepo } = useLastRepo();
+  let defaultRepo = lastRepo;
   const { user, repository } = useParams();
   if (user && repository) {
     defaultRepo = `${user}/${repository}`;
@@ -514,6 +516,7 @@ function HourlyStarsChart() {
       setLoading(false);
       return;
     }
+    setLastRepo(repoParsed);
     setShowError(false);
     navigate(`/hourly/${repoParsed}`, { replace: false });
     // Manual fetch requests LATEST data (complete=false)
@@ -528,6 +531,7 @@ function HourlyStarsChart() {
       setLoading(false);
       return;
     }
+    setLastRepo(repoParsed);
     setShowError(false);
     navigate(`/hourly/${repoParsed}`, { replace: false });
     // Start with complete data
