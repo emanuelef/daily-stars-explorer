@@ -178,6 +178,12 @@ const MobileStarsView = () => {
         const response = await fetch(`${HOST}/allStars?repo=${encodeURIComponent(normalizedRepo)}`);
 
         if (response.ok) {
+          // 204 No Content means the repo is currently being fetched by another request
+          // Wait and retry until the fetch completes and we get a 200 with actual data
+          if (response.status === 204) {
+            await new Promise(resolve => setTimeout(resolve, retryDelay));
+            continue;
+          }
           return response;
         }
 
