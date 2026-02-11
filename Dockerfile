@@ -8,7 +8,7 @@ RUN npm install --force
 COPY website .
 RUN npm run build
 
-FROM --platform=$BUILDPLATFORM golang:1.26-rc-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.26.0-alpine AS builder
 ARG TARGETOS
 ARG TARGETARCH
 WORKDIR /app
