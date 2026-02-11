@@ -1,4 +1,4 @@
-FROM node:24-alpine AS website
+FROM node:25-alpine AS website
 ENV VITE_HOST=""
 WORKDIR /build
 # Copy package files first to cache npm install
