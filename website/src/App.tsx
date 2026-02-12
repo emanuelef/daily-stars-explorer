@@ -214,13 +214,13 @@ function AppContent() {
             <MenuItem
               component={<Link to="/newrepos" className="link" />}
               icon={
-                <Tooltip title="New GitHub Repositories Created Daily" placement="right">
+                <Tooltip title="GitHub Global Activity (New Repos & PRs)" placement="right">
                   <AddBoxOutlinedIcon />
                 </Tooltip>
               }
               active={location.pathname.includes("/newrepos")}
             >
-              New Repos
+              Global Activity
             </MenuItem>
             <MenuItem
               component={<Link to="/featured" className="link" />}

@@ -23,6 +23,7 @@ type Caches struct {
 	Commits           *cache.Cache[string, types.CommitsWithStatsResponse]
 	Contributors      *cache.Cache[string, types.ContributorsWithStatsResponse]
 	NewRepos          *cache.Cache[string, types.NewReposWithStatsResponse]
+	NewPRs            *cache.Cache[string, types.NewPRsWithStatsResponse]
 	HackerNews        *cache.Cache[string, []news.Article]
 	Reddit            *cache.Cache[string, []news.ArticleData]
 	YouTube           *cache.Cache[string, []news.YTVideoMetadata]
@@ -42,6 +43,7 @@ type OnGoingMaps struct {
 	Commits      map[string]bool
 	Contributors map[string]bool
 	NewRepos     map[string]bool
+	NewPRs       map[string]bool
 }
 
 // RegisterSystemRoutes registers system-related routes
@@ -168,6 +170,13 @@ func RegisterRepoActivityRoutes(
 		ghStatClients,
 		caches.NewRepos,
 		onGoingMaps.NewRepos,
+		currentSessions,
+		ctx,
+	))
+	app.Get("/newPRs", handlers.NewPRsHandler(
+		ghStatClients,
+		caches.NewPRs,
+		onGoingMaps.NewPRs,
 		currentSessions,
 		ctx,
 	))

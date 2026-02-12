@@ -697,3 +697,121 @@ func NewReposHandler(
 		return c.JSON(res)
 	}
 }
+
+// NewPRsHandler handles the /newPRs endpoint
+func NewPRsHandler(
+	ghStatClients map[string]*repostats.ClientGQL,
+	cacheNewPRs *cache.Cache[string, types.NewPRsWithStatsResponse],
+	onGoingNewPRs map[string]bool,
+	currentSessions *session.SessionsLock,
+	ctx context.Context,
+) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		startDate := c.Query("startDate")
+		endDate := c.Query("endDate")
+
+		clientKeys := make([]string, 0, len(ghStatClients))
+		for k := range ghStatClients {
+			clientKeys = append(clientKeys, k)
+		}
+		randomIndex := rand.Intn(len(clientKeys))
+		clientKey := c.Query("client", clientKeys[randomIndex])
+		forceRefetch := c.Query("forceRefetch", "false") == "true"
+
+		client, ok := ghStatClients[clientKey]
+		if !ok {
+			return c.Status(404).SendString("Resource not found")
+		}
+
+		parsedStartDate, err := time.Parse("2006-01-02", startDate)
+		if err != nil {
+			return c.Status(400).SendString("Invalid start date format")
+		}
+
+		parsedEndDate, err := time.Parse("2006-01-02", endDate)
+		if err != nil {
+			return c.Status(400).SendString("Invalid end date format")
+		}
+
+		cacheKey := fmt.Sprintf("newprs_%s_%s", startDate, endDate)
+
+		ip := c.Get("X-Forwarded-For")
+		if ip == "" {
+			ip = c.IP()
+		}
+
+		userAgent := c.Get("User-Agent")
+		log.Printf("NewPRs Request from IP: %s, StartDate: %s, EndDate: %s User-Agent: %s\n",
+			ip, startDate, endDate, userAgent)
+
+		if strings.Contains(userAgent, "python-requests") {
+			return c.Status(404).SendString("Custom 404 Error: Resource not found")
+		}
+
+		span := trace.SpanFromContext(c.UserContext())
+		span.SetAttributes(attribute.String("start_date", startDate))
+		span.SetAttributes(attribute.String("end_date", endDate))
+		span.SetAttributes(attribute.String("caller.ip", ip))
+
+		if forceRefetch {
+			cacheNewPRs.Delete(cacheKey)
+		}
+
+		if res, hit := cacheNewPRs.Get(cacheKey); hit {
+			return c.JSON(res)
+		}
+
+		if _, hit := onGoingNewPRs[cacheKey]; hit {
+			return c.SendStatus(fiber.StatusNoContent)
+		}
+
+		onGoingNewPRs[cacheKey] = true
+
+		updateChannel := make(chan int)
+		var newPRs []stats.NewPRsPerDay
+
+		eg, localCtx := errgroup.WithContext(ctx)
+
+		eg.Go(func() error {
+			var err error
+			newPRs, err = client.GetNewPRsCountHistory(localCtx, parsedStartDate, parsedEndDate, updateChannel)
+			if err != nil {
+				return err
+			}
+			return nil
+		})
+
+		for progress := range updateChannel {
+			wg := &sync.WaitGroup{}
+
+			for _, s := range currentSessions.Sessions {
+				wg.Add(1)
+				go func(cs *session.Session) {
+					defer wg.Done()
+					if cs.Repo == cacheKey {
+						cs.StateChannel <- progress
+					}
+				}(s)
+			}
+			wg.Wait()
+		}
+
+		if err := eg.Wait(); err != nil {
+			delete(onGoingNewPRs, cacheKey)
+			return err
+		}
+
+		res := types.NewPRsWithStatsResponse{
+			NewPRs: newPRs,
+		}
+
+		now := time.Now()
+		nextDay := now.UTC().Truncate(24 * time.Hour).Add(config.DayCached * 24 * time.Hour)
+		durationUntilEndOfDay := nextDay.Sub(now)
+
+		cacheNewPRs.Set(cacheKey, res, cache.WithExpiration(durationUntilEndOfDay))
+		delete(onGoingNewPRs, cacheKey)
+
+		return c.JSON(res)
+	}
+}

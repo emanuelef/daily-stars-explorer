@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/Code-Hex/go-generics-cache v1.5.1
-	github.com/emanuelef/github-repo-activity-stats v0.2.68
+	github.com/emanuelef/github-repo-activity-stats v0.2.69
 	github.com/gofiber/contrib/otelfiber v1.0.10
 	github.com/gofiber/fiber/v2 v2.52.11
 	github.com/joho/godotenv v1.5.1
@@ -15,7 +15,7 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.40.0
 	go.opentelemetry.io/otel/sdk v1.40.0
 	go.opentelemetry.io/otel/trace v1.40.0
-	golang.org/x/exp v0.0.0-20260209203927-2842357ff358
+	golang.org/x/exp v0.0.0-20260211191109-2735e65f0518
 	golang.org/x/net v0.50.0
 	golang.org/x/oauth2 v0.35.0
 	golang.org/x/sync v0.19.0

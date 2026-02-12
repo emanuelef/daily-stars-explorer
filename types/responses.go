@@ -37,6 +37,10 @@ type NewReposWithStatsResponse struct {
 	NewRepos []stats.NewReposPerDay `json:"newRepos"`
 }
 
+type NewPRsWithStatsResponse struct {
+	NewPRs []stats.NewPRsPerDay `json:"newPRs"`
+}
+
 type HourlyStars struct {
 	Hour       string `json:"hour"`
 	Stars      int    `json:"stars"`

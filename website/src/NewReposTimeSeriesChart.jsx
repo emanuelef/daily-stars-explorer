@@ -4,21 +4,24 @@ import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import LoadingButton from "@mui/lab/LoadingButton";
 import SendIcon from "@mui/icons-material/Send";
 import FusionCharts from "fusioncharts";
 import TimeSeries from "fusioncharts/fusioncharts.timeseries";
 import ReactFC from "react-fusioncharts";
-import schema from "./schema-newrepos";
+import newReposSchema from "./schema-newrepos";
+import newPRsSchema from "./schema-newprs";
 import GammelTheme from "fusioncharts/themes/fusioncharts.theme.gammel";
 import CandyTheme from "fusioncharts/themes/fusioncharts.theme.candy";
 import ZuneTheme from "fusioncharts/themes/fusioncharts.theme.zune";
 import UmberTheme from "fusioncharts/themes/fusioncharts.theme.umber";
-import GitHubButton from "react-github-btn";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Checkbox from "@mui/material/Checkbox";
+import { useAppTheme } from "./ThemeContext";
 
 const HOST = import.meta.env.VITE_HOST;
 
@@ -31,8 +34,33 @@ ReactFC.fcRoot(
   UmberTheme
 );
 
+const DATA_SOURCES = {
+  repos: {
+    caption: "New GitHub Repositories Created Daily",
+    endpoint: "newRepos",
+    responseKey: "newRepos",
+    exportPrefix: "github-new-repos",
+    schema: newReposSchema,
+    description: "Track the number of new public repositories created on GitHub per day",
+    showIncludeForks: true,
+  },
+  prs: {
+    caption: "New GitHub Pull Requests Created Daily",
+    endpoint: "newPRs",
+    responseKey: "newPRs",
+    exportPrefix: "github-new-prs",
+    schema: newPRsSchema,
+    description: "Track the number of new public pull requests created on GitHub per day",
+    showIncludeForks: false,
+  },
+};
+
 function NewReposTimeSeriesChart() {
-  const chart_props = {
+  const { theme: appTheme, currentTheme } = useAppTheme();
+  const isDark = appTheme === "dark";
+  const defaultChartTheme = isDark ? "candy" : "fusion";
+
+  const buildChartProps = (chartTheme, caption) => ({
     type: "timeseries",
     width: "100%",
     height: "80%",
@@ -48,7 +76,7 @@ function NewReposTimeSeriesChart() {
           container: {
             "border-color": "#000000",
             "background-color": "#1a1a1a",
-            boxShadow: "0 4px 8px rgba(0,0,0,0.2)"
+            boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
           },
           text: {
             color: "#FFFFFF",
@@ -59,12 +87,12 @@ function NewReposTimeSeriesChart() {
         line: {
           style: {
             plot: {
-              "stroke-width": "2.5"
-            }
-          }
-        }
+              "stroke-width": "2.5",
+            },
+          },
+        },
       },
-      caption: { text: "New GitHub Repositories Created Daily" },
+      caption: { text: caption },
       data: null,
       yAxis: [
         {
@@ -89,36 +117,50 @@ function NewReposTimeSeriesChart() {
       },
       chart: {
         animation: "0",
-        theme: "candy",
+        theme: chartTheme,
         paletteColors: "#3b82f6, #f59e0b, #10b981, #ec4899, #8b5cf6",
         exportEnabled: "1",
         exportMode: "client",
         exportFormats: "PNG=Export as PNG|PDF=Export as PDF",
       },
     },
-  };
+  });
 
-  const [ds, setds] = useState(chart_props);
-  const [currentNewReposHistory, setCurrentNewReposHistory] = useState([]);
+  const [dataSource, setDataSource] = useState("repos");
+  const [ds, setds] = useState(buildChartProps(defaultChartTheme, DATA_SOURCES.repos.caption));
   const [loading, setLoading] = useState(false);
-  const [theme, setTheme] = useState("candy");
+  const [theme, setTheme] = useState(defaultChartTheme);
   const [includeForks, setIncludeForks] = useState(false);
-  
-  // Default to last 30 days
+
   const getDefaultEndDate = () => {
     const today = new Date();
-    today.setDate(today.getDate() - 1); // Yesterday since today isn't complete
-    return today.toISOString().split('T')[0];
+    today.setDate(today.getDate() - 1);
+    return today.toISOString().split("T")[0];
   };
-  
+
   const getDefaultStartDate = () => {
     const date = new Date();
     date.setDate(date.getDate() - 60);
-    return date.toISOString().split('T')[0];
+    return date.toISOString().split("T")[0];
   };
 
   const [startDate, setStartDate] = useState(getDefaultStartDate());
   const [endDate, setEndDate] = useState(getDefaultEndDate());
+
+  // Sync chart theme with app theme
+  useEffect(() => {
+    setTheme(defaultChartTheme);
+    setds((prevDs) => ({
+      ...prevDs,
+      dataSource: {
+        ...prevDs.dataSource,
+        chart: {
+          ...prevDs.dataSource.chart,
+          theme: defaultChartTheme,
+        },
+      },
+    }));
+  }, [appTheme]);
 
   const handleThemeChange = (event) => {
     setTheme(event.target.value);
@@ -131,33 +173,35 @@ function NewReposTimeSeriesChart() {
     setIncludeForks(event.target.checked);
   };
 
-  const updateGraph = async (newReposHistory) => {
-    const options = { ...ds };
+  const handleDataSourceChange = (_event, newValue) => {
+    if (newValue !== null) {
+      setDataSource(newValue);
+    }
+  };
 
-    console.log("Data points:", newReposHistory.length);
-    console.log("First item:", newReposHistory[0]);
+  const updateGraph = (history, source) => {
+    const cfg = DATA_SOURCES[source];
+    const options = buildChartProps(theme, cfg.caption);
 
-    // Data is already in the correct format: [dateString, count, totalSeen]
-    // Just pass it directly to FusionCharts
     const fusionTable = new FusionCharts.DataStore().createDataTable(
-      newReposHistory,
-      schema
+      history,
+      cfg.schema
     );
 
     options.dataSource.data = fusionTable;
-    options.dataSource.chart.theme = theme;
-    options.dataSource.chart.exportFileName = `github-new-repos-${startDate}-to-${endDate}`;
+    options.dataSource.chart.exportFileName = `${cfg.exportPrefix}-${startDate}-to-${endDate}`;
 
     setds(options);
   };
 
-  const fetchNewRepos = async () => {
-    console.log("Fetching new repos data");
-
-    setCurrentNewReposHistory([]);
+  const fetchData = async (source) => {
+    const cfg = DATA_SOURCES[source];
     setLoading(true);
 
-    const fetchUrl = `${HOST}/newRepos?startDate=${startDate}&endDate=${endDate}&includeForks=${includeForks}`;
+    let fetchUrl = `${HOST}/${cfg.endpoint}?startDate=${startDate}&endDate=${endDate}`;
+    if (source === "repos") {
+      fetchUrl += `&includeForks=${includeForks}`;
+    }
 
     fetch(fetchUrl)
       .then((response) => {
@@ -168,11 +212,8 @@ function NewReposTimeSeriesChart() {
       })
       .then((data) => {
         setLoading(false);
-        console.log(data);
-        console.log("Raw newRepos data:", JSON.stringify(data.newRepos[0], null, 2));
-        const newReposHistory = data.newRepos;
-        setCurrentNewReposHistory(newReposHistory);
-        updateGraph(newReposHistory);
+        const history = data[cfg.responseKey];
+        updateGraph(history, source);
       })
       .catch((e) => {
         console.error(`An error occurred: ${e}`);
@@ -183,24 +224,31 @@ function NewReposTimeSeriesChart() {
       });
   };
 
+  // Fetch on initial mount
   useEffect(() => {
-    fetchNewRepos();
+    fetchData(dataSource);
   }, []);
 
+  // Re-fetch when data source changes
+  useEffect(() => {
+    fetchData(dataSource);
+  }, [dataSource]);
+
   const handleClick = async () => {
-    // Validate dates
     if (new Date(startDate) > new Date(endDate)) {
       toast.error("Start date must be before end date", {
         position: toast.POSITION.BOTTOM_CENTER,
       });
       return;
     }
-    
-    fetchNewRepos();
+
+    fetchData(dataSource);
   };
 
+  const cfg = DATA_SOURCES[dataSource];
+
   return (
-    <div>
+    <div style={{ background: currentTheme.background, minHeight: "100vh", padding: "20px" }}>
       <ToastContainer
         position="top-center"
         autoClose={5000}
@@ -211,63 +259,100 @@ function NewReposTimeSeriesChart() {
         pauseOnFocusLoss
         draggable
         pauseOnHover
-        theme="dark"
+        theme={appTheme}
       />
-      <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap" }}>
+
+      {/* Header Card */}
+      <div
+        style={{
+          background: currentTheme.cardGradient,
+          borderRadius: "16px",
+          padding: "24px",
+          marginBottom: "24px",
+          border: `1px solid ${currentTheme.cardBorder}`,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "16px" }}>
+          <div>
+            <h1
+              style={{
+                margin: 0,
+                fontSize: "28px",
+                fontWeight: "700",
+                color: currentTheme.textPrimary,
+              }}
+            >
+              GitHub Global Activity
+            </h1>
+            <p
+              style={{
+                margin: "8px 0 0 0",
+                fontSize: "14px",
+                color: currentTheme.textMuted,
+              }}
+            >
+              {cfg.description}
+            </p>
+          </div>
+          <ToggleButtonGroup
+            value={dataSource}
+            exclusive
+            onChange={handleDataSourceChange}
+            size="small"
+          >
+            <ToggleButton value="repos">New Repos</ToggleButton>
+            <ToggleButton value="prs">New PRs</ToggleButton>
+          </ToggleButtonGroup>
+        </div>
+      </div>
+
+      {/* Controls Card */}
+      <div
+        style={{
+          background: currentTheme.cardGradient,
+          borderRadius: "16px",
+          padding: "20px 24px",
+          marginBottom: "24px",
+          border: `1px solid ${currentTheme.cardBorder}`,
+          display: "flex",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "16px",
+        }}
+      >
         <TextField
-          style={{
-            marginTop: "20px",
-            marginRight: "20px",
-            marginLeft: "10px",
-            width: "200px",
-          }}
+          style={{ width: "200px" }}
           label="Start Date"
           type="date"
           variant="outlined"
           size="small"
           value={startDate}
           onChange={(e) => setStartDate(e.target.value)}
-          InputLabelProps={{
-            shrink: true,
-          }}
+          InputLabelProps={{ shrink: true }}
         />
         <TextField
-          style={{
-            marginTop: "20px",
-            marginRight: "20px",
-            marginLeft: "10px",
-            width: "200px",
-          }}
+          style={{ width: "200px" }}
           label="End Date"
           type="date"
           variant="outlined"
           size="small"
           value={endDate}
           onChange={(e) => setEndDate(e.target.value)}
-          InputLabelProps={{
-            shrink: true,
-          }}
+          InputLabelProps={{ shrink: true }}
         />
-        <FormControlLabel
-          style={{
-            marginTop: "20px",
-            marginRight: "20px",
-          }}
-          control={
-            <Checkbox
-              checked={includeForks}
-              onChange={handleIncludeForksChange}
-              name="includeForks"
-            />
-          }
-          label="Include Forks"
-        />
+        {cfg.showIncludeForks && (
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={includeForks}
+                onChange={handleIncludeForksChange}
+                name="includeForks"
+              />
+            }
+            label="Include Forks"
+          />
+        )}
         <LoadingButton
-          style={{
-            marginTop: "20px",
-            marginRight: "20px",
-            marginLeft: "10px",
-          }}
           size="small"
           onClick={handleClick}
           endIcon={<SendIcon />}
@@ -277,63 +362,35 @@ function NewReposTimeSeriesChart() {
         >
           <span>Fetch</span>
         </LoadingButton>
-      </div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          marginTop: "10px",
-          marginLeft: "10px",
-          marginBottom: "10px",
-        }}
-      >
-        <div
-          style={{
-            width: "110px",
-          }}
-        >
-          <FormControl>
-            <InputLabel id="style-select-drop">Theme</InputLabel>
-            <Select
-              labelId="theme"
-              id="theme"
-              value={theme}
-              size="small"
-              label="Theme"
-              onChange={handleThemeChange}
-            >
-              <MenuItem value={"fusion"}>Fusion</MenuItem>
-              <MenuItem value={"candy"}>Candy</MenuItem>
-              <MenuItem value={"gammel"}>Gammel</MenuItem>
-              <MenuItem value={"zune"}>Zune</MenuItem>
-              <MenuItem value={"umber"}>Umber</MenuItem>
-            </Select>
-          </FormControl>
-        </div>
-        <div
-          style={{
-            marginTop: "5px",
-            marginLeft: "10px",
-          }}
-        >
-          <GitHubButton
-            href="https://github.com/emanuelef/daily-stars-explorer"
-            data-color-scheme="no-preference: dark; light: dark_dimmed; dark: dark_high_contrast;"
-            data-size="large"
-            data-show-count="true"
-            aria-label="Star emanuelef/daily-stars-explorer on GitHub"
+        <FormControl size="small" style={{ minWidth: "110px" }}>
+          <InputLabel id="theme-select-label">Theme</InputLabel>
+          <Select
+            labelId="theme-select-label"
+            id="theme-select"
+            value={theme}
+            label="Theme"
+            onChange={handleThemeChange}
           >
-            Star Me
-          </GitHubButton>
-        </div>
+            <MenuItem value={"fusion"}>Fusion</MenuItem>
+            <MenuItem value={"candy"}>Candy</MenuItem>
+            <MenuItem value={"gammel"}>Gammel</MenuItem>
+            <MenuItem value={"zune"}>Zune</MenuItem>
+            <MenuItem value={"umber"}>Umber</MenuItem>
+          </Select>
+        </FormControl>
       </div>
+
+      {/* Chart Card */}
       <div
-        id="chart-container"
         style={{
-          marginLeft: "10px",
+          background: currentTheme.cardGradient,
+          borderRadius: "16px",
+          padding: "24px",
+          border: `1px solid ${currentTheme.cardBorder}`,
+          minHeight: "500px",
         }}
       >
-        {ds != null && ds != chart_props && ds && ds.dataSource.data && (
+        {ds != null && ds.dataSource.data && (
           <ReactFC {...ds} />
         )}
       </div>

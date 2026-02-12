@@ -53,6 +53,7 @@ func main() {
 	cacheCommits := cache.New[string, types.CommitsWithStatsResponse]()
 	cacheContributors := cache.New[string, types.ContributorsWithStatsResponse]()
 	cacheNewRepos := cache.New[string, types.NewReposWithStatsResponse]()
+	cacheNewPRs := cache.New[string, types.NewPRsWithStatsResponse]()
 
 	cacheHackerNews := cache.New[string, []news.Article]()
 	cacheReddit := cache.New[string, []news.ArticleData]()
@@ -70,6 +71,7 @@ func main() {
 	onGoingCommits := make(map[string]bool)
 	onGoingContributors := make(map[string]bool)
 	onGoingNewRepos := make(map[string]bool)
+	onGoingNewPRs := make(map[string]bool)
 
 	ghStatClients := make(map[string]*repostats.ClientGQL)
 
@@ -135,6 +137,7 @@ func main() {
 		Commits:           cacheCommits,
 		Contributors:      cacheContributors,
 		NewRepos:          cacheNewRepos,
+		NewPRs:            cacheNewPRs,
 		HackerNews:        cacheHackerNews,
 		Reddit:            cacheReddit,
 		YouTube:           cacheYouTube,
@@ -154,6 +157,7 @@ func main() {
 		Commits:      onGoingCommits,
 		Contributors: onGoingContributors,
 		NewRepos:     onGoingNewRepos,
+		NewPRs:       onGoingNewPRs,
 	}
 
 	// Register system routes
