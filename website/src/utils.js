@@ -198,6 +198,74 @@ const calculateSecondDerivative = (starsArray) => {
   return result;
 };
 
+/**
+ * Calculate week-on-week growth rate from daily star history.
+ * Groups daily stars into ISO weeks, sums stars per week,
+ * then computes the percentage growth rate between consecutive weeks.
+ * Returns data in the same [date, value, totalStars] format used by other transformations,
+ * where date is the Monday of each week (starting from the second week).
+ */
+const calculateWeeklyGrowthRate = (starsArray) => {
+  if (!starsArray || starsArray.length < 14) return [];
+
+  // Parse date string "DD-MM-YYYY" into a Date object
+  const parseDate = (dateStr) => {
+    const [d, m, y] = dateStr.split("-").map(Number);
+    return new Date(y, m - 1, d);
+  };
+
+  // Get ISO week number and year for a date
+  const getISOWeek = (date) => {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    const weekNo = Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
+    return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, "0")}`;
+  };
+
+  // Get Monday of the ISO week for a given date
+  const getMondayOfWeek = (date) => {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    return new Date(d.setDate(diff));
+  };
+
+  // Format date back to DD-MM-YYYY
+  const formatDate = (date) => {
+    const d = String(date.getDate()).padStart(2, "0");
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const y = date.getFullYear();
+    return `${d}-${m}-${y}`;
+  };
+
+  // Group by ISO week: { weekKey: { totalDaily, lastTotalStars, monday } }
+  const weekMap = new Map();
+  for (const entry of starsArray) {
+    const date = parseDate(entry[0]);
+    const weekKey = getISOWeek(date);
+    if (!weekMap.has(weekKey)) {
+      weekMap.set(weekKey, { totalDaily: 0, lastTotalStars: entry[2], monday: getMondayOfWeek(date) });
+    }
+    const week = weekMap.get(weekKey);
+    week.totalDaily += entry[1];
+    week.lastTotalStars = entry[2]; // keep the latest total for the week
+  }
+
+  const weeks = Array.from(weekMap.values());
+  const result = [];
+
+  for (let i = 1; i < weeks.length; i++) {
+    const prev = weeks[i - 1].totalDaily;
+    const curr = weeks[i].totalDaily;
+    // Growth rate as percentage; if previous week had 0 stars, use 0
+    const growthRate = prev > 0 ? ((curr - prev) / prev) * 100 : 0;
+    result.push([formatDate(weeks[i].monday), parseFloat(growthRate.toFixed(2)), weeks[i].lastTotalStars]);
+  }
+
+  return result;
+};
+
 const formatNumber = (num) => {
   if (num < 1000) {
     return num.toString();
@@ -223,6 +291,7 @@ export {
   calculatePercentiles,
   calculateFirstDerivative,
   calculateSecondDerivative,
+  calculateWeeklyGrowthRate,
   formatNumber,
   formatNumberFull,
 };

@@ -45,6 +45,7 @@ import {
   addLOESS,
   calculateFirstDerivative,
   calculateSecondDerivative,
+  calculateWeeklyGrowthRate,
   calculatePercentiles,
   formatNumber,
 } from "./utils";
@@ -1218,6 +1219,20 @@ function TimeSeriesChart() {
         appliedTransformationResult = calculateSecondDerivative(starHistory);
         options.dataSource.yAxis[0].plot.type = "line";
         break;
+      case "weeklyGrowthRate":
+        options.dataSource.yAxis[0].plot.value =
+          schema[1].name =
+          options.dataSource.yAxis[0].title =
+          "WoW Growth Rate (%)";
+        appliedTransformationResult = calculateWeeklyGrowthRate(starHistory);
+        options.dataSource.yAxis[0].plot.type = "line";
+        options.dataSource.yAxis[0].referenceline = [
+          {
+            label: "0%",
+            value: 0,
+          },
+        ];
+        break;
 
       default:
         break;
@@ -2140,6 +2155,7 @@ function TimeSeriesChart() {
               <MenuItem value={"runningMedian"}>Running Median</MenuItem>
               <MenuItem value={"firstOrderDerivative"}>Derivative</MenuItem>
               <MenuItem value={"secondOrderDerivative"}>2nd Derivative</MenuItem>
+              <MenuItem value={"weeklyGrowthRate"}>WoW Growth Rate</MenuItem>
             </Select>
           </FormControl>
           {transformation.includes("Binning") && (
