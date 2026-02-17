@@ -39,7 +39,7 @@ func extractGitHubURL(content string) string {
 
 		// Handle URLs with text prefixes like "months:", "Link]", etc.
 		// Example: months: [https://github.com/user/repo](https://github.com/user/repo
-		prefixedURLRegex := regexp.MustCompile(`(?:months:|Link[\]\)]|APK[\]\)]|GitHub:|Github[\]\)]|\u2066|https?://)?\s*(?:\[|\()?(?:https?://)?github\.com/([^/\s\]\)]+/[^/\s\]\)]+)`)
+		prefixedURLRegex := regexp.MustCompile(`(?:months:|Link[\]\)]|APK[\]\)]|GitHub:|Github[\]\)]|\x{2066}|https?://)?\s*(?:\[|\()?(?:https?://)?github\.com/([^/\s\]\)]+/[^/\s\]\)]+)`)
 		prefixMatches := prefixedURLRegex.FindStringSubmatch(line)
 		if len(prefixMatches) > 1 {
 			// Clean the repo name from any trailing characters

@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"math/rand"
 	"net/url"
@@ -71,7 +70,6 @@ func AllReleasesHandler(
 			return err
 		}
 
-		repo = fmt.Sprintf("%s", repo)
 		repo = strings.ToLower(repo)
 
 		ip := c.Get("X-Forwarded-For")
@@ -140,8 +138,6 @@ func StatsHandler(
 			return err
 		}
 
-		repo = fmt.Sprintf("%s", repo)
-
 		span := trace.SpanFromContext(c.UserContext())
 		span.SetAttributes(attribute.String("github.repo", repo))
 
@@ -185,8 +181,6 @@ func TotalStarsHandler(
 		if err != nil {
 			return err
 		}
-
-		repo = fmt.Sprintf("%s", repo)
 
 		stars, createdAt, err := client.GetTotalStars(ctx, repo)
 		if err != nil {

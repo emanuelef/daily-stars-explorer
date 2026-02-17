@@ -73,11 +73,15 @@ func getRedditToken() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
 
 	var tokenResponse TokenResponse
-	if err := json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
-		return "", err
+	decodeErr := json.NewDecoder(resp.Body).Decode(&tokenResponse)
+	closeErr := resp.Body.Close()
+	if decodeErr != nil {
+		return "", decodeErr
+	}
+	if closeErr != nil {
+		return "", closeErr
 	}
 
 	return tokenResponse.AccessToken, nil
@@ -212,11 +216,14 @@ func FetchRedditGitHubPosts(sortBy string) ([]RedditGitHubPost, error) {
 		}
 
 		var redditResponse RedditResponse
-		if err := json.NewDecoder(resp.Body).Decode(&redditResponse); err != nil {
-			resp.Body.Close()
+		decodeErr := json.NewDecoder(resp.Body).Decode(&redditResponse)
+		closeErr := resp.Body.Close()
+		if decodeErr != nil {
 			continue // Skip this subreddit if there's an error
 		}
-		resp.Body.Close()
+		if closeErr != nil {
+			continue
+		}
 
 		// Process posts from this subreddit
 		for _, child := range redditResponse.Data.Children {
@@ -392,11 +399,15 @@ func searchRedditPosts(client *http.Client, token string, query string) ([]PostD
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
 
 	var redditResponse RedditResponse
-	if err := json.NewDecoder(resp.Body).Decode(&redditResponse); err != nil {
-		return nil, err
+	decodeErr := json.NewDecoder(resp.Body).Decode(&redditResponse)
+	closeErr := resp.Body.Close()
+	if decodeErr != nil {
+		return nil, decodeErr
+	}
+	if closeErr != nil {
+		return nil, closeErr
 	}
 
 	posts := make([]PostData, 0, len(redditResponse.Data.Children))

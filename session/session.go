@@ -58,13 +58,19 @@ func FormatSSEMessage(eventType string, data any) (string, error) {
 
 	err := enc.Encode(m)
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 	sb := strings.Builder{}
 
-	sb.WriteString(fmt.Sprintf("event: %s\n", eventType))
-	sb.WriteString(fmt.Sprintf("retry: %d\n", 15000))
-	sb.WriteString(fmt.Sprintf("data: %v\n\n", buf.String()))
+	if _, err := fmt.Fprintf(&sb, "event: %s\n", eventType); err != nil {
+		return "", err
+	}
+	if _, err := fmt.Fprintf(&sb, "retry: %d\n", 15000); err != nil {
+		return "", err
+	}
+	if _, err := fmt.Fprintf(&sb, "data: %v\n\n", buf.String()); err != nil {
+		return "", err
+	}
 
 	return sb.String(), nil
 }

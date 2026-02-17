@@ -32,10 +32,20 @@ on:
 jobs:
   golangci-lint:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Fetch Repository
         uses: actions/checkout@v6
-      - name: Run golangci-lint
-        uses: reviewdog/action-golangci-lint@v2
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
         with:
-          golangci_lint_flags: "--tests=false"
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: latest
+          args: --tests=false
