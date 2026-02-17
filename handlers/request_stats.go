@@ -6,7 +6,8 @@ import (
 
 func RequestStatsHandler(stats interface {
 	GetStats() (string, int, int, int)
-}) fiber.Handler {
+},
+) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		date, requestCount, uniqueIPs, uniqueRepos := stats.GetStats()
 

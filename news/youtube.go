@@ -12,9 +12,7 @@ import (
 
 const MAX_RESULTS = 100
 
-var (
-	YTApiKey = os.Getenv("YOUTUBE_API_KEY")
-)
+var YTApiKey = os.Getenv("YOUTUBE_API_KEY")
 
 type YTVideoMetadata struct {
 	VideoID     string `json:"video_id"`
