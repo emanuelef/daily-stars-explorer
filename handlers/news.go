@@ -48,16 +48,22 @@ func RedditHandler(cacheReddit *cache.Cache[string, []news.ArticleData]) fiber.H
 	return func(c *fiber.Ctx) error {
 		query := c.Query("query", "golang")
 
-		if res, hit := cacheReddit.Get(query); hit {
-			return c.JSON(res)
-		}
-
 		limit, err := strconv.Atoi(c.Query("limit", "2"))
 		if err != nil {
 			return c.Status(400).SendString("Invalid limit parameter")
 		}
 
-		articles, err := news.FetchRedditPosts(query, limit)
+		strict := true
+		if strictVal, err := strconv.ParseBool(c.Query("strict", "true")); err == nil {
+			strict = strictVal
+		}
+
+		cacheKey := fmt.Sprintf("reddit:%s:%d:%t", query, limit, strict)
+		if res, hit := cacheReddit.Get(cacheKey); hit {
+			return c.JSON(res)
+		}
+
+		articles, err := news.FetchRedditPosts(query, limit, strict)
 		if err != nil {
 			log.Printf("Error fetching Reddit articles: %v", err)
 			return c.Status(500).SendString("Internal Server Error")
@@ -67,7 +73,7 @@ func RedditHandler(cacheReddit *cache.Cache[string, []news.ArticleData]) fiber.H
 		nextDay := now.UTC().Truncate(24 * time.Hour).Add(1 * 24 * time.Hour)
 		durationUntilEndOfDay := nextDay.Sub(now)
 
-		cacheReddit.Set(query, articles, cache.WithExpiration(durationUntilEndOfDay))
+		cacheReddit.Set(cacheKey, articles, cache.WithExpiration(durationUntilEndOfDay))
 
 		return c.JSON(articles)
 	}

@@ -3,6 +3,7 @@ package news
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 	"os"
@@ -28,6 +29,7 @@ type TokenResponse struct {
 type PostData struct {
 	Title       string  `json:"title"`
 	SelfText    string  `json:"selftext"`
+	URL         string  `json:"url"`
 	Created     float64 `json:"created"`
 	Ups         int     `json:"ups"`
 	NumComments int     `json:"num_comments"`
@@ -166,6 +168,8 @@ func cleanGitHubURL(url string) string {
 
 	// Remove trailing parenthesis or other punctuation from repo name
 	repo = strings.TrimRight(repo, ".,;:!?)\"")
+	repo = strings.Split(repo, "?")[0]
+	repo = strings.Split(repo, "#")[0]
 
 	// Return the clean URL
 	return "https://github.com/" + owner + "/" + repo
@@ -234,9 +238,9 @@ func FetchRedditGitHubPosts(sortBy string) ([]RedditGitHubPost, error) {
 			githubURL := ""
 
 			// Check post URL first
-			if strings.Contains(strings.ToLower(child.Data.Permalink), "github.com") {
+			if extractedURL := extractGitHubURL(child.Data.URL); extractedURL != "" {
 				isGitHubPost = true
-				githubURL = child.Data.Permalink
+				githubURL = extractedURL
 			}
 
 			// If not found in URL, check title and self text
@@ -312,13 +316,65 @@ func FetchRedditGitHubPosts(sortBy string) ([]RedditGitHubPost, error) {
 	return allPosts, nil
 }
 
-func FetchRedditPosts(query string, minUpvotes int) ([]ArticleData, error) {
+func FetchRedditPosts(query string, minUpvotes int, strict bool) ([]ArticleData, error) {
 	token, err := getRedditToken()
 	if err != nil {
 		return nil, err
 	}
 
 	client := &http.Client{}
+	owner, repo := parseRepoQuery(query)
+	searchQueries := buildRedditSearchQueries(query, owner, repo)
+	allPosts := make([]PostData, 0)
+	seenPermalinks := make(map[string]struct{})
+
+	for _, searchQuery := range searchQueries {
+		searchResults, err := searchRedditPosts(client, token, searchQuery)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, post := range searchResults {
+			if post.Permalink == "" {
+				continue
+			}
+			if _, seen := seenPermalinks[post.Permalink]; seen {
+				continue
+			}
+
+			seenPermalinks[post.Permalink] = struct{}{}
+			allPosts = append(allPosts, post)
+		}
+	}
+
+	var articles []ArticleData
+
+	for _, post := range allPosts {
+		if post.Ups < minUpvotes {
+			continue
+		}
+
+		if !matchesRepoQuery(post, owner, repo, strict) {
+			continue
+		}
+
+		createdAt := time.Unix(int64(post.Created), 0).Format("2006-01-02 15:04:05")
+		article := ArticleData{
+			Title:       post.Title,
+			Created:     createdAt,
+			Ups:         post.Ups,
+			NumComments: post.NumComments,
+			Url:         "https://www.reddit.com" + post.Permalink,
+			Content:     post.SelfText,
+		}
+
+		articles = append(articles, article)
+	}
+
+	return articles, nil
+}
+
+func searchRedditPosts(client *http.Client, token string, query string) ([]PostData, error) {
 	params := url.Values{}
 	params.Set("q", query)
 	params.Set("sort", "relevance")
@@ -343,25 +399,127 @@ func FetchRedditPosts(query string, minUpvotes int) ([]ArticleData, error) {
 		return nil, err
 	}
 
-	var articles []ArticleData
-
+	posts := make([]PostData, 0, len(redditResponse.Data.Children))
 	for _, child := range redditResponse.Data.Children {
-		if child.Data.Ups >= minUpvotes {
-			createdAt := time.Unix(int64(child.Data.Created), 0).Format("2006-01-02 15:04:05")
-			article := ArticleData{
-				Title:       child.Data.Title,
-				Created:     createdAt,
-				Ups:         child.Data.Ups,
-				NumComments: child.Data.NumComments,
-				Url:         "https://www.reddit.com" + child.Data.Permalink,
-			}
-
-			if strings.Contains(strings.ToLower(child.Data.Title), strings.ToLower(query)) || strings.Contains(strings.ToLower(child.Data.SelfText), strings.ToLower(query)) {
-				article.Content = child.Data.SelfText
-				articles = append(articles, article)
-			}
-		}
+		posts = append(posts, child.Data)
 	}
 
-	return articles, nil
+	return posts, nil
+}
+
+func parseRepoQuery(query string) (string, string) {
+	normalized := strings.ToLower(strings.TrimSpace(query))
+	normalized = strings.Trim(normalized, "\"'")
+
+	prefixes := []string{
+		"https://github.com/",
+		"http://github.com/",
+		"https://www.github.com/",
+		"http://www.github.com/",
+		"www.github.com/",
+		"github.com/",
+	}
+	for _, prefix := range prefixes {
+		normalized = strings.TrimPrefix(normalized, prefix)
+	}
+	normalized = strings.TrimPrefix(normalized, "/")
+	normalized = strings.TrimSuffix(normalized, "/")
+
+	parts := strings.Split(normalized, "/")
+	if len(parts) < 2 {
+		return "", normalized
+	}
+
+	owner := strings.TrimSpace(parts[0])
+	repo := strings.TrimSpace(parts[1])
+	repo = strings.Split(repo, "?")[0]
+	repo = strings.Split(repo, "#")[0]
+
+	return owner, repo
+}
+
+func buildRedditSearchQueries(rawQuery string, owner string, repo string) []string {
+	seen := make(map[string]struct{})
+	queries := make([]string, 0, 3)
+
+	appendQuery := func(q string) {
+		q = strings.TrimSpace(q)
+		if q == "" {
+			return
+		}
+		if _, exists := seen[q]; exists {
+			return
+		}
+		seen[q] = struct{}{}
+		queries = append(queries, q)
+	}
+
+	if owner != "" && repo != "" {
+		appendQuery(fmt.Sprintf("github.com/%s/%s", owner, repo))
+		appendQuery(fmt.Sprintf("\"%s/%s\"", owner, repo))
+		appendQuery(repo)
+		return queries
+	}
+
+	appendQuery(strings.TrimSpace(rawQuery))
+	if repo != "" {
+		appendQuery(repo)
+	}
+
+	return queries
+}
+
+func matchesRepoQuery(post PostData, owner string, repo string, strict bool) bool {
+	text := strings.ToLower(strings.Join([]string{
+		post.Title,
+		post.SelfText,
+		post.URL,
+	}, " "))
+
+	if repo == "" {
+		return false
+	}
+
+	if !strict {
+		if owner != "" && containsOwnerRepoMention(text, owner, repo) {
+			return true
+		}
+		return strings.Contains(text, repo)
+	}
+
+	if owner != "" {
+		return containsOwnerRepoMention(text, owner, repo)
+	}
+
+	if containsGitHubRepoURLWithRepo(text, repo) {
+		return true
+	}
+
+	if !containsRepoToken(text, repo) {
+		return false
+	}
+
+	return strings.Contains(text, "github")
+}
+
+func containsOwnerRepoMention(text string, owner string, repo string) bool {
+	pattern := fmt.Sprintf(`(?:github\.com/)?%s/%s(?:[/?#\s\)\]\},;:.!]|$)`,
+		regexp.QuoteMeta(owner),
+		regexp.QuoteMeta(repo),
+	)
+
+	return regexp.MustCompile(pattern).MatchString(text)
+}
+
+func containsGitHubRepoURLWithRepo(text string, repo string) bool {
+	pattern := fmt.Sprintf(`github\.com/[^/\s]+/%s(?:[/?#\s\)\]\},;:.!]|$)`,
+		regexp.QuoteMeta(repo),
+	)
+
+	return regexp.MustCompile(pattern).MatchString(text)
+}
+
+func containsRepoToken(text string, repo string) bool {
+	pattern := fmt.Sprintf(`(^|[^a-z0-9])%s([^a-z0-9]|$)`, regexp.QuoteMeta(repo))
+	return regexp.MustCompile(pattern).MatchString(text)
 }

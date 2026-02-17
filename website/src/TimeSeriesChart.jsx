@@ -1,5 +1,5 @@
 /* eslint-disable no-case-declarations */
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import TextField from "@mui/material/TextField";
 import FormControl from "@mui/material/FormControl";
@@ -145,6 +145,33 @@ const calculateStarsLast10Days = (starHistory) => {
 
   // Sum the daily stars (index 1 contains daily stars count)
   return last10Days.reduce((sum, day) => sum + day[1], 0);
+};
+
+const parseTimelineDate = (dateString) => {
+  if (!dateString || typeof dateString !== "string") return null;
+  const [day, month, year] = dateString.split("-").map(Number);
+  if (!day || !month || !year) return null;
+  return new Date(year, month - 1, day);
+};
+
+const normalizeTimelineDate = (dateString) => {
+  const parsed = parseTimelineDate(dateString);
+  if (!parsed) return dateString;
+  const day = String(parsed.getDate()).padStart(2, "0");
+  const month = String(parsed.getMonth() + 1).padStart(2, "0");
+  const year = parsed.getFullYear();
+  return `${day}-${month}-${year}`;
+};
+
+const FEED_LABELS = {
+  none: "None",
+  releases: "Releases",
+  hacker: "HNews",
+  reddit: "Reddit",
+  redditStrict: "Reddit",
+  redditBroad: "Reddit",
+  ghmentions: "GitHub",
+  youtube: "YouTube",
 };
 
 function TimeSeriesChart() {
@@ -428,10 +455,7 @@ function TimeSeriesChart() {
   };
 
   const handleYAxisTypeCheckChange = (event) => {
-    setCheckedYAxisType(event.target.checked);
-    const options = { ...ds };
-    options.dataSource.yAxis[0].type = event.target.checked ? "log" : "";
-    setds(options);
+    applyYAxisType(event.target.checked);
   };
 
   const handleThemeChange = (event) => {
@@ -441,14 +465,23 @@ function TimeSeriesChart() {
     setds(options);
   };
 
-  const handleFeedChange = (event) => {
-    // Clear old feed markers immediately before switching
+  const applyFeedMode = (nextFeed) => {
     currentHNnews.current = {};
-    const options = { ...ds };
-    options.dataSource.xAxis.timemarker = currentPeaks.current;
-    setds(options);
-    
-    setFeed(event.target.value);
+    setds((prevDs) => ({
+      ...prevDs,
+      dataSource: {
+        ...prevDs.dataSource,
+        xAxis: {
+          ...prevDs.dataSource.xAxis,
+          timemarker: currentPeaks.current,
+        },
+      },
+    }));
+    setFeed(nextFeed);
+  };
+
+  const handleFeedChange = (event) => {
+    applyFeedMode(event.target.value);
   };
 
   const handleTransformationChange = (event) => {
@@ -464,10 +497,80 @@ function TimeSeriesChart() {
 
     options.dataSource.yAxis[0].plot.value =
       schema[1].name =
-      options.dataSource.yAxis[0].title =
+    options.dataSource.yAxis[0].title =
       text;
 
     setds(options);
+  };
+
+  const applyYAxisType = (useLogScale) => {
+    setCheckedYAxisType(useLogScale);
+    setds((prevDs) => ({
+      ...prevDs,
+      dataSource: {
+        ...prevDs.dataSource,
+        yAxis: prevDs.dataSource.yAxis.map((axis, index) =>
+          index === 0 ? { ...axis, type: useLogScale ? "log" : "" } : axis
+        ),
+      },
+    }));
+  };
+
+  const applyFullTimelineView = () => {
+    if (
+      ds &&
+      ds.dataSource &&
+      ds.dataSource.data &&
+      ds.dataSource.data._data &&
+      ds.dataSource.data._data.length > 0
+    ) {
+      const dataArr = ds.dataSource.data._data;
+      const firstDate = dataArr[0][0];
+      const lastDate = dataArr[dataArr.length - 1][0];
+
+      setKeepLast30Zoom(false);
+      setLast30Active(false);
+      setSelectedTimeRange({ start: firstDate, end: lastDate });
+
+      if (chartRef.current && chartRef.current.chartObj) {
+        chartRef.current.chartObj.setTimeSelection({
+          start: firstDate,
+          end: lastDate,
+        });
+      }
+      handleZoom(firstDate, lastDate);
+      return true;
+    }
+    return false;
+  };
+
+  const applyLast30DaysView = () => {
+    if (
+      ds &&
+      ds.dataSource &&
+      ds.dataSource.data &&
+      ds.dataSource.data._data &&
+      ds.dataSource.data._data.length > 0
+    ) {
+      const dataArr = ds.dataSource.data._data;
+      const lastIdx = dataArr.length - 1;
+      const lastDate = dataArr[lastIdx][0];
+      const firstDateLast30 = dataArr[Math.max(0, lastIdx - 29)][0];
+
+      setKeepLast30Zoom(true);
+      setLast30Active(true);
+      setSelectedTimeRange({ start: firstDateLast30, end: lastDate });
+
+      if (chartRef.current && chartRef.current.chartObj) {
+        chartRef.current.chartObj.setTimeSelection({
+          start: firstDateLast30,
+          end: lastDate,
+        });
+      }
+      handleZoom(firstDateLast30, lastDate);
+      return true;
+    }
+    return false;
   };
 
   useEffect(() => {
@@ -535,8 +638,16 @@ function TimeSeriesChart() {
     options.dataSource.xAxis.timemarker = [...news, ...currentPeaks.current];
   }
 
-  const fetchRedditFeed = async (options) => {
-    const redditPosts = await fetchReddit(parseGitHubRepoURL(selectedRepo).split("/")[1]);
+  const fetchRedditFeed = async (options, strict = true) => {
+    const parsedRepo = parseGitHubRepoURL(selectedRepo);
+    const redditQuery = parsedRepo || selectedRepo;
+    const redditPosts = await fetchReddit(redditQuery, strict);
+
+    if (!redditPosts || redditPosts.length === 0) {
+      options.dataSource.xAxis.timemarker = [...currentPeaks.current];
+      return;
+    }
+
     const mapReddit = {};
 
     redditPosts.forEach(item => {
@@ -742,10 +853,10 @@ function TimeSeriesChart() {
     }
   };
 
-  const fetchReddit = async (repo) => {
+  const fetchReddit = async (repo, strict = true) => {
     try {
       setLoading(true);
-      const response = await fetch(`${HOST}/reddit?query=${repo}`);
+      const response = await fetch(`${HOST}/reddit?query=${encodeURIComponent(repo)}&strict=${strict}`);
 
       if (!response.ok) {
         setLoading(false);
@@ -1243,7 +1354,11 @@ function TimeSeriesChart() {
         await fetchHNFeed(options);
         break;
       case "reddit":
-        await fetchRedditFeed(options);
+      case "redditStrict":
+        await fetchRedditFeed(options, true);
+        break;
+      case "redditBroad":
+        await fetchRedditFeed(options, false);
         break;
       case "youtube":
         await fetchYoutubeFeed(options);
@@ -1836,6 +1951,71 @@ function TimeSeriesChart() {
     return () => clearTimeout(timer);
   }, []);
 
+  const activityLaneData = useMemo(() => {
+    if (!currentStarsHistory || currentStarsHistory.length === 0 || feed === "none") {
+      return null;
+    }
+
+    const parsedHistory = currentStarsHistory
+      .map((item) => ({
+        dateLabel: item[0],
+        dateObj: parseTimelineDate(item[0]),
+      }))
+      .filter((item) => item.dateObj && !Number.isNaN(item.dateObj.getTime()))
+      .sort((a, b) => a.dateObj - b.dateObj);
+
+    if (parsedHistory.length === 0) return null;
+
+    let rangeStart = parseTimelineDate(selectedTimeRange?.start) || parsedHistory[0].dateObj;
+    let rangeEnd = parseTimelineDate(selectedTimeRange?.end) || parsedHistory[parsedHistory.length - 1].dateObj;
+    if (rangeStart > rangeEnd) {
+      const tmp = rangeStart;
+      rangeStart = rangeEnd;
+      rangeEnd = tmp;
+    }
+
+    const visiblePoints = parsedHistory.filter(
+      (item) => item.dateObj >= rangeStart && item.dateObj <= rangeEnd
+    );
+    const points = visiblePoints.length > 0 ? visiblePoints : parsedHistory;
+
+    const activeDateSet = new Set(
+      Object.keys(currentHNnews.current || {}).map((date) => normalizeTimelineDate(date))
+    );
+
+    const activeDays = points.reduce(
+      (sum, item) => sum + (activeDateSet.has(normalizeTimelineDate(item.dateLabel)) ? 1 : 0),
+      0
+    );
+
+    const targetBins = Math.min(140, points.length);
+    const binSize = Math.max(1, Math.ceil(points.length / targetBins));
+    const bins = [];
+
+    for (let i = 0; i < points.length; i += binSize) {
+      const chunk = points.slice(i, i + binSize);
+      const activeCount = chunk.reduce(
+        (sum, item) => sum + (activeDateSet.has(normalizeTimelineDate(item.dateLabel)) ? 1 : 0),
+        0
+      );
+
+      bins.push({
+        start: chunk[0]?.dateLabel || "",
+        end: chunk[chunk.length - 1]?.dateLabel || "",
+        activeCount,
+        ratio: chunk.length > 0 ? activeCount / chunk.length : 0,
+      });
+    }
+
+    return {
+      bins,
+      activeDays,
+      totalDays: points.length,
+      rangeStart: points[0]?.dateLabel || "",
+      rangeEnd: points[points.length - 1]?.dateLabel || "",
+    };
+  }, [currentStarsHistory, selectedTimeRange, feed, ds]);
+
   return (
     <div style={{ background: currentTheme.background, minHeight: '100vh', padding: '10px' }}>
       {showError && (
@@ -2010,11 +2190,13 @@ function TimeSeriesChart() {
               value={feed}
               label="Feed"
               onChange={handleFeedChange}
+              renderValue={(selected) => FEED_LABELS[selected] || selected}
             >
               <MenuItem value={"none"}>None</MenuItem>
               <MenuItem value={"releases"}>Releases</MenuItem>
               <MenuItem value={"hacker"}>HNews</MenuItem>
-              <MenuItem value={"reddit"}>Reddit</MenuItem>
+              <MenuItem value={"redditStrict"}>Reddit (strict)</MenuItem>
+              <MenuItem value={"redditBroad"}>Reddit (broad)</MenuItem>
               <MenuItem value={"ghmentions"}>GitHub</MenuItem>
               <MenuItem value={"youtube"}>YouTube</MenuItem>
             </Select>
@@ -2224,42 +2406,10 @@ function TimeSeriesChart() {
               size="small"
               variant="outlined"
               onClick={() => {
-                if (
-                  ds &&
-                  ds.dataSource &&
-                  ds.dataSource.data &&
-                  ds.dataSource.data._data &&
-                  ds.dataSource.data._data.length > 0
-                ) {
-                  const dataArr = ds.dataSource.data._data;
-                  const lastIdx = dataArr.length - 1;
-                  const lastDate = dataArr[lastIdx][0];
-                  const firstDateLast30 = dataArr[Math.max(0, lastIdx - 29)][0];
-                  const firstDateFull = dataArr[0][0];
-
-                  if (!last30Active) {
-                    setSelectedTimeRange({ start: firstDateLast30, end: lastDate });
-                    setKeepLast30Zoom(true);
-                    setLast30Active(true);
-                    if (chartRef.current && chartRef.current.chartObj) {
-                      chartRef.current.chartObj.setTimeSelection({
-                        start: firstDateLast30,
-                        end: lastDate,
-                      });
-                    }
-                    handleZoom(firstDateLast30, lastDate);
-                  } else {
-                    setKeepLast30Zoom(false);
-                    setSelectedTimeRange({ start: firstDateFull, end: lastDate });
-                    setLast30Active(false);
-                    if (chartRef.current && chartRef.current.chartObj) {
-                      chartRef.current.chartObj.setTimeSelection({
-                        start: firstDateFull,
-                        end: lastDate,
-                      });
-                    }
-                    handleZoom(firstDateFull, lastDate);
-                  }
+                if (!last30Active) {
+                  applyLast30DaysView();
+                } else {
+                  applyFullTimelineView();
                 }
               }}
             >
@@ -2302,7 +2452,58 @@ function TimeSeriesChart() {
             <ReactFC ref={chartRef} {...ds} />
           )}
         </Box>
+        {activityLaneData && activityLaneData.bins.length > 0 && (
+          <Box sx={{ mt: 1.2 }}>
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.6 }}>
+              <Typography variant="caption" sx={{ color: currentTheme.textMuted }}>
+                Activity Lane: {activityLaneData.activeDays.toLocaleString()} active days
+              </Typography>
+              <Typography variant="caption" sx={{ color: currentTheme.textMuted }}>
+                {activityLaneData.rangeStart} → {activityLaneData.rangeEnd}
+              </Typography>
+            </Box>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: `repeat(${activityLaneData.bins.length}, minmax(0, 1fr))`,
+                gap: "2px",
+                background: appTheme === "dark" ? "rgba(148, 163, 184, 0.1)" : "rgba(148, 163, 184, 0.2)",
+                border: `1px solid ${currentTheme.cardBorder}`,
+                borderRadius: "999px",
+                p: "2px",
+                minHeight: "12px",
+              }}
+            >
+              {activityLaneData.bins.map((bin, index) => {
+                let color = appTheme === "dark" ? "rgba(148, 163, 184, 0.25)" : "rgba(148, 163, 184, 0.35)";
+                if (bin.activeCount > 0 && bin.ratio >= 0.6) {
+                  color = "#22c55e";
+                } else if (bin.activeCount > 0 && bin.ratio >= 0.3) {
+                  color = "#60a5fa";
+                } else if (bin.activeCount > 0) {
+                  color = "#f59e0b";
+                }
+
+                return (
+                  <Box
+                    key={`${bin.start}-${index}`}
+                    title={`${bin.start}${bin.start !== bin.end ? ` → ${bin.end}` : ""}: ${bin.activeCount} active day(s)`}
+                    sx={{
+                      borderRadius: "999px",
+                      background: color,
+                      minHeight: "8px",
+                    }}
+                  />
+                );
+              })}
+            </Box>
+            <Typography variant="caption" sx={{ color: currentTheme.textMuted, mt: 0.5, display: "block" }}>
+              Green = dense activity, blue = medium, amber = sparse
+            </Typography>
+          </Box>
+        )}
       </div>
+
     </div>
   );
 }
