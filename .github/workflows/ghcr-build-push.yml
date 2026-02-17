@@ -20,6 +20,10 @@ env:
   IMAGE_NAME: emanuelef/daily-stars-explorer
   VERSION_NUMBER: latest
 
+concurrency:
+  group: ghcr-build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   push_to_registry:
     name: Push Docker image to GH registry
@@ -29,12 +33,6 @@ jobs:
       packages: write
       id-token: write
     steps:
-      - name: Dump GitHub context
-        env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
-        run: |
-          echo "$GITHUB_CONTEXT"
-
       - name: create a custom version using run number offset by 1000 (run_number + 1000)
         run: |
           echo "VERSION_NUMBER=$((1000+GITHUB_RUN_NUMBER))" >> $GITHUB_ENV
@@ -72,5 +70,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: |
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: |
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
