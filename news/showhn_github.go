@@ -165,7 +165,7 @@ func FetchShowHNGitHubPosts(sortBy string) ([]ShowHNPost, error) {
 	}
 
 	// Use allPosts for sorting and returning
-	var posts = allPosts
+	posts := allPosts
 
 	// Sort the posts based on the sortBy parameter
 	switch sortBy {

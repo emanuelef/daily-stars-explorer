@@ -9,8 +9,10 @@ import (
 	"strconv"
 )
 
-const HITS_PER_PAGE = 100
-const MAX_PAGES = 3
+const (
+	HITS_PER_PAGE = 100
+	MAX_PAGES     = 3
+)
 
 type HNResponse struct {
 	Hits    []HNHit `json:"hits"`

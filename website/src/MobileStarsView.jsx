@@ -23,6 +23,7 @@ const MobileStarsView = () => {
   const [starsRepos, setStarsRepos] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [filteredRepos, setFilteredRepos] = useState([]);
+  const [dailyChartRange, setDailyChartRange] = useState("30d");
   const [pinnedRepos, setPinnedRepos] = useState(() => {
     try {
       const saved = localStorage.getItem('pinned-repos');
@@ -120,6 +121,7 @@ const MobileStarsView = () => {
     setShowSuggestions(false);
     setTotalStars(0);
     setStarsLast10d(0);
+    setDailyChartRange("30d");
 
     // Close any existing SSE connection
     if (eventSourceRef.current) {
@@ -287,14 +289,15 @@ const MobileStarsView = () => {
     fetchStars(selectedRepo);
   };
 
-  // Get recent data for display (last 30 days)
-  const recentHistory = starHistory.slice(-30);
+  const displayedHistory = dailyChartRange === "all" ? starHistory : starHistory.slice(-30);
+  const displayedMax = Math.max(...displayedHistory.map(d => d.daily), 1);
+  const displayedTotal = displayedHistory.reduce((sum, d) => sum + d.daily, 0);
 
   // Find max daily stars for scaling from the displayed data only
   // Use 95th percentile to avoid outliers making all other bars too small
-  const sortedDaily = [...recentHistory].map(d => d.daily).sort((a, b) => a - b);
+  const sortedDaily = [...displayedHistory].map(d => d.daily).sort((a, b) => a - b);
   const p95Index = Math.floor(sortedDaily.length * 0.95);
-  const maxDaily = sortedDaily[p95Index] || Math.max(...recentHistory.map(d => d.daily), 1);
+  const maxDaily = sortedDaily[p95Index] || displayedMax;
 
   return (
     <div style={{
@@ -583,13 +586,57 @@ const MobileStarsView = () => {
       )}
 
       {/* Daily Stars Bar Chart */}
-      {recentHistory.length > 0 && (
+      {displayedHistory.length > 0 && (
         <div style={{
           padding: "16px",
           borderRadius: "12px",
           background: "rgba(255, 255, 255, 0.02)",
           border: "1px solid rgba(255, 255, 255, 0.1)",
         }}>
+          <div style={{
+            display: "flex",
+            gap: "8px",
+            marginBottom: "12px",
+          }}>
+            <button
+              type="button"
+              onClick={() => setDailyChartRange("30d")}
+              style={{
+                flex: 1,
+                padding: "7px 10px",
+                borderRadius: "8px",
+                border: "1px solid rgba(59, 130, 246, 0.4)",
+                background: dailyChartRange === "30d"
+                  ? "rgba(59, 130, 246, 0.8)"
+                  : "rgba(255, 255, 255, 0.05)",
+                color: "#fff",
+                fontSize: "12px",
+                fontWeight: "600",
+                cursor: "pointer",
+              }}
+            >
+              Last 30 days
+            </button>
+            <button
+              type="button"
+              onClick={() => setDailyChartRange("all")}
+              style={{
+                flex: 1,
+                padding: "7px 10px",
+                borderRadius: "8px",
+                border: "1px solid rgba(59, 130, 246, 0.4)",
+                background: dailyChartRange === "all"
+                  ? "rgba(59, 130, 246, 0.8)"
+                  : "rgba(255, 255, 255, 0.05)",
+                color: "#fff",
+                fontSize: "12px",
+                fontWeight: "600",
+                cursor: "pointer",
+              }}
+            >
+              All history
+            </button>
+          </div>
           <div style={{
             fontSize: "14px",
             fontWeight: "600",
@@ -599,43 +646,56 @@ const MobileStarsView = () => {
             justifyContent: "space-between",
             alignItems: "center",
           }}>
-            <span>Daily Stars (Last 30 days)</span>
+            <span>Daily Stars ({dailyChartRange === "all" ? "All history" : "Last 30 days"})</span>
             <div style={{ textAlign: "right" }}>
               <div style={{ fontSize: "13px", color: "#fbbf24", fontWeight: "600" }}>
-                max: {Math.max(...recentHistory.map(d => d.daily)).toLocaleString()}
+                max: {displayedMax.toLocaleString()}
               </div>
               <div style={{ fontSize: "12px", color: "#6b7280", fontWeight: "400" }}>
-                total: {recentHistory.reduce((sum, d) => sum + d.daily, 0).toLocaleString()}
+                total: {displayedTotal.toLocaleString()}
               </div>
             </div>
           </div>
-          <div style={{
-            display: "flex",
-            alignItems: "flex-end",
-            gap: "3px",
-            height: "140px",
-            padding: "0 4px",
-          }}>
-            {recentHistory.map((day, index) => {
-              const heightPercent = Math.min((day.daily / maxDaily) * 100, 100);
-              return (
-                <div
-                  key={index}
-                  style={{
-                    flex: 1,
-                    background: day.daily > 0
-                      ? `linear-gradient(180deg, #60a5fa 0%, #3b82f6 100%)`
-                      : "rgba(255, 255, 255, 0.1)",
-                    height: `${Math.max(heightPercent, 3)}%`,
-                    borderRadius: "3px 3px 0 0",
-                    minHeight: "3px",
-                    position: "relative",
-                  }}
-                  title={`${day.date}: ${day.daily} stars`}
-                />
-              );
-            })}
+          <div style={{ overflowX: dailyChartRange === "all" ? "auto" : "visible" }}>
+            <div style={{
+              display: "flex",
+              alignItems: "flex-end",
+              gap: dailyChartRange === "all" ? "2px" : "3px",
+              height: "140px",
+              padding: "0 4px",
+              minWidth: dailyChartRange === "all" ? `${Math.max(displayedHistory.length * 4, 260)}px` : "auto",
+            }}>
+              {displayedHistory.map((day, index) => {
+                const heightPercent = Math.min((day.daily / maxDaily) * 100, 100);
+                return (
+                  <div
+                    key={index}
+                    style={{
+                      flex: dailyChartRange === "all" ? "0 0 2px" : 1,
+                      background: day.daily > 0
+                        ? `linear-gradient(180deg, #60a5fa 0%, #3b82f6 100%)`
+                        : "rgba(255, 255, 255, 0.1)",
+                      height: `${Math.max(heightPercent, 3)}%`,
+                      borderRadius: "3px 3px 0 0",
+                      minHeight: "3px",
+                      position: "relative",
+                    }}
+                    title={`${day.date}: ${day.daily} stars`}
+                  />
+                );
+              })}
+            </div>
           </div>
+          {dailyChartRange === "all" && (
+            <div style={{
+              marginTop: "8px",
+              fontSize: "11px",
+              color: "#6b7280",
+              textAlign: "center",
+            }}>
+              Swipe horizontally to explore the full timeline
+            </div>
+          )}
           <div style={{
             display: "flex",
             justifyContent: "space-between",
@@ -643,8 +703,8 @@ const MobileStarsView = () => {
             fontSize: "11px",
             color: "#6b7280",
           }}>
-            <span>{recentHistory[0]?.date || '30 days ago'}</span>
-            <span>{recentHistory[recentHistory.length - 1]?.date || 'Today'}</span>
+            <span>{displayedHistory[0]?.date || "Start"}</span>
+            <span>{displayedHistory[displayedHistory.length - 1]?.date || "Latest"}</span>
           </div>
         </div>
       )}

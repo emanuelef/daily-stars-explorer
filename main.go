@@ -27,8 +27,10 @@ import (
 	_ "github.com/joho/godotenv/autoload"
 )
 
-var currentSessions session.SessionsLock
-var allStarsRequestStats types.RequestStats
+var (
+	currentSessions      session.SessionsLock
+	allStarsRequestStats types.RequestStats
+)
 
 // getRecentStarsByHourHandler handles API requests for hourly stars
 func main() {
