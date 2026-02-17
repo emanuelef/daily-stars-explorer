@@ -29,16 +29,22 @@ func ScrapeShowHN() ([]ShowHNPost, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error making request: %w", err)
 	}
-	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			return nil, fmt.Errorf("received non-200 response: %d (close error: %w)", resp.StatusCode, closeErr)
+		}
 		return nil, fmt.Errorf("received non-200 response: %d", resp.StatusCode)
 	}
 
 	// Parse the HTML
-	doc, err := html.Parse(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing HTML: %w", err)
+	doc, parseErr := html.Parse(resp.Body)
+	closeErr := resp.Body.Close()
+	if parseErr != nil {
+		return nil, fmt.Errorf("error parsing HTML: %w", parseErr)
+	}
+	if closeErr != nil {
+		return nil, fmt.Errorf("error closing response body: %w", closeErr)
 	}
 
 	// Extract Show HN posts

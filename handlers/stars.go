@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"math/rand"
 	"net/url"
@@ -49,8 +48,6 @@ func AllStarsHandler(
 			return err
 		}
 
-		// needed because c.Query cannot be used as a map key
-		repo = fmt.Sprintf("%s", repo)
 		repo = strings.ToLower(repo)
 
 		ip := c.Get("X-Forwarded-For")
@@ -193,7 +190,6 @@ func RecentStarsHandler(
 			return err
 		}
 
-		repo = fmt.Sprintf("%s", repo)
 		repo = strings.ToLower(repo)
 
 		lastDays, err := strconv.Atoi(lastDaysStr)
@@ -327,7 +323,6 @@ func RecentStarsByHourHandler(
 			return err
 		}
 
-		repo = fmt.Sprintf("%s", repo)
 		repo = strings.ToLower(repo)
 
 		// Get lastDays parameter, default to 2

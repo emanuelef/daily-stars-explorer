@@ -46,7 +46,6 @@ func AllIssuesHandler(
 			return err
 		}
 
-		repo = fmt.Sprintf("%s", repo)
 		repo = strings.ToLower(repo)
 
 		ip := c.Get("X-Forwarded-For")
@@ -157,7 +156,6 @@ func AllForksHandler(
 			return err
 		}
 
-		repo = fmt.Sprintf("%s", repo)
 		repo = strings.ToLower(repo)
 
 		ip := c.Get("X-Forwarded-For")
@@ -268,7 +266,6 @@ func AllPRsHandler(
 			return err
 		}
 
-		repo = fmt.Sprintf("%s", repo)
 		repo = strings.ToLower(repo)
 
 		ip := c.Get("X-Forwarded-For")
@@ -379,7 +376,6 @@ func AllCommitsHandler(
 			return err
 		}
 
-		repo = fmt.Sprintf("%s", repo)
 		repo = strings.ToLower(repo)
 
 		ip := c.Get("X-Forwarded-For")
@@ -492,7 +488,6 @@ func AllContributorsHandler(
 			return err
 		}
 
-		repo = fmt.Sprintf("%s", repo)
 		repo = strings.ToLower(repo)
 
 		ip := c.Get("X-Forwarded-For")

@@ -70,10 +70,16 @@ func FetchShowHNGitHubPosts(sortBy string) ([]ShowHNPost, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error fetching HN posts (page %d): %w", page, err)
 		}
-		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
-			bodyBytes, _ := io.ReadAll(resp.Body)
+			bodyBytes, readErr := io.ReadAll(resp.Body)
+			closeErr := resp.Body.Close()
+			if readErr != nil {
+				return nil, fmt.Errorf("received non-200 response (page %d): %d and failed reading body: %w", page, resp.StatusCode, readErr)
+			}
+			if closeErr != nil {
+				return nil, fmt.Errorf("received non-200 response (page %d): %d, body: %s (close error: %w)", page, resp.StatusCode, string(bodyBytes), closeErr)
+			}
 			return nil, fmt.Errorf("received non-200 response (page %d): %d, body: %s", page, resp.StatusCode, string(bodyBytes))
 		}
 
@@ -94,9 +100,13 @@ func FetchShowHNGitHubPosts(sortBy string) ([]ShowHNPost, error) {
 			HitsPerPage int `json:"hitsPerPage"`
 		}
 
-		bodyBytes, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return nil, fmt.Errorf("error reading response body (page %d): %w", page, err)
+		bodyBytes, readErr := io.ReadAll(resp.Body)
+		closeErr := resp.Body.Close()
+		if readErr != nil {
+			return nil, fmt.Errorf("error reading response body (page %d): %w", page, readErr)
+		}
+		if closeErr != nil {
+			return nil, fmt.Errorf("error closing response body (page %d): %w", page, closeErr)
 		}
 
 		if err := json.Unmarshal(bodyBytes, &result); err != nil {

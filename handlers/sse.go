@@ -26,8 +26,6 @@ func SSEHandler(currentSessions *session.SessionsLock) fiber.Handler {
 			return err
 		}
 
-		repo = fmt.Sprintf("%s", repo)
-
 		log.Printf("New Request %s\n", repo)
 
 		stateChan := make(chan int)
