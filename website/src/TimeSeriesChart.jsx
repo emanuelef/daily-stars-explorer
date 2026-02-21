@@ -1336,7 +1336,7 @@ function TimeSeriesChart() {
           options.dataSource.yAxis[0].title =
           "WoW Growth Rate (%)";
         appliedTransformationResult = calculateWeeklyGrowthRate(starHistory);
-        options.dataSource.yAxis[0].plot.type = "line";
+        options.dataSource.yAxis[0].plot.type = "column";
         options.dataSource.yAxis[0].referenceline = [
           {
             label: "0%",
