@@ -47,6 +47,7 @@ func AllIssuesHandler(
 		}
 
 		repo = strings.ToLower(repo)
+		repo = strings.Clone(repo) // Fiber's c.Query returns unsafe strings backed by a reusable buffer
 
 		ip := c.Get("X-Forwarded-For")
 		if ip == "" {
@@ -157,6 +158,7 @@ func AllForksHandler(
 		}
 
 		repo = strings.ToLower(repo)
+		repo = strings.Clone(repo) // Fiber's c.Query returns unsafe strings backed by a reusable buffer
 
 		ip := c.Get("X-Forwarded-For")
 		if ip == "" {
@@ -267,6 +269,7 @@ func AllPRsHandler(
 		}
 
 		repo = strings.ToLower(repo)
+		repo = strings.Clone(repo) // Fiber's c.Query returns unsafe strings backed by a reusable buffer
 
 		ip := c.Get("X-Forwarded-For")
 		if ip == "" {
@@ -377,6 +380,7 @@ func AllCommitsHandler(
 		}
 
 		repo = strings.ToLower(repo)
+		repo = strings.Clone(repo) // Fiber's c.Query returns unsafe strings backed by a reusable buffer
 
 		ip := c.Get("X-Forwarded-For")
 		if ip == "" {
@@ -489,6 +493,7 @@ func AllContributorsHandler(
 		}
 
 		repo = strings.ToLower(repo)
+		repo = strings.Clone(repo) // Fiber's c.Query returns unsafe strings backed by a reusable buffer
 
 		ip := c.Get("X-Forwarded-For")
 		if ip == "" {

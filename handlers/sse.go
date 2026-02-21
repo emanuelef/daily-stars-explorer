@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/emanuelef/gh-repo-stats-server/session"
@@ -25,6 +26,7 @@ func SSEHandler(currentSessions *session.SessionsLock) fiber.Handler {
 		if err != nil {
 			return err
 		}
+		repo = strings.Clone(repo) // Fiber's c.Query returns unsafe strings backed by a reusable buffer
 
 		log.Printf("New Request %s\n", repo)
 

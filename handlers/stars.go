@@ -49,6 +49,7 @@ func AllStarsHandler(
 		}
 
 		repo = strings.ToLower(repo)
+		repo = strings.Clone(repo) // Fiber's c.Query returns unsafe strings backed by a reusable buffer
 
 		ip := c.Get("X-Forwarded-For")
 
@@ -191,6 +192,7 @@ func RecentStarsHandler(
 		}
 
 		repo = strings.ToLower(repo)
+		repo = strings.Clone(repo) // Fiber's c.Query returns unsafe strings backed by a reusable buffer
 
 		lastDays, err := strconv.Atoi(lastDaysStr)
 		if err != nil || lastDays <= 0 {
@@ -324,6 +326,7 @@ func RecentStarsByHourHandler(
 		}
 
 		repo = strings.ToLower(repo)
+		repo = strings.Clone(repo) // Fiber's c.Query returns unsafe strings backed by a reusable buffer
 
 		// Get lastDays parameter, default to 2
 		lastDays, err := strconv.Atoi(c.Query("lastDays", "2"))

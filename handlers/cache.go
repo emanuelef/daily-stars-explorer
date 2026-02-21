@@ -105,6 +105,7 @@ func DeleteRecentStarsCacheHandler(cacheStars *cache.Cache[string, types.StarsWi
 			return err
 		}
 		repo = strings.ToLower(repo)
+		repo = strings.Clone(repo) // Fiber's c.Query returns unsafe strings backed by a reusable buffer
 
 		cached, found := cacheStars.Get(repo)
 		if !found {

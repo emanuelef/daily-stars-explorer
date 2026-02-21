@@ -24,7 +24,7 @@
     "fusioncharts": "4.2.1",
     "highcharts-react-official": "^3.2.3",
     "papaparse": "^5.5.3",
-    "plotly.js": "^3.3.1",
+    "plotly.js": "^3.4.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-fusioncharts": "4.2.0",
