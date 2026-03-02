@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+	"strconv"
 	"net/url"
 	"os"
 	"regexp"
@@ -22,8 +24,15 @@ var (
 	UserAgent    = os.Getenv("REDDIT_USER_AGENT")
 )
 
+var (
+	cachedToken      string
+	cachedTokenExp   time.Time
+	tokenRetryAfter  time.Time
+)
+
 type TokenResponse struct {
 	AccessToken string `json:"access_token"`
+	ExpiresIn   int    `json:"expires_in"`
 }
 
 type PostData struct {
@@ -54,37 +63,86 @@ type RedditResponse struct {
 }
 
 func getRedditToken() (string, error) {
+	clientID := os.Getenv("REDDIT_CLIENT_ID")
+	clientSecret := os.Getenv("REDDIT_CLIENT_SECRET")
+	username := os.Getenv("REDDIT_USERNAME")
+	password := os.Getenv("REDDIT_PASSWORD")
+	userAgentEnv := os.Getenv("REDDIT_USER_AGENT")
+
+	if clientID == "" || clientSecret == "" {
+		return "", fmt.Errorf("Reddit credentials not configured")
+	}
+
+	if cachedToken != "" && time.Now().Before(cachedTokenExp) {
+		return cachedToken, nil
+	}
+
+	if time.Now().Before(tokenRetryAfter) {
+		return "", fmt.Errorf("Reddit token endpoint rate limited, retry after %s", tokenRetryAfter.Format(time.RFC3339))
+	}
+
 	client := &http.Client{}
 	data := url.Values{}
-	data.Set("grant_type", "password")
-	data.Set("username", Username)
-	data.Set("password", Password)
+
+	if username != "" && password != "" {
+		data.Set("grant_type", "password")
+		data.Set("username", username)
+		data.Set("password", password)
+	} else {
+		data.Set("grant_type", "client_credentials")
+	}
 
 	req, err := http.NewRequest("POST", "https://www.reddit.com/api/v1/access_token", strings.NewReader(data.Encode()))
 	if err != nil {
 		return "", err
 	}
 
-	req.SetBasicAuth(ClientID, ClientSecret)
-	req.Header.Set("User-Agent", UserAgent)
+	req.SetBasicAuth(clientID, clientSecret)
+	userAgent := userAgentEnv
+	if userAgent == "" {
+		userAgent = "script:gh-stars-explorer:v1.0 (by /u/emanuelefumagalli)"
+	}
+	req.Header.Set("User-Agent", userAgent)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusTooManyRequests {
+		retryAfter := 10 * time.Minute
+		if ra := resp.Header.Get("Retry-After"); ra != "" {
+			if secs, err := strconv.Atoi(ra); err == nil {
+				retryAfter = time.Duration(secs) * time.Second
+			}
+		}
+		tokenRetryAfter = time.Now().Add(retryAfter)
+		return "", fmt.Errorf("Reddit auth rate limited (status 429), will retry after %s", tokenRetryAfter.Format(time.RFC3339))
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("Reddit auth failed with status %d", resp.StatusCode)
+	}
 
 	var tokenResponse TokenResponse
-	decodeErr := json.NewDecoder(resp.Body).Decode(&tokenResponse)
-	closeErr := resp.Body.Close()
-	if decodeErr != nil {
-		return "", decodeErr
-	}
-	if closeErr != nil {
-		return "", closeErr
+	if err := json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
+		return "", err
 	}
 
-	return tokenResponse.AccessToken, nil
+	if tokenResponse.AccessToken == "" {
+		return "", fmt.Errorf("Reddit returned empty access token")
+	}
+
+	expiry := 86400
+	if tokenResponse.ExpiresIn > 0 {
+		expiry = tokenResponse.ExpiresIn
+	}
+	cachedToken = tokenResponse.AccessToken
+	cachedTokenExp = time.Now().Add(time.Duration(expiry-60) * time.Second)
+
+	return cachedToken, nil
 }
 
 // Represent a GitHub repository post from Reddit
@@ -181,12 +239,14 @@ func cleanGitHubURL(url string) string {
 
 // FetchRedditGitHubPosts fetches GitHub repos from specified subreddits from the last two weeks
 func FetchRedditGitHubPosts(sortBy string) ([]RedditGitHubPost, error) {
-	token, err := getRedditToken()
-	if err != nil {
-		return nil, err
-	}
+	token, _ := getRedditToken()
 
 	client := &http.Client{}
+
+	userAgent := UserAgent
+	if userAgent == "" {
+		userAgent = "script:gh-stars-explorer:v1.0 (by /u/emanuelefumagalli)"
+	}
 
 	// List of subreddits to check
 	subreddits := []string{"github", "opensource"}
@@ -194,7 +254,7 @@ func FetchRedditGitHubPosts(sortBy string) ([]RedditGitHubPost, error) {
 	// Calculate dates for two weeks ago
 	twoWeeksAgo := time.Now().AddDate(0, 0, -14)
 
-	var allPosts []RedditGitHubPost
+	allPosts := make([]RedditGitHubPost, 0)
 
 	// Get top posts from each subreddit
 	for _, subreddit := range subreddits {
@@ -202,13 +262,22 @@ func FetchRedditGitHubPosts(sortBy string) ([]RedditGitHubPost, error) {
 		params.Set("t", "week") // Get top posts from past week
 		params.Set("limit", "100")
 
-		req, err := http.NewRequest("GET", "https://oauth.reddit.com/r/"+subreddit+"/top?"+params.Encode(), nil)
+		var reqURL string
+		if token != "" {
+			reqURL = "https://oauth.reddit.com/r/" + subreddit + "/top?" + params.Encode()
+		} else {
+			reqURL = "https://www.reddit.com/r/" + subreddit + "/top.json?" + params.Encode()
+		}
+
+		req, err := http.NewRequest("GET", reqURL, nil)
 		if err != nil {
 			continue // Skip this subreddit if there's an error
 		}
 
-		req.Header.Set("Authorization", "Bearer "+token)
-		req.Header.Set("User-Agent", UserAgent)
+		if token != "" {
+			req.Header.Set("Authorization", "Bearer "+token)
+		}
+		req.Header.Set("User-Agent", userAgent)
 
 		resp, err := client.Do(req)
 		if err != nil {
@@ -324,9 +393,11 @@ func FetchRedditGitHubPosts(sortBy string) ([]RedditGitHubPost, error) {
 }
 
 func FetchRedditPosts(query string, minUpvotes int, strict bool) ([]ArticleData, error) {
-	token, err := getRedditToken()
-	if err != nil {
-		return nil, err
+	token, tokenErr := getRedditToken()
+	if tokenErr != nil {
+		log.Printf("Reddit token error: %v", tokenErr)
+	} else {
+		log.Printf("Reddit token obtained (len=%d)", len(token))
 	}
 
 	client := &http.Client{}
@@ -354,7 +425,7 @@ func FetchRedditPosts(query string, minUpvotes int, strict bool) ([]ArticleData,
 		}
 	}
 
-	var articles []ArticleData
+	articles := make([]ArticleData, 0)
 
 	for _, post := range allPosts {
 		if post.Ups < minUpvotes {
@@ -387,23 +458,43 @@ func searchRedditPosts(client *http.Client, token string, query string) ([]PostD
 	params.Set("sort", "relevance")
 	params.Set("limit", "120")
 
-	req, err := http.NewRequest("GET", "https://oauth.reddit.com/search?"+params.Encode(), nil)
+	var reqURL string
+	if token != "" {
+		reqURL = "https://oauth.reddit.com/search?" + params.Encode()
+	} else {
+		reqURL = "https://www.reddit.com/search.json?" + params.Encode()
+	}
+
+	req, err := http.NewRequest("GET", reqURL, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	req.Header.Set("Authorization", "Bearer "+token)
-	req.Header.Set("User-Agent", UserAgent)
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	userAgent := UserAgent
+	if userAgent == "" {
+		userAgent = "script:gh-stars-explorer:v1.0 (by /u/emanuelefumagalli)"
+	}
+	req.Header.Set("User-Agent", userAgent)
 
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
 
+	if resp.StatusCode != http.StatusOK {
+		resp.Body.Close()
+		return nil, fmt.Errorf("Reddit search returned status %d (url: %s)", resp.StatusCode, reqURL)
+	}
+
 	var redditResponse RedditResponse
 	decodeErr := json.NewDecoder(resp.Body).Decode(&redditResponse)
 	closeErr := resp.Body.Close()
 	if decodeErr != nil {
+		log.Printf("Reddit search decode error: %v", decodeErr)
 		return nil, decodeErr
 	}
 	if closeErr != nil {

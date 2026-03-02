@@ -268,7 +268,10 @@ function FeaturedReposPage() {
     // Show loading only in table area, keep header visible
     setLoadingHeader(false);
     setLoading(true);
-    
+    setAllPosts([]);
+    setSortedPosts([]);
+    setError(null);
+
     try {
       // Determine endpoint based on selected source
       const endpoint = source === 'hackernews' ? 'showhn' : 'redditrepos';
