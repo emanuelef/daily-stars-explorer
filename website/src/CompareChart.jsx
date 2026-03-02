@@ -661,6 +661,7 @@ function CompareChart() {
       }}>
         <Box sx={{ display: "flex", gap: 1.2, flexWrap: "nowrap", alignItems: "center", width: "100%" }}>
         <Autocomplete
+          freeSolo
           disablePortal
           id="combo-box-repo"
           size="small"
@@ -673,9 +674,8 @@ function CompareChart() {
               variant="outlined"
               size="small"
               slotProps={{
-                ...params.slotProps,
                 input: {
-                  ...params.slotProps?.input,
+                  ...params.InputProps,
                   startAdornment: (
                     <div
                       style={{
@@ -695,8 +695,9 @@ function CompareChart() {
           )}
           value={selectedRepo}
           onChange={(_, v) => {
-            currentRepo.current = v?.label;
-            setSelectedRepo(v?.label)
+            const val = typeof v === "string" ? v : v?.label;
+            currentRepo.current = val;
+            setSelectedRepo(val);
           }}
         />
         <TextField
@@ -723,6 +724,7 @@ function CompareChart() {
         )}
         <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
         <Autocomplete
+          freeSolo
           disablePortal
           id="combo-box-repo2"
           size="small"
@@ -735,9 +737,8 @@ function CompareChart() {
               variant="outlined"
               size="small"
               slotProps={{
-                ...params.slotProps,
                 input: {
-                  ...params.slotProps?.input,
+                  ...params.InputProps,
                   startAdornment: (
                     <div
                       style={{
@@ -757,8 +758,9 @@ function CompareChart() {
           )}
           value={selectedRepo2}
           onChange={(_, v) => {
-            currentRepo2.current = v?.label;
-            setSelectedRepo2(v?.label)
+            const val = typeof v === "string" ? v : v?.label;
+            currentRepo2.current = val;
+            setSelectedRepo2(val);
           }}
         />
         <TextField
