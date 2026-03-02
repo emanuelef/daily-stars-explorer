@@ -57,13 +57,16 @@ func main() {
 		fmt.Printf("ERROR: %v\n", err)
 		os.Exit(1)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	fmt.Printf("Token endpoint status: %d\n", resp.StatusCode)
 	fmt.Printf("Retry-After header:    %s\n", resp.Header.Get("Retry-After"))
 
 	var tokenResp map[string]any
-	json.NewDecoder(resp.Body).Decode(&tokenResp)
+	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
+		fmt.Printf("ERROR decoding token response: %v\n", err)
+		os.Exit(1)
+	}
 
 	if resp.StatusCode != 200 {
 		fmt.Printf("Response: %v\n", tokenResp)
@@ -90,12 +93,15 @@ func main() {
 		fmt.Printf("ERROR: %v\n", err)
 		os.Exit(1)
 	}
-	defer searchResp.Body.Close()
+	defer func() { _ = searchResp.Body.Close() }()
 
 	fmt.Printf("Search status: %d\n", searchResp.StatusCode)
 
 	var searchResult map[string]any
-	json.NewDecoder(searchResp.Body).Decode(&searchResult)
+	if err := json.NewDecoder(searchResp.Body).Decode(&searchResult); err != nil {
+		fmt.Printf("ERROR decoding search response: %v\n", err)
+		os.Exit(1)
+	}
 
 	if searchResp.StatusCode != 200 {
 		fmt.Printf("Response: %v\n", searchResult)

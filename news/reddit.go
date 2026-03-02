@@ -70,7 +70,7 @@ func getRedditToken() (string, error) {
 	userAgentEnv := os.Getenv("REDDIT_USER_AGENT")
 
 	if clientID == "" || clientSecret == "" {
-		return "", fmt.Errorf("Reddit credentials not configured")
+		return "", fmt.Errorf("reddit credentials not configured")
 	}
 
 	if cachedToken != "" && time.Now().Before(cachedTokenExp) {
@@ -78,7 +78,7 @@ func getRedditToken() (string, error) {
 	}
 
 	if time.Now().Before(tokenRetryAfter) {
-		return "", fmt.Errorf("Reddit token endpoint rate limited, retry after %s", tokenRetryAfter.Format(time.RFC3339))
+		return "", fmt.Errorf("reddit token endpoint rate limited, retry after %s", tokenRetryAfter.Format(time.RFC3339))
 	}
 
 	client := &http.Client{}
@@ -109,7 +109,7 @@ func getRedditToken() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusTooManyRequests {
 		retryAfter := 10 * time.Minute
@@ -119,7 +119,7 @@ func getRedditToken() (string, error) {
 			}
 		}
 		tokenRetryAfter = time.Now().Add(retryAfter)
-		return "", fmt.Errorf("Reddit auth rate limited (status 429), will retry after %s", tokenRetryAfter.Format(time.RFC3339))
+		return "", fmt.Errorf("reddit auth rate limited (status 429), will retry after %s", tokenRetryAfter.Format(time.RFC3339))
 	}
 
 	if resp.StatusCode != http.StatusOK {
@@ -486,8 +486,8 @@ func searchRedditPosts(client *http.Client, token string, query string) ([]PostD
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		resp.Body.Close()
-		return nil, fmt.Errorf("Reddit search returned status %d (url: %s)", resp.StatusCode, reqURL)
+		_ = resp.Body.Close()
+		return nil, fmt.Errorf("reddit search returned status %d (url: %s)", resp.StatusCode, reqURL)
 	}
 
 	var redditResponse RedditResponse
