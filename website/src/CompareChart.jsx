@@ -187,7 +187,6 @@ function CompareChart() {
       : "vuejs/vue";
 
   const [ds, setds] = useState(chart_props);
-  const [loading, setLoading] = useState(false);
 
   const [theme, setTheme] = useState(defaultChartTheme);
 
@@ -232,6 +231,10 @@ function CompareChart() {
 
   const [zoomedStars, setZoomedStars] = useState({});
   const [zoomedStarsPercentageTotal, setZoomedStarsPercentageTotal] = useState({});
+
+  const [milestoneEnabled, setMilestoneEnabled] = useState(false);
+  const [targetStars, setTargetStars] = useState(5000);
+  const [daysToReach, setDaysToReach] = useState({});
 
   const handleZoom = (start, end) => {
     if (ds && ds.dataSource && ds.dataSource.data) {
@@ -294,6 +297,34 @@ function CompareChart() {
   };
 
 
+  // Handles both raw string dates ("D-M-YYYY") and FusionCharts timestamps
+  const parsePointDate = (d) => {
+    if (typeof d === 'number') return d;
+    const [day, month, year] = d.split('-').map(Number);
+    return new Date(year, month - 1, day).getTime();
+  };
+
+  const computeDaysToReach = (data, target) => {
+    const byRepo = {};
+    data.forEach((point) => {
+      const repo = point[3];
+      if (!byRepo[repo]) byRepo[repo] = [];
+      byRepo[repo].push(point);
+    });
+
+    const result = {};
+    Object.entries(byRepo).forEach(([repo, points]) => {
+      const firstDate = parsePointDate(points[0][0]);
+      const milestone = points.find((p) => p[2] >= target);
+      if (milestone) {
+        result[repo] = Math.round((parsePointDate(milestone[0]) - firstDate) / (1000 * 60 * 60 * 24));
+      } else {
+        result[repo] = null;
+      }
+    });
+    return result;
+  };
+
   const handleDateRangeCheckChange = (event) => {
     setCheckedDateRange(event.target.checked);
   };
@@ -332,6 +363,12 @@ function CompareChart() {
   useEffect(() => {
     fetchAllStars(selectedRepo, selectedRepo2);
   }, [aggregation]);
+
+  useEffect(() => {
+    if (ds?.dataSource?.data?._data) {
+      setDaysToReach(computeDaysToReach(ds.dataSource.data._data, targetStars));
+    }
+  }, [targetStars]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -427,7 +464,7 @@ function CompareChart() {
           options.dataSource.yAxis[0].title =
           "Trend";
         options.dataSource.yAxis[0].plot.type = "line";
-        options.dataSource.subcaption = "Trend";
+        options.dataSource.caption = { text: "Stars (Trend)" };
         break;
       case "yearlyBinning":
         options.dataSource.yAxis[0].plot.value =
@@ -484,6 +521,7 @@ function CompareChart() {
     )}-stars-history`;
 
     setds(options);
+    setDaysToReach(computeDaysToReach(appliedAggregationResult, targetStars));
   };
 
   const fetchAllStarsKeys = async () => {
@@ -514,10 +552,7 @@ function CompareChart() {
 
   const fetchPredictions = async (repo) => {
     try {
-      setLoading(true);
       const response = await fetch(`${PREDICTOR_HOST}/predict?repo=${repo}`);
-      setLoading(false);
-
       const data = await response.json();
 
       const starsTrend = data.forecast_trend.map((entry) => [
@@ -529,12 +564,10 @@ function CompareChart() {
       return starsTrend;
     } catch (error) {
       console.error(`An error occurred: ${error}`);
-      setLoading(false);
     }
   };
 
   const fetchAllStars = (repo, repo2) => {
-    setLoading(false);
     const fetchUrl = `${HOST}/allStars?repo=${repo}`;
     const fetchUrl2 = `${HOST}/allStars?repo=${repo2}`;
 
@@ -559,11 +592,9 @@ function CompareChart() {
         removeUncompleteDay(data2.stars);
 
         handleCombinedData(data1.stars.concat(data2.stars));
-        setLoading(false);
       })
       .catch((error) => {
         console.error(`An error occurred: ${error}`);
-        setLoading(false);
       });
   };
 
@@ -591,11 +622,6 @@ function CompareChart() {
     });
 
     fetchAllStars(repoParsed, repoParsed2);
-  };
-
-  const handleInputChange = async (value, setStateFunction) => {
-    console.log(value);
-    setStateFunction(value);
   };
 
   return (
@@ -634,104 +660,130 @@ function CompareChart() {
         marginBottom: '10px',
         border: `1px solid ${currentTheme.cardBorder}`,
       }}>
-        <Box sx={{ display: "flex", gap: 1.2, flexWrap: "wrap", alignItems: "center" }}>
+        <Box sx={{ display: "flex", gap: 1.2, flexWrap: "nowrap", alignItems: "center", width: "100%" }}>
         <Autocomplete
           disablePortal
           id="combo-box-repo"
           size="small"
+          sx={{ flex: 1, minWidth: 180 }}
           options={starsRepos.map((el) => ({ label: el }))}
           renderInput={(params) => (
             <TextField
               {...params}
-              sx={{ width: 400 }}
               label="Repository 1"
               variant="outlined"
               size="small"
-              InputProps={{
-                ...params.InputProps,
-                startAdornment: (
-                  <div
-                    style={{
-                      width: 12,
-                      height: 12,
-                      backgroundColor: "#3b82f6",
-                      marginRight: 8,
-                      marginLeft: 4,
-                      borderRadius: 2,
-                      flexShrink: 0,
-                    }}
-                  />
-                ),
+              slotProps={{
+                ...params.slotProps,
+                input: {
+                  ...params.slotProps?.input,
+                  startAdornment: (
+                    <div
+                      style={{
+                        width: 12,
+                        height: 12,
+                        backgroundColor: "#3b82f6",
+                        marginRight: 8,
+                        marginLeft: 4,
+                        borderRadius: 2,
+                        flexShrink: 0,
+                      }}
+                    />
+                  ),
+                },
               }}
             />
           )}
           value={selectedRepo}
-          onChange={(e, v) => {
+          onChange={(_, v) => {
             currentRepo.current = v?.label;
             setSelectedRepo(v?.label)
           }}
         />
         <TextField
-          sx={{ width: 165 }}
+          sx={{ width: 175 }}
           size="small"
           id="repo-increase"
           label="Increase"
           value={zoomedStars[selectedRepo] !== undefined
             ? `${zoomedStars[selectedRepo].toLocaleString()} (${zoomedStarsPercentageTotal[selectedRepo]}%)`
             : "N/A"}
-          InputProps={{
-            readOnly: true,
-          }}
+          slotProps={{ input: { readOnly: true } }}
         />
+        {milestoneEnabled && (
+          <Tooltip title={`Days from repo creation to reach ${targetStars.toLocaleString()} stars`}>
+            <TextField
+              sx={{ width: 120 }}
+              size="small"
+              id="repo-days-to-reach"
+              label={`Days to ${targetStars.toLocaleString()}★`}
+              value={daysToReach[selectedRepo] != null ? `${daysToReach[selectedRepo].toLocaleString()}d` : "N/A"}
+              slotProps={{ input: { readOnly: true } }}
+            />
+          </Tooltip>
+        )}
         <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
         <Autocomplete
           disablePortal
           id="combo-box-repo2"
           size="small"
+          sx={{ flex: 1, minWidth: 180 }}
           options={starsRepos.map((el) => ({ label: el }))}
           renderInput={(params) => (
             <TextField
               {...params}
-              sx={{ width: 400 }}
               label="Repository 2"
               variant="outlined"
               size="small"
-              InputProps={{
-                ...params.InputProps,
-                startAdornment: (
-                  <div
-                    style={{
-                      width: 12,
-                      height: 12,
-                      backgroundColor: "#f97316",
-                      marginRight: 8,
-                      marginLeft: 4,
-                      borderRadius: 2,
-                      flexShrink: 0,
-                    }}
-                  />
-                ),
+              slotProps={{
+                ...params.slotProps,
+                input: {
+                  ...params.slotProps?.input,
+                  startAdornment: (
+                    <div
+                      style={{
+                        width: 12,
+                        height: 12,
+                        backgroundColor: "#f97316",
+                        marginRight: 8,
+                        marginLeft: 4,
+                        borderRadius: 2,
+                        flexShrink: 0,
+                      }}
+                    />
+                  ),
+                },
               }}
             />
           )}
           value={selectedRepo2}
-          onChange={(e, v) => {
+          onChange={(_, v) => {
             currentRepo2.current = v?.label;
             setSelectedRepo2(v?.label)
           }}
         />
         <TextField
-          sx={{ width: 165 }}
+          sx={{ width: 175 }}
           size="small"
           id="repo2-increase"
           label="Increase"
           value={zoomedStars[selectedRepo2] !== undefined
             ? `${zoomedStars[selectedRepo2].toLocaleString()} (${zoomedStarsPercentageTotal[selectedRepo2]}%)`
             : "N/A"}
-          InputProps={{
-            readOnly: true,
-          }}
+          slotProps={{ input: { readOnly: true } }}
         />
+        {milestoneEnabled && (
+          <Tooltip title={`Days from repo creation to reach ${targetStars.toLocaleString()} stars`}>
+            <TextField
+              sx={{ width: 120 }}
+              size="small"
+              id="repo2-days-to-reach"
+              label={`Days to ${targetStars.toLocaleString()}★`}
+              value={daysToReach[selectedRepo2] != null ? `${daysToReach[selectedRepo2].toLocaleString()}d` : "N/A"}
+              slotProps={{ input: { readOnly: true } }}
+            />
+          </Tooltip>
+        )}
         </Box>
       </div>
 
@@ -782,6 +834,29 @@ function CompareChart() {
             }
             label={<Typography variant="body2">Log Y</Typography>}
           />
+          <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={milestoneEnabled}
+                onChange={(e) => setMilestoneEnabled(e.target.checked)}
+                size="small"
+              />
+            }
+            label={<Typography variant="body2">Stars Milestone</Typography>}
+          />
+          {milestoneEnabled && (
+            <TextField
+              sx={{ width: 150 }}
+              size="small"
+              label="Target stars"
+              value={targetStars.toLocaleString()}
+              onChange={(e) => {
+                const v = parseInt(e.target.value.replace(/[^\d]/g, ""), 10);
+                if (!isNaN(v) && v > 0) setTargetStars(v);
+              }}
+            />
+          )}
           <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
           <CopyToClipboardButton
             dateRange={checkedDateRange ? selectedTimeRange : null}
