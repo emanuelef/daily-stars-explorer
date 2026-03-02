@@ -601,8 +601,7 @@ function CompareChart() {
   useEffect(() => {
     const fetchRepos = async () => {
       const repos = await fetchAllStarsKeys();
-      console.log(repos);
-      setStarsRepos(repos.sort());
+      if (repos) setStarsRepos(repos.sort());
     };
 
     fetchRepos();
