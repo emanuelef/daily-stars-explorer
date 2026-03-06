@@ -541,12 +541,9 @@ function CompareChart() {
   const removeUncompleteDay = (data) => {
     if (data.length > 1) {
       const lastElement = data[data.length - 1];
-      console.log(lastElement[0]);
-      const isLastElementToday = isToday(lastElement[0]);
-      data.pop(); // remove last element as the current day is not complete
-      console.log("isLastElementToday", isLastElementToday);
-    } else {
-      console.log("Array is empty.");
+      if (isToday(lastElement[0])) {
+        data.pop(); // remove last element as the current day is not complete
+      }
     }
   };
 
