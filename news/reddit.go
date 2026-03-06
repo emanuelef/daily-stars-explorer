@@ -123,7 +123,7 @@ func getRedditToken() (string, error) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("Reddit auth failed with status %d", resp.StatusCode)
+		return "", fmt.Errorf("reddit auth failed with status %d", resp.StatusCode)
 	}
 
 	var tokenResponse TokenResponse
@@ -132,7 +132,7 @@ func getRedditToken() (string, error) {
 	}
 
 	if tokenResponse.AccessToken == "" {
-		return "", fmt.Errorf("Reddit returned empty access token")
+		return "", fmt.Errorf("reddit returned empty access token")
 	}
 
 	expiry := 86400
