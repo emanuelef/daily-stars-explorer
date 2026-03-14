@@ -17,7 +17,8 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
 import PushPinIcon from "@mui/icons-material/PushPin";
 import Box from "@mui/material/Box";
-import Plot from "react-plotly.js";
+import _Plot from "react-plotly.js";
+const Plot = _Plot.default || _Plot; // Vite 8 CJS interop: unwrap __esModule default
 import { parseGitHubRepoURL } from "./githubUtils";
 import { useAppTheme } from "./ThemeContext";
 import { useLastRepo } from "./RepoContext";
