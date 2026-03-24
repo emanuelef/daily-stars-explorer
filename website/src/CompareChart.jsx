@@ -620,10 +620,8 @@ function CompareChart() {
     fetchAllStars(repoParsed, repoParsed2);
   };
 
-  // FusionCharts assigns paletteColors in reverse data-encounter order:
-  // repo1 (first in data) → paletteColors[1] = orange, repo2 (second) → paletteColors[0] = blue
-  const repo1Color = "#f97316";
-  const repo2Color = "#3b82f6";
+  const repo1Color = "#3b82f6";
+  const repo2Color = "#f97316";
 
   return (
     <div style={{ background: currentTheme.background, minHeight: '100vh', padding: '10px' }}>
