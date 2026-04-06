@@ -17,14 +17,14 @@
     "@mui/icons-material": "^7.3.9",
     "@mui/lab": "^7.0.1-beta.23",
     "@mui/material": "^7.3.9",
-    "@mui/x-data-grid": "^8.28.0",
+    "@mui/x-data-grid": "^8.28.2",
     "@uiw/react-github-corners": "^1.5.16",
     "d3-regression": "^1.3.10",
     "date-fns": "^4.1.0",
-    "fusioncharts": "4.2.1",
+    "fusioncharts": "4.2.2",
     "highcharts-react-official": "^3.2.3",
     "papaparse": "^5.5.3",
-    "plotly.js": "^3.4.0",
+    "plotly.js": "^3.5.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-fusioncharts": "4.2.0",
@@ -32,19 +32,19 @@
     "react-markdown": "^10.1.0",
     "react-plotly.js": "^2.6.0",
     "react-pro-sidebar": "^1.1.0",
-    "react-router-dom": "^7.13.2",
+    "react-router-dom": "^7.14.0",
     "react-toastify": "^11.0.5",
-    "react18-json-view": "^0.2.9"
+    "react18-json-view": "^0.2.10"
   },
   "devDependencies": {
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@typescript-eslint/eslint-plugin": "^8.57.2",
-    "@typescript-eslint/parser": "^8.57.2",
+    "@typescript-eslint/eslint-plugin": "^8.58.0",
+    "@typescript-eslint/parser": "^8.58.0",
     "@vitejs/plugin-react": "^6.0.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "typescript": "^6.0.2",
-    "vite": "^8.0.2"
+    "vite": "^8.0.4"
   }
 }
