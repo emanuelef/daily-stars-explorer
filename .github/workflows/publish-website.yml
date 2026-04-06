@@ -51,7 +51,7 @@ jobs:
           PREDICTOR_HOST: "${{ vars.PREDICTOR_HOST }}"
 
       - name: Setup Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
 
       - run: ls
 
