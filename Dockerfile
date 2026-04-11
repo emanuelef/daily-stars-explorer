@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-FROM --platform=$BUILDPLATFORM node:26-alpine AS website
+FROM --platform=$BUILDPLATFORM node:25-alpine AS website
 ENV VITE_HOST=""
 WORKDIR /build
 # Copy package files first to cache npm install
