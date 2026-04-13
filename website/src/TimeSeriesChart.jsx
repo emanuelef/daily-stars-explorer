@@ -1128,6 +1128,53 @@ function TimeSeriesChart() {
         const updatedLast10DaysStars = calculateStarsLast10Days(starHistory);
         setStarsLast10d(updatedLast10DaysStars);
         console.log("Updated last 10 days stars count:", updatedLast10DaysStars);
+
+        // Recalculate peak markers to include today's partial data
+        const existingPeakMarkers = currentPeaks.current.filter(p => !p.style?.marker); // keep period markers
+        const existingDayMarkers = currentPeaks.current.filter(p => p.style?.marker); // day peak markers
+
+        // Check if today beats the current max day peak
+        const currentMaxDayStars = existingDayMarkers.length > 0
+          ? parseInt(existingDayMarkers[0].label.replace(/,/g, '').match(/^(\d+)/)?.[1] || '0', 10)
+          : 0;
+        if (todayDailyStars > currentMaxDayStars) {
+          const updatedDayMarker = {
+            start: formattedToday,
+            timeformat: "%d-%m-%Y",
+            label: `${todayDailyStars.toLocaleString()} is the maximum number of new stars in one day`,
+            style: { marker: { fill: "#10b981" } },
+          };
+          currentPeaks.current = [...existingPeakMarkers, updatedDayMarker];
+        }
+
+        // Recalculate max 10-day period to include today
+        if (starHistory.length >= 10) {
+          let bestSum = 0, bestStart = 0;
+          let windowSum = 0;
+          for (let i = 0; i < 10 && i < starHistory.length; i++) windowSum += starHistory[i][1];
+          bestSum = windowSum;
+          for (let i = 10; i < starHistory.length; i++) {
+            windowSum += starHistory[i][1] - starHistory[i - 10][1];
+            if (windowSum > bestSum) {
+              bestSum = windowSum;
+              bestStart = i - 9;
+            }
+          }
+          const currentMaxPeriod = existingPeakMarkers.length > 0
+            ? parseInt(existingPeakMarkers[0].label.replace(/,/g, '').match(/^(\d+)/)?.[1] || '0', 10)
+            : 0;
+          if (bestSum > currentMaxPeriod) {
+            const updatedPeriodMarker = {
+              start: starHistory[bestStart][0],
+              end: starHistory[bestStart + 9][0],
+              label: `${bestSum.toLocaleString()} is the highest number of new stars in a 10 day period`,
+              timeformat: "%d-%m-%Y",
+              type: "full",
+            };
+            const dayMarkers = currentPeaks.current.filter(p => p.style?.marker);
+            currentPeaks.current = [updatedPeriodMarker, ...dayMarkers];
+          }
+        }
       } else {
         console.log("Star history is not complete until yesterday. Not adding current day's data point.");
       }
