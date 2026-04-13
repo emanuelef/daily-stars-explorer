@@ -674,8 +674,9 @@ function CompareChart() {
               variant="outlined"
               size="small"
               slotProps={{
+                ...params.slotProps,
                 input: {
-                  ...params.InputProps,
+                  ...params.slotProps?.input,
                   startAdornment: (
                     <div
                       style={{
@@ -737,8 +738,9 @@ function CompareChart() {
               variant="outlined"
               size="small"
               slotProps={{
+                ...params.slotProps,
                 input: {
-                  ...params.InputProps,
+                  ...params.slotProps?.input,
                   startAdornment: (
                     <div
                       style={{
