@@ -1496,24 +1496,42 @@ function TimeSeriesChart() {
         if (!data || !isMountedRef.current) return; // Component unmounted or no data
         if (currentRepoRef.current !== repo) return; // Stale request
         setLoading(false);
-        const starHistory = data.stars;
+
+        // Support both legacy format (plain array) and current format ({stars: [...], ...})
+        const isLegacyFormat = Array.isArray(data);
+        const starHistory = isLegacyFormat ? data : data.stars;
+        if (!starHistory) {
+          setError("No star data received. Please try again.");
+          setShowError(true);
+          return;
+        }
         setCurrentStarsHistory(starHistory);
 
         // Set starsLast10d from server response
-        setStarsLast10d(data.newLast10Days);
+        setStarsLast10d(isLegacyFormat ? "" : (data.newLast10Days ?? ""));
 
         // Process max periods and peaks data for the chart markers
-        const maxPeriods = data.maxPeriods ? data.maxPeriods.map((period) => ({
+        const maxPeriods = (!isLegacyFormat && data.maxPeriods) ? data.maxPeriods.map((period) => ({
           start: period.StartDay,
           end: period.EndDay,
-          label: `${period.TotalStars.toLocaleString()} is the highest number of new stars in a 10 day period`,
+          label: `Best 10d: ${period.TotalStars.toLocaleString()} ⭐`,
           timeformat: "%d-%m-%Y",
           type: "full",
+          style: {
+            marker: {
+              fill: "rgba(139, 92, 246, 0.15)",
+              stroke: "#8b5cf6",
+              "stroke-width": 1,
+            },
+            text: {
+              fill: "#a78bfa",
+            },
+          },
         })) : [];
-        const maxPeaks = data.maxPeaks ? data.maxPeaks.map((peak) => ({
+        const maxPeaks = (!isLegacyFormat && data.maxPeaks) ? data.maxPeaks.map((peak) => ({
           start: peak.Day,
           timeformat: "%d-%m-%Y",
-          label: `${peak.Stars.toLocaleString()} is the maximum number of new stars in one day`,
+          label: `Best day: ${peak.Stars.toLocaleString()} ⭐`,
           style: {
             marker: {
               fill: "#10b981", // Emerald-500 - softer and more professional than bright green
@@ -1522,7 +1540,7 @@ function TimeSeriesChart() {
         })) : [];
         currentPeaks.current = maxPeriods.concat(maxPeaks);
 
-        const totalStarsToUse = currentTotalStars || (data.stars && data.stars.length > 0 ? data.stars[data.stars.length - 1][2] : 0);
+        const totalStarsToUse = currentTotalStars || (starHistory.length > 0 ? starHistory[starHistory.length - 1][2] : 0);
 
         // Check if yesterday is present
         const yesterday = new Date();
