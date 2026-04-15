@@ -41,6 +41,7 @@ import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import Tooltip from "@mui/material/Tooltip";
 import IconButton from "@mui/material/IconButton";
+import Alert from "@mui/material/Alert";
 
 function AppContent() {
   const [collapsed, setCollapsed] = useState(true);
@@ -315,6 +316,9 @@ function AppContent() {
           </div>
         </Sidebar>
         <section className="content">
+          <Alert severity="warning" sx={{ borderRadius: 0, fontWeight: 500 }}>
+            The backend service is currently down — I&apos;m investigating. Data may not load.
+          </Alert>
           <Routes>
             <Route path="/" element={isMobile ? <MobileStarsView /> : <TimeSeriesChart />} />
             <Route path="/:user/:repository" element={isMobile ? <MobileStarsView /> : <TimeSeriesChart />} />
