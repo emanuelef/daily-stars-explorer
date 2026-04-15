@@ -1130,18 +1130,18 @@ function TimeSeriesChart() {
         console.log("Updated last 10 days stars count:", updatedLast10DaysStars);
 
         // Recalculate peak markers to include today's partial data
-        const existingPeakMarkers = currentPeaks.current.filter(p => !p.style?.marker); // keep period markers
-        const existingDayMarkers = currentPeaks.current.filter(p => p.style?.marker); // day peak markers
+        // Period markers have an 'end' property; day peak markers only have 'start'
+        const existingPeakMarkers = currentPeaks.current.filter(p => p.end); // keep period markers
+        const existingDayMarkers = currentPeaks.current.filter(p => !p.end); // day peak markers
 
         // Check if today beats the current max day peak
-        const currentMaxDayStars = existingDayMarkers.length > 0
-          ? parseInt(existingDayMarkers[0].label.replace(/,/g, '').match(/^(\d+)/)?.[1] || '0', 10)
-          : 0;
+        const currentMaxDayStars = existingDayMarkers.length > 0 ? (existingDayMarkers[0].value || 0) : 0;
         if (todayDailyStars > currentMaxDayStars) {
           const updatedDayMarker = {
             start: formattedToday,
             timeformat: "%d-%m-%Y",
             label: `${todayDailyStars.toLocaleString()} is the maximum number of new stars in one day`,
+            value: todayDailyStars,
             style: { marker: { fill: "#10b981" } },
           };
           currentPeaks.current = [...existingPeakMarkers, updatedDayMarker];
@@ -1160,18 +1160,17 @@ function TimeSeriesChart() {
               bestStart = i - 9;
             }
           }
-          const currentMaxPeriod = existingPeakMarkers.length > 0
-            ? parseInt(existingPeakMarkers[0].label.replace(/,/g, '').match(/^(\d+)/)?.[1] || '0', 10)
-            : 0;
+          const currentMaxPeriod = existingPeakMarkers.length > 0 ? (existingPeakMarkers[0].value || 0) : 0;
           if (bestSum > currentMaxPeriod) {
             const updatedPeriodMarker = {
               start: starHistory[bestStart][0],
               end: starHistory[bestStart + 9][0],
               label: `${bestSum.toLocaleString()} is the highest number of new stars in a 10 day period`,
+              value: bestSum,
               timeformat: "%d-%m-%Y",
               type: "full",
             };
-            const dayMarkers = currentPeaks.current.filter(p => p.style?.marker);
+            const dayMarkers = currentPeaks.current.filter(p => !p.end);
             currentPeaks.current = [updatedPeriodMarker, ...dayMarkers];
           }
         }
@@ -1515,6 +1514,7 @@ function TimeSeriesChart() {
           start: period.StartDay,
           end: period.EndDay,
           label: `Best 10d: ${period.TotalStars.toLocaleString()} ⭐`,
+          value: period.TotalStars,
           timeformat: "%d-%m-%Y",
           type: "full",
           style: {
@@ -1532,6 +1532,7 @@ function TimeSeriesChart() {
           start: peak.Day,
           timeformat: "%d-%m-%Y",
           label: `Best day: ${peak.Stars.toLocaleString()} ⭐`,
+          value: peak.Stars,
           style: {
             marker: {
               fill: "#10b981", // Emerald-500 - softer and more professional than bright green

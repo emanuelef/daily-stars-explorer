@@ -428,7 +428,11 @@ function HourlyStarsChart() {
         if (response.status === 404) {
           setLoading(false);
           setLoadingMessage("");
-          setError(`Repository '${repo}' not found. Please check if the repository exists on GitHub.`);
+          const body = await response.text().catch(() => "");
+          const msg = body.includes("Cannot GET")
+            ? "Hourly stars is not available on the current server version."
+            : `Repository '${repo}' not found. Please check if the repository exists on GitHub.`;
+          setError(msg);
           setShowError(true);
           throw new Error(`HTTP error! Status: ${response.status}`);
         } else if (response.status === 504 || response.status === 502) {
