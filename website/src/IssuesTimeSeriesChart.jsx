@@ -29,6 +29,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useAppTheme } from "./ThemeContext";
 import { useLastRepo } from "./RepoContext";
+import { AXIS_STYLE } from "./chartAxisStyle";
 
 const HOST = import.meta.env.VITE_HOST;
 
@@ -111,6 +112,7 @@ function IssuesTimeSeriesChart() {
             type: "line",
           },
           title: "Daily Opened",
+          style: AXIS_STYLE,
         },
         {
           plot: {
@@ -118,6 +120,7 @@ function IssuesTimeSeriesChart() {
             type: "line",
           },
           title: "Daily Closed",
+          style: AXIS_STYLE,
         },
         {
           plot: {
@@ -125,12 +128,14 @@ function IssuesTimeSeriesChart() {
             type: "line",
           },
           title: "Open Issues",
+          style: AXIS_STYLE,
         },
       ],
       xAxis: {
         plot: "Time",
         timemarker: [],
         binning: {},
+        style: AXIS_STYLE,
       },
       chart: {
         animation: "0",

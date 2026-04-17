@@ -23,6 +23,7 @@ import "react-toastify/dist/ReactToastify.css";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Checkbox from "@mui/material/Checkbox";
 import { useAppTheme } from "./ThemeContext";
+import { AXIS_STYLE } from "./chartAxisStyle";
 
 const HOST = import.meta.env.VITE_HOST;
 
@@ -102,6 +103,7 @@ function NewReposTimeSeriesChart() {
             type: "line",
           },
           title: "Daily Count",
+          style: AXIS_STYLE,
         },
         {
           plot: {
@@ -109,12 +111,14 @@ function NewReposTimeSeriesChart() {
             type: "line",
           },
           title: "Cumulative Total",
+          style: AXIS_STYLE,
         },
       ],
       xAxis: {
         plot: "Time",
         timemarker: [],
         binning: {},
+        style: AXIS_STYLE,
       },
       chart: {
         animation: "0",

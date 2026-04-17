@@ -28,6 +28,7 @@ import ZuneTheme from "fusioncharts/themes/fusioncharts.theme.zune";
 import UmberTheme from "fusioncharts/themes/fusioncharts.theme.umber";
 import CopyToClipboardButton from "./CopyToClipboardButton";
 import { useAppTheme } from "./ThemeContext";
+import { AXIS_STYLE } from "./chartAxisStyle";
 
 const HOST = import.meta.env.VITE_HOST;
 const PREDICTOR_HOST = "https://emafuma.mywire.org:8082";
@@ -121,6 +122,7 @@ function CompareChart() {
           aggregation: "average",
           referenceline: [],
           type: "", // can be log
+          style: AXIS_STYLE,
         },
         {
           plot: {
@@ -128,10 +130,12 @@ function CompareChart() {
             type: "line",
           },
           title: "Total Stars",
+          style: AXIS_STYLE,
         },
       ],
       xAxis: {
         binning: {},
+        style: AXIS_STYLE,
       },
       chart: {
         animation: "0",

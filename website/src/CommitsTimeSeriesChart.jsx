@@ -35,6 +35,7 @@ import {
 } from "./utils";
 import { useAppTheme } from "./ThemeContext";
 import { useLastRepo } from "./RepoContext";
+import { AXIS_STYLE } from "./chartAxisStyle";
 
 const HOST = import.meta.env.VITE_HOST;
 
@@ -154,6 +155,7 @@ function CommitsTimeSeriesChart() {
           aggregation: "average",
           referenceline: [],
           type: "", // can be log
+          style: AXIS_STYLE,
         },
         {
           plot: {
@@ -161,12 +163,14 @@ function CommitsTimeSeriesChart() {
             type: "line",
           },
           title: "Total Commits",
+          style: AXIS_STYLE,
         },
       ],
       xAxis: {
         plot: "Time",
         timemarker: [],
         binning: {},
+        style: AXIS_STYLE,
       },
       chart: {
         animation: "0",

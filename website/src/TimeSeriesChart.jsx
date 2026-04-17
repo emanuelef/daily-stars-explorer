@@ -51,6 +51,7 @@ import {
 } from "./utils";
 import { useAppTheme } from "./ThemeContext";
 import { useLastRepo } from "./RepoContext";
+import { AXIS_STYLE } from "./chartAxisStyle";
 
 // This needs to be refactored, focus is mostly on functionalities and implementing ideas
 // But it has reached a point where it's difficult to go over the code
@@ -248,6 +249,7 @@ function TimeSeriesChart() {
           aggregation: "average",
           referenceline: [],
           type: "", // can be log
+          style: AXIS_STYLE,
         },
         {
           plot: {
@@ -255,12 +257,14 @@ function TimeSeriesChart() {
             type: "line",
           },
           title: "Total Stars",
+          style: AXIS_STYLE,
         },
       ],
       xAxis: {
         plot: "Time",
         timemarker: [],
         binning: {},
+        style: AXIS_STYLE,
       },
       //      datamarker: [],
       chart: {

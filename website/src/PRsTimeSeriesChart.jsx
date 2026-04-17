@@ -28,6 +28,7 @@ import UmberTheme from "fusioncharts/themes/fusioncharts.theme.umber";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useAppTheme } from "./ThemeContext";
+import { AXIS_STYLE } from "./chartAxisStyle";
 import { useLastRepo } from "./RepoContext";
 
 const HOST = import.meta.env.VITE_HOST;
@@ -111,6 +112,7 @@ function PRsTimeSeriesChart() {
             type: "line",
           },
           title: "Daily Opened",
+          style: AXIS_STYLE,
         },
         {
           plot: {
@@ -118,6 +120,7 @@ function PRsTimeSeriesChart() {
             type: "line",
           },
           title: "Daily Merged",
+          style: AXIS_STYLE,
         },
         {
           plot: {
@@ -125,6 +128,7 @@ function PRsTimeSeriesChart() {
             type: "line",
           },
           title: "Daily Closed",
+          style: AXIS_STYLE,
         },
         {
           plot: {
@@ -132,12 +136,14 @@ function PRsTimeSeriesChart() {
             type: "line",
           },
           title: "Open PRs",
+          style: AXIS_STYLE,
         },
       ],
       xAxis: {
         plot: "Time",
         timemarker: [],
         binning: {},
+        style: AXIS_STYLE,
       },
       chart: {
         animation: "0",
