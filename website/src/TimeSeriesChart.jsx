@@ -283,7 +283,6 @@ function TimeSeriesChart() {
     events: {
       selectionChange: function (ev) {
         if (ev && ev.data) {
-          console.log("Selection changed:", ev.data);
           setSelectedTimeRange({
             start: ev.data.start,
             end: ev.data.end,

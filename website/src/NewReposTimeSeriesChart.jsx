@@ -7,6 +7,7 @@ import Select from "@mui/material/Select";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import LoadingButton from "@mui/lab/LoadingButton";
+import Button from "@mui/material/Button";
 import SendIcon from "@mui/icons-material/Send";
 import FusionCharts from "fusioncharts";
 import TimeSeries from "fusioncharts/fusioncharts.timeseries";
@@ -131,6 +132,7 @@ function NewReposTimeSeriesChart() {
   const [loading, setLoading] = useState(false);
   const [theme, setTheme] = useState(defaultChartTheme);
   const [includeForks, setIncludeForks] = useState(false);
+  const [fetchedData, setFetchedData] = useState(null);
 
   const getDefaultEndDate = () => {
     const today = new Date();
@@ -213,6 +215,7 @@ function NewReposTimeSeriesChart() {
       .then((data) => {
         setLoading(false);
         const history = data[cfg.responseKey];
+        setFetchedData(history);
         updateGraph(history, source);
       })
       .catch((e) => {
@@ -243,6 +246,44 @@ function NewReposTimeSeriesChart() {
     }
 
     fetchData(dataSource);
+  };
+
+  const downloadCSV = () => {
+    if (!fetchedData || fetchedData.length === 0) return;
+    const cfg = DATA_SOURCES[dataSource];
+    const headers = cfg.schema.map((s) => s.name).join(",");
+    const rows = fetchedData.map((row) =>
+      row.slice(0, cfg.schema.length)
+        .map((v) => (typeof v === "string" && v.includes(",") ? `"${v}"` : v))
+        .join(",")
+    );
+    const csvContent = [headers, ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${cfg.exportPrefix}-${startDate}-to-${endDate}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  };
+
+  const downloadJSON = () => {
+    if (!fetchedData || fetchedData.length === 0) return;
+    const cfg = DATA_SOURCES[dataSource];
+    const colCount = cfg.schema.length;
+    const trimmed = fetchedData.map((row) => row.slice(0, colCount));
+    const jsonContent = JSON.stringify(trimmed, null, 2);
+    const blob = new Blob([jsonContent], { type: "application/json" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${cfg.exportPrefix}-${startDate}-to-${endDate}.json`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
   };
 
   const cfg = DATA_SOURCES[dataSource];
@@ -362,6 +403,12 @@ function NewReposTimeSeriesChart() {
         >
           <span>Fetch</span>
         </LoadingButton>
+        <Button size="small" variant="outlined" onClick={downloadCSV} disabled={!fetchedData}>
+          CSV
+        </Button>
+        <Button size="small" variant="outlined" onClick={downloadJSON} disabled={!fetchedData}>
+          JSON
+        </Button>
         <FormControl size="small" style={{ minWidth: "110px" }}>
           <InputLabel id="theme-select-label">Theme</InputLabel>
           <Select
