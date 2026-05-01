@@ -17,7 +17,7 @@
     "@mui/icons-material": "^9.0.0",
     "@mui/lab": "^9.0.0-beta.2",
     "@mui/material": "^9.0.0",
-    "@mui/x-data-grid": "^9.0.2",
+    "@mui/x-data-grid": "^9.0.4",
     "@uiw/react-github-corners": "^1.5.16",
     "d3-regression": "^1.3.10",
     "date-fns": "^4.1.0",
@@ -32,19 +32,19 @@
     "react-markdown": "^10.1.0",
     "react-plotly.js": "^2.6.0",
     "react-pro-sidebar": "^1.1.0",
-    "react-router-dom": "^7.14.1",
-    "react-toastify": "^11.0.5",
+    "react-router-dom": "^7.14.2",
+    "react-toastify": "^11.1.0",
     "react18-json-view": "^0.2.10"
   },
   "devDependencies": {
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@typescript-eslint/eslint-plugin": "^8.58.2",
-    "@typescript-eslint/parser": "^8.58.2",
+    "@typescript-eslint/eslint-plugin": "^8.59.1",
+    "@typescript-eslint/parser": "^8.59.1",
     "@vitejs/plugin-react": "^6.0.1",
-    "eslint-plugin-react-hooks": "^7.1.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "typescript": "^6.0.3",
-    "vite": "^8.0.8"
+    "vite": "^8.0.10"
   }
 }
