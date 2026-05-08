@@ -146,7 +146,7 @@ function NewReposTimeSeriesChart() {
 
   const getDefaultStartDate = () => {
     const date = new Date();
-    date.setDate(date.getDate() - 60);
+    date.setDate(date.getDate() - 120);
     return date.toISOString().split("T")[0];
   };
 
