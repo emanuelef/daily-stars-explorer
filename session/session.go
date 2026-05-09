@@ -4,10 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 	"sync"
-
-	"golang.org/x/exp/slices"
 )
 
 type Session struct {
