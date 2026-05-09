@@ -41,6 +41,7 @@ import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import Tooltip from "@mui/material/Tooltip";
 import IconButton from "@mui/material/IconButton";
+import Alert from "@mui/material/Alert";
 
 function AppContent() {
   const [collapsed, setCollapsed] = useState(true);
@@ -315,6 +316,13 @@ function AppContent() {
           </div>
         </Sidebar>
         <section className="content">
+          <Alert
+            severity="warning"
+            variant="filled"
+            sx={{ borderRadius: 0, justifyContent: 'center', fontWeight: 500 }}
+          >
+            Renewing TLS certificate — hosted backend is temporarily down. Charts may fail to load until it's back.
+          </Alert>
           <Routes>
             <Route path="/" element={isMobile ? <MobileStarsView /> : <TimeSeriesChart />} />
             <Route path="/:user/:repository" element={isMobile ? <MobileStarsView /> : <TimeSeriesChart />} />
