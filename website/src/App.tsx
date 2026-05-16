@@ -3,6 +3,7 @@ import "./App.css";
 
 import MainPage from "./MainPage";
 import TimeSeriesChart from "./TimeSeriesChart";
+import TimeSeriesChartECharts from "./TimeSeriesChartECharts";
 import MobileStarsView from "./MobileStarsView";
 import HourlyStarsChart from "./HourlyStarsChart";
 import CompareChart from "./CompareChart";
@@ -33,6 +34,7 @@ import Diversity3OutlinedIcon from '@mui/icons-material/Diversity3Outlined';
 import AddBoxOutlinedIcon from '@mui/icons-material/AddBoxOutlined';
 import ArticleIcon from '@mui/icons-material/Article';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined';
 import StarOutlineRoundedIcon from '@mui/icons-material/StarOutlineRounded';
 import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined';
 import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined';
@@ -128,11 +130,23 @@ function AppContent() {
                   location.pathname.includes("/contributors") ||
                   location.pathname.includes("/newrepos") ||
                   location.pathname.includes("/featured") ||
-                  location.pathname.includes("/hourly")
+                  location.pathname.includes("/hourly") ||
+                  location.pathname.includes("/echarts")
                 )
               }
             >
               Repo Star History
+            </MenuItem>
+            <MenuItem
+              component={<Link to="/echarts" className="link" />}
+              icon={
+                <Tooltip title="ECharts prototype" placement="right">
+                  <ScienceOutlinedIcon />
+                </Tooltip>
+              }
+              active={location.pathname.includes("/echarts")}
+            >
+              ECharts (prototype)
             </MenuItem>
             <MenuItem
               component={<Link to="/hourly" className="link" />}
@@ -321,6 +335,8 @@ function AppContent() {
             <Route path="/limits" element={<MainPage />} />
             <Route path="/table" element={<Navigate to="/limits" replace />} />
             <Route path="/starstimeline/:id" element={isMobile ? <MobileStarsView /> : <TimeSeriesChart />} />
+            <Route path="/echarts" element={<TimeSeriesChartECharts />} />
+            <Route path="/echarts/:user/:repository" element={<TimeSeriesChartECharts />} />
             <Route path="/hourly" element={<HourlyStarsChart />} />
             <Route path="/hourly/:user/:repository" element={<HourlyStarsChart />} />
             <Route path="/compare" element={<CompareChart />} />
