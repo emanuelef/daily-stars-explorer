@@ -18,8 +18,8 @@ require (
 	golang.org/x/exp v0.0.0-20260529124908-c761662dc8c9
 	golang.org/x/net v0.55.0
 	golang.org/x/oauth2 v0.36.0
-	golang.org/x/sync v0.20.0
-	google.golang.org/api v0.283.0
+	golang.org/x/sync v0.21.0
+	google.golang.org/api v0.284.0
 )
 
 require (
