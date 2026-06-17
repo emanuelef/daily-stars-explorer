@@ -346,6 +346,10 @@ function TimeSeriesChart() {
   const currentPeaks = useRef([]);
   const chartRef = useRef(null);
   const currentRepoRef = useRef(defaultRepo); // Track current repo for async operations
+  // Today's stars derived from /recentStarsByHour (consistent with the edges-based
+  // cumulative). Using /totalStars (GraphQL StargazerCount) here causes a phantom
+  // +N today, where N is the count of deleted/suspended stargazers (usually 1).
+  const todayHourlyStarsRef = useRef({ repo: null, count: 0 });
 
   const [feed, setFeed] = useState("none");
   const [theme, setTheme] = useState(defaultChartTheme);
@@ -1120,12 +1124,35 @@ function TimeSeriesChart() {
         // Get the previous day's total stars (if available)
         const prevTotalStars = starHistory[starHistory.length - 1][2];
 
-        // Calculate daily stars (difference between current total and previous total)
-        const todayDailyStars = Math.max(0, effectiveTotalStars - prevTotalStars);
-
-        // Add the new data point with today's date, calculated daily stars, and current total stars
-        starHistory.push([formattedToday, todayDailyStars, effectiveTotalStars]);
-        console.log("Added today's data point:", formattedToday, todayDailyStars, effectiveTotalStars);
+        // Today's daily count comes from /recentStarsByHour (hourly buckets summed over
+        // today's wall-clock day). Do NOT use (StargazerCount - prevTotalStars): the
+        // StargazerCount includes deleted/suspended users that are filtered out of the
+        // walked stargazer edges that built prevTotalStars, leaving a persistent +N skew
+        // (usually +1) that produced a phantom bar on every repo.
+        const repo = currentRepoRef.current;
+        let todayDailyStars = 0;
+        if (todayHourlyStarsRef.current.repo === repo) {
+          todayDailyStars = todayHourlyStarsRef.current.count;
+        } else {
+          try {
+            const r = await fetch(`${HOST}/recentStarsByHour?repo=${repo}&lastDays=1`);
+            if (r.ok) {
+              const hours = await r.json();
+              const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+              todayDailyStars = (hours || [])
+                .filter((h) => new Date(h.hour).getTime() >= startOfToday)
+                .reduce((s, h) => s + (h.stars || 0), 0);
+            }
+          } catch (_e) {
+            todayDailyStars = 0;
+          }
+          todayHourlyStarsRef.current = { repo, count: todayDailyStars };
+        }
+        // Cumulative for the synthesised today must extend prevTotalStars (the
+        // walked-edges cumulative) so the chart stays internally consistent.
+        const todayTotalStars = prevTotalStars + todayDailyStars;
+        starHistory.push([formattedToday, todayDailyStars, todayTotalStars]);
+        console.log("Added today's data point:", formattedToday, todayDailyStars, todayTotalStars);
 
         // Update the starsLast10d value to include today's stars
         const updatedLast10DaysStars = calculateStarsLast10Days(starHistory);
