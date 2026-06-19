@@ -30,7 +30,7 @@
     "react-fusioncharts": "4.2.0",
     "react-github-btn": "^1.4.0",
     "react-markdown": "^10.1.0",
-    "react-plotly.js": "^3.0.0",
+    "react-plotly.js": "^4.0.0",
     "react-pro-sidebar": "^1.1.0",
     "react-router-dom": "^7.18.0",
     "react-toastify": "^11.1.0",
