@@ -507,9 +507,18 @@ function HourlyStarsChart() {
   };
 
   useEffect(() => {
-    // Initial fetch requests only "complete" data (up to previous hour)
-    // allowing server to return cached data without hitting GitHub for partial hour
-    fetchHourlyStars(selectedRepo, lastDays, true);
+    // Two-step load: first pull "complete" hours from cache for instant render,
+    // then incrementally top up the current partial hour (requires a GitHub call
+    // server-side, but the since=… branch keeps the second fetch tiny).
+    let cancelled = false;
+    (async () => {
+      await fetchHourlyStars(selectedRepo, lastDays, true);
+      if (cancelled) return;
+      await fetchHourlyStars(selectedRepo, lastDays, false);
+    })();
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line
   }, [selectedRepo, lastDays]);
 
