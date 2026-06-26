@@ -27,7 +27,7 @@ func FetchYouTubeVideos(query string, limit int) ([]YTVideoMetadata, error) {
 
 	client, err := youtube.NewService(ctx, option.WithAPIKey(YTApiKey))
 	if err != nil {
-		log.Fatalf("Error creating YouTube service: %v", err)
+		return nil, fmt.Errorf("error creating YouTube service: %w", err)
 	}
 
 	call := client.Search.List([]string{"id"})
@@ -36,7 +36,7 @@ func FetchYouTubeVideos(query string, limit int) ([]YTVideoMetadata, error) {
 
 	response, err := call.Do()
 	if err != nil {
-		log.Fatalf("Error making API call: %v", err)
+		return nil, fmt.Errorf("error calling YouTube search API: %w", err)
 	}
 
 	responseItems := []YTVideoMetadata{}

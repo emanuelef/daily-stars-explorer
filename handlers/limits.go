@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"log"
 
 	"github.com/emanuelef/github-repo-activity-stats/repostats"
 	"github.com/gofiber/fiber/v2"
@@ -21,13 +20,13 @@ func LimitsHandler(
 
 		result, err := client.GetCurrentLimits(ctx)
 		if err != nil {
-			log.Fatalf("Error getting limits %v", err)
+			return fiber.NewError(fiber.StatusBadGateway, "error getting PAT limits: "+err.Error())
 		}
 
 		if client, ok = ghStatClients["PAT2"]; ok {
 			tmpResult, err := client.GetCurrentLimits(ctx)
 			if err != nil {
-				log.Fatalf("Error getting limits %v", err)
+				return fiber.NewError(fiber.StatusBadGateway, "error getting PAT2 limits: "+err.Error())
 			}
 
 			result.Remaining += tmpResult.Remaining
