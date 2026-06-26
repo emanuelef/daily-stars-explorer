@@ -53,7 +53,9 @@ func FetchShowHNGitHubPosts(sortBy string) ([]ShowHNPost, error) {
 		q.Set("tags", "story,show_hn")
 		q.Set("hitsPerPage", "100") // Request 100 items per page
 		q.Set("page", fmt.Sprintf("%d", page))
-		q.Set("numericFilters", fmt.Sprintf("created_at_i>%d,created_at_i<%d,points>3", startUnix, endUnix))
+		// Algolia dropped `points` from numericAttributesForFiltering, so filter only
+		// on created_at_i here and apply the points threshold client-side below.
+		q.Set("numericFilters", fmt.Sprintf("created_at_i>%d,created_at_i<%d", startUnix, endUnix))
 		u.RawQuery = q.Encode()
 
 		apiURL := u.String()
@@ -115,6 +117,12 @@ func FetchShowHNGitHubPosts(sortBy string) ([]ShowHNPost, error) {
 
 		// Process hits from this page
 		for _, hit := range result.Hits {
+			// Algolia no longer supports filtering on `points`, so replicate the
+			// original `points>3` threshold here.
+			if hit.Points <= 3 {
+				continue
+			}
+
 			// Check if this post links to GitHub or mentions GitHub in the title/URL
 			isGitHubRepo := false
 

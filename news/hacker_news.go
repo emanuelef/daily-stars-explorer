@@ -3,7 +3,7 @@ package news
 import (
 	"encoding/json"
 	"fmt"
-	"log"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -52,10 +52,12 @@ func FetchHackerNewsArticles(query string, minPoints int) ([]Article, error) {
 	page := 0
 
 	for {
-		hnURL := "http://hn.algolia.com/api/v1/search"
+		hnURL := "https://hn.algolia.com/api/v1/search"
 		params := url.Values{}
 		params.Add("query", query)
-		params.Add("numericFilters", fmt.Sprintf("points>%d", minPoints))
+		// Algolia removed `points` from numericAttributesForFiltering, so the
+		// previous `points>N` filter now returns 400. Apply minPoints client-side
+		// after the fetch instead.
 		params.Add("attributesToRetrieve", "title,created_at,points,num_comments,url,story_url,objectID,_highlightResult")
 		params.Add("hitsPerPage", strconv.Itoa(HITS_PER_PAGE))
 		params.Add("page", strconv.Itoa(page))
@@ -64,18 +66,19 @@ func FetchHackerNewsArticles(query string, minPoints int) ([]Article, error) {
 		if err != nil {
 			return nil, err
 		}
-		defer func() {
-			_ = resp.Body.Close()
-		}()
 
 		if resp.StatusCode != http.StatusOK {
-			log.Fatalf("Error: %v", resp.Status)
+			body, _ := io.ReadAll(resp.Body)
+			_ = resp.Body.Close()
+			return nil, fmt.Errorf("hn algolia returned %s: %s", resp.Status, string(body))
 		}
 
 		var data HNResponse
 		if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+			_ = resp.Body.Close()
 			return nil, err
 		}
+		_ = resp.Body.Close()
 
 		if len(data.Hits) == 0 {
 			fmt.Println("No more hits found.")
@@ -83,6 +86,9 @@ func FetchHackerNewsArticles(query string, minPoints int) ([]Article, error) {
 		}
 
 		for _, hit := range data.Hits {
+			if hit.Points <= minPoints {
+				continue
+			}
 			hnURL := fmt.Sprintf("https://news.ycombinator.com/item?id=%s", hit.ObjectID)
 			articleURL := hit.URL
 			if articleURL == "" {

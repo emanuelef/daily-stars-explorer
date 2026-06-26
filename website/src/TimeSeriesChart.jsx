@@ -1488,6 +1488,8 @@ function TimeSeriesChart() {
     setStarsLast10d("");
     // Clear old mentions when fetching new repo data
     currentHNnews.current = {};
+    currentPeaks.current = [];
+    todayHourlyStarsRef.current = { repo: null, count: 0 };
 
     // 1. Check status first
     const status = await fetchStatus(repo);
