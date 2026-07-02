@@ -1,5 +1,5 @@
 /* eslint-disable no-case-declarations */
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import TextField from "@mui/material/TextField";
 import FormControl from "@mui/material/FormControl";
@@ -230,8 +230,71 @@ function CommitsTimeSeriesChart() {
   const [selectedRepo, setSelectedRepo] = useState(defaultRepo);
   const [checkedDateRange, setCheckedDateRange] = useState(false);
   const [starsRepos, setStarsRepos] = useState([]);
+  const [showGapMarker, setShowGapMarker] = useState(false);
 
   const currentSSE = useRef(null);
+
+  // Re-render the chart whenever the "Highlight Gap" toggle changes so the
+  // timemarker is applied or cleared. updateGraph reads showGapMarker / longestGap
+  // through closure and mutates the timemarker on options.dataSource.xAxis.
+  useEffect(() => {
+    if (currentCommitsHistory && currentCommitsHistory.length > 0) {
+      updateGraph([...currentCommitsHistory]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showGapMarker]);
+
+  // Longest span of days without a commit, along with its date range and
+  // whether it is still open (last commit → today). Computed on the frontend
+  // from the commits history alone.
+  const longestGap = useMemo(() => {
+    const empty = { days: 0, ongoing: false, startDate: null, endDate: null };
+    const history = currentCommitsHistory;
+    if (!history || history.length === 0) return empty;
+    const DAY_MS = 86400000;
+    const parseDate = (s) => {
+      const [d, m, y] = s.split("-").map(Number);
+      const dt = new Date(y, m - 1, d);
+      dt.setHours(0, 0, 0, 0);
+      return dt;
+    };
+    let historicalMax = 0;
+    let historicalStart = null;
+    let historicalEnd = null;
+    let prevCommitDate = null;
+    for (const row of history) {
+      if ((row[1] || 0) > 0) {
+        const d = parseDate(row[0]);
+        if (prevCommitDate) {
+          const gap = Math.floor((d - prevCommitDate) / DAY_MS) - 1;
+          if (gap > historicalMax) {
+            historicalMax = gap;
+            historicalStart = new Date(prevCommitDate.getTime() + DAY_MS);
+            historicalEnd = new Date(d.getTime() - DAY_MS);
+          }
+        }
+        prevCommitDate = d;
+      }
+    }
+    if (!prevCommitDate) return empty;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const currentIdle = Math.max(0, Math.floor((today - prevCommitDate) / DAY_MS));
+    if (currentIdle >= historicalMax) {
+      return {
+        days: currentIdle,
+        ongoing: true,
+        startDate: new Date(prevCommitDate.getTime() + DAY_MS),
+        endDate: today,
+      };
+    }
+    return {
+      days: historicalMax,
+      ongoing: false,
+      startDate: historicalStart,
+      endDate: historicalEnd,
+    };
+  }, [currentCommitsHistory]);
 
   // Fetch available repos for autocomplete
   useEffect(() => {
@@ -540,6 +603,40 @@ function CommitsTimeSeriesChart() {
       "_"
     )}-stars-history`;
 
+    // Longest gap highlight (toggled by the "Highlight Gap" button)
+    if (
+      showGapMarker &&
+      longestGap.days > 0 &&
+      longestGap.startDate &&
+      longestGap.endDate
+    ) {
+      const fmt = (d) =>
+        `${d.getDate()}-${d.getMonth() + 1}-${d.getFullYear()}`;
+      options.dataSource.xAxis.timemarker = [
+        {
+          start: fmt(longestGap.startDate),
+          end: fmt(longestGap.endDate),
+          label: `Longest gap: ${longestGap.days}d${longestGap.ongoing ? " · ongoing" : ""}`,
+          timeformat: "%d-%m-%Y",
+          type: "full",
+          style: {
+            marker: {
+              fill: longestGap.ongoing
+                ? "rgba(239, 68, 68, 0.18)"
+                : "rgba(245, 158, 11, 0.15)",
+              stroke: longestGap.ongoing ? "#ef4444" : "#f59e0b",
+              "stroke-width": 1,
+            },
+            text: {
+              fill: longestGap.ongoing ? "#f87171" : "#fbbf24",
+            },
+          },
+        },
+      ];
+    } else {
+      options.dataSource.xAxis.timemarker = [];
+    }
+
     console.log(options.dataSource.yAxis);
 
     setds(options);
@@ -835,6 +932,45 @@ function CommitsTimeSeriesChart() {
           <Button size="small" variant="outlined" onClick={downloadCSV}>CSV</Button>
           <Button size="small" variant="outlined" onClick={downloadJSON}>JSON</Button>
           <Button size="small" variant="outlined" onClick={openCurrentRepoPage}>Open Repo</Button>
+          {longestGap.days > 0 && (() => {
+            const fmt = (d) =>
+              d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+            const rangeText = longestGap.ongoing
+              ? `${fmt(longestGap.startDate)} → today`
+              : `${fmt(longestGap.startDate)} → ${fmt(longestGap.endDate)}`;
+            const value = `${longestGap.days}d · ${rangeText}`;
+            const tooltipText = longestGap.ongoing
+              ? `No commits for ${longestGap.days} day${longestGap.days === 1 ? "" : "s"} — streak is still open (running up to today)`
+              : `Longest historical span without commits: ${longestGap.days} day${longestGap.days === 1 ? "" : "s"}`;
+            return (
+              <>
+                <Tooltip title={tooltipText}>
+                  <TextField
+                    sx={{
+                      width: 320,
+                      "& .MuiOutlinedInput-notchedOutline": longestGap.ongoing
+                        ? { borderColor: "#ef4444" }
+                        : undefined,
+                    }}
+                    size="small"
+                    label={longestGap.ongoing ? "Longest gap (ongoing)" : "Longest gap"}
+                    value={value}
+                    InputProps={{ readOnly: true }}
+                  />
+                </Tooltip>
+                <Tooltip title="Highlight the longest gap on the chart">
+                  <Button
+                    size="small"
+                    variant={showGapMarker ? "contained" : "outlined"}
+                    color={longestGap.ongoing ? "error" : "warning"}
+                    onClick={() => setShowGapMarker((v) => !v)}
+                  >
+                    {showGapMarker ? "Hide Gap" : "Highlight Gap"}
+                  </Button>
+                </Tooltip>
+              </>
+            );
+          })()}
         </Box>
       </div>
 
