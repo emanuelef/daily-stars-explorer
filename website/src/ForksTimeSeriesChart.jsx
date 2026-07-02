@@ -1,5 +1,6 @@
 /* eslint-disable no-case-declarations */
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
+import { useSSE } from "./hooks/useSSE";
 import { useParams, useLocation } from "react-router-dom";
 import TextField from "@mui/material/TextField";
 import FormControl from "@mui/material/FormControl";
@@ -227,7 +228,7 @@ function ForksTimeSeriesChart() {
   const [checkedDateRange, setCheckedDateRange] = useState(false);
   const [starsRepos, setStarsRepos] = useState([]);
 
-  const currentSSE = useRef(null);
+  const sseClient = useSSE();
 
   // Fetch available repos for autocomplete
   useEffect(() => {
@@ -584,18 +585,11 @@ function ForksTimeSeriesChart() {
     window.open("https://github.com/" + repoParsed, "_blank");
   };
 
-  const closeSSE = () => {
-    if (currentSSE.current) {
-      console.log("STOP SSE");
-      currentSSE.current.close();
-    }
-  };
+  const closeSSE = sseClient.close;
 
   const startSSEUpates = (repo, callsNeeded, onGoing) => {
     console.log(repo, callsNeeded, onGoing);
-    const sse = new EventSource(`${HOST}/sse?repo=${repo}`);
-    closeSSE();
-    currentSSE.current = sse;
+    const sse = sseClient.open(`${HOST}/sse?repo=${repo}`);
 
     sse.onerror = (err) => {
       console.log("on error", err);

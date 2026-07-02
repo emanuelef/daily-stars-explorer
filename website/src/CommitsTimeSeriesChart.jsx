@@ -1,5 +1,6 @@
 /* eslint-disable no-case-declarations */
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useSSE } from "./hooks/useSSE";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import TextField from "@mui/material/TextField";
 import FormControl from "@mui/material/FormControl";
@@ -232,7 +233,7 @@ function CommitsTimeSeriesChart() {
   const [starsRepos, setStarsRepos] = useState([]);
   const [showGapMarker, setShowGapMarker] = useState(false);
 
-  const currentSSE = useRef(null);
+  const sseClient = useSSE();
 
   // Re-render the chart whenever the "Highlight Gap" toggle changes so the
   // timemarker is applied or cleared. updateGraph reads showGapMarker / longestGap
@@ -685,18 +686,11 @@ function CommitsTimeSeriesChart() {
     window.open("https://github.com/" + repoParsed, "_blank");
   };
 
-  const closeSSE = () => {
-    if (currentSSE.current) {
-      console.log("STOP SSE");
-      currentSSE.current.close();
-    }
-  };
+  const closeSSE = sseClient.close;
 
   const startSSEUpates = (repo, callsNeeded, onGoing) => {
     console.log(repo, callsNeeded, onGoing);
-    const sse = new EventSource(`${HOST}/sse?repo=${repo}`);
-    closeSSE();
-    currentSSE.current = sse;
+    const sse = sseClient.open(`${HOST}/sse?repo=${repo}`);
 
     sse.onerror = (err) => {
       console.log("on error", err);

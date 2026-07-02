@@ -1,5 +1,6 @@
 /* eslint-disable no-case-declarations */
 import { useState, useEffect, useMemo, useRef } from "react";
+import { useSSE } from "./hooks/useSSE";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import TextField from "@mui/material/TextField";
 import FormControl from "@mui/material/FormControl";
@@ -385,19 +386,15 @@ function TimeSeriesChart() {
   const [selectedRepo, setSelectedRepo] = useState(defaultRepo);
   const [checkedDateRange, setCheckedDateRange] = useState(false);
 
-  const currentSSE = useRef(null);
+  const sseClient = useSSE();
   const isMountedRef = useRef(true);
 
-  // Cleanup SSE on unmount and mark component as unmounted
+  // Track mount state so async fetch callbacks can no-op after unmount.
+  // (SSE cleanup on unmount is handled inside useSSE.)
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
-      if (currentSSE.current) {
-        console.log("Cleanup: Closing SSE connection");
-        currentSSE.current.close();
-        currentSSE.current = null;
-      }
     };
   }, []);
 
@@ -1743,12 +1740,7 @@ function TimeSeriesChart() {
     window.open(`https://emanuelef.github.io/daily-stars-mobile/#/${repoParsed}`, "_blank");
   };
 
-  const closeSSE = () => {
-    if (currentSSE.current) {
-      console.log("STOP SSE");
-      currentSSE.current.close();
-    }
-  };
+  const closeSSE = sseClient.close;
 
   const startSSEUpates = (repo, callsNeeded, onGoing) => {
     console.log(repo, callsNeeded, onGoing);
@@ -1772,9 +1764,7 @@ function TimeSeriesChart() {
       return;
     }
     try {
-      const sse = new EventSource(`${HOST}/sse?repo=${repo}`);
-      closeSSE();
-      currentSSE.current = sse;
+      const sse = sseClient.open(`${HOST}/sse?repo=${repo}`);
 
       sse.onerror = (err) => {
         if (!isMountedRef.current) return; // Component unmounted
