@@ -1770,8 +1770,16 @@ function TimeSeriesChart() {
         if (!isMountedRef.current) return; // Component unmounted
         // Ignore errors if we switched to a different repo (intentional close)
         if (currentRepoRef.current !== repo) return;
-        console.log("on error", err);
-        // Don't show error banner - SSE errors are usually transient and data will load
+        // EventSource fires onerror for BOTH transient reconnects and permanent
+        // failures. During long fetches (big repos) transient hiccups are common
+        // and the browser auto-reconnects; hiding the progress bar every time
+        // was showing users an empty state while data was still coming in.
+        // Only clear the loading state once the connection is definitively gone.
+        if (sse.readyState !== EventSource.CLOSED) {
+          console.log("SSE transient error, browser will reconnect", err);
+          return;
+        }
+        console.log("SSE closed", err);
         setLoading(false);
       };
 
