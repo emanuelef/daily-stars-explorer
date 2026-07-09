@@ -1,10 +1,38 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { intervalToDuration, parseISO } from "date-fns";
 import { parseGitHubRepoURL } from "./githubUtils";
 import { useAppTheme } from "./ThemeContext";
 import { useLastRepo } from "./RepoContext";
 
 const HOST = import.meta.env.VITE_HOST;
+
+// dd-mm-yyyy → "May 12, 2023"
+const formatDay = (ddmmyyyy) => {
+  if (!ddmmyyyy) return "";
+  const [d, m, y] = ddmmyyyy.split("-").map(Number);
+  if (!d || !m || !y) return ddmmyyyy;
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+};
+
+const formatAge = (createdAt) => {
+  if (!createdAt) return "";
+  try {
+    const { years, months, days } = intervalToDuration({
+      start: parseISO(createdAt),
+      end: Date.now(),
+    });
+    return [years ? `${years}y` : "", months ? `${months}m` : "", days ? `${days}d` : ""]
+      .filter(Boolean)
+      .join(" ");
+  } catch {
+    return "";
+  }
+};
 
 const MobileStarsView = () => {
   const navigate = useNavigate();
@@ -24,6 +52,10 @@ const MobileStarsView = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [filteredRepos, setFilteredRepos] = useState([]);
   const [dailyChartRange, setDailyChartRange] = useState("30d");
+  const [age, setAge] = useState("");
+  const [bestDay, setBestDay] = useState(null); // { stars, date }
+  const [selectedBar, setSelectedBar] = useState(null); // index into displayedHistory
+  const [copied, setCopied] = useState(false);
   const [pinnedRepos, setPinnedRepos] = useState(() => {
     try {
       const saved = localStorage.getItem('pinned-repos');
@@ -122,6 +154,9 @@ const MobileStarsView = () => {
     setTotalStars(0);
     setStarsLast10d(0);
     setDailyChartRange("30d");
+    setAge("");
+    setBestDay(null);
+    setSelectedBar(null);
 
     // Close any existing SSE connection
     if (eventSourceRef.current) {
@@ -137,6 +172,9 @@ const MobileStarsView = () => {
         if (totalData.stars) {
           callsNeeded = Math.floor(totalData.stars / 100);
           setMaxProgress(callsNeeded);
+        }
+        if (totalData.createdAt) {
+          setAge(formatAge(totalData.createdAt));
         }
       }
     } catch (e) {
@@ -254,6 +292,12 @@ const MobileStarsView = () => {
           setStarsLast10d(last10Sum);
         }
 
+        // Best day (used in stats grid)
+        if (Array.isArray(data.maxPeaks) && data.maxPeaks.length > 0) {
+          const best = data.maxPeaks.reduce((acc, p) => (p.Stars > acc.Stars ? p : acc));
+          setBestDay({ stars: best.Stars, date: best.Day });
+        }
+
         // Update URL
         navigate(`/${normalizedRepo}`, { replace: true });
       }
@@ -289,6 +333,18 @@ const MobileStarsView = () => {
     fetchStars(selectedRepo);
   };
 
+  const handleCopyLink = async () => {
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set("range", dailyChartRange);
+      await navigator.clipboard.writeText(url.toString());
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (e) {
+      console.error("Copy failed:", e);
+    }
+  };
+
   const displayedHistory = dailyChartRange === "all" ? starHistory : starHistory.slice(-30);
   const displayedMax = Math.max(...displayedHistory.map(d => d.daily), 1);
   const displayedTotal = displayedHistory.reduce((sum, d) => sum + d.daily, 0);
@@ -308,26 +364,83 @@ const MobileStarsView = () => {
       padding: "16px",
       color: isDark ? "#fff" : "#1a1a2e",
     }}>
-      {/* Header */}
+      {/* Brand strip + share */}
       <div style={{
-        textAlign: "center",
-        marginBottom: "20px",
-        position: "relative",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: totalStars > 0 ? "12px" : "20px",
       }}>
-        <h1 style={{
-          fontSize: "24px",
-          fontWeight: "700",
-          margin: "0 0 4px 0",
+        <div style={{
+          fontSize: "13px",
+          fontWeight: "600",
+          letterSpacing: "0.02em",
           background: "linear-gradient(90deg, #3b82f6, #10b981)",
           WebkitBackgroundClip: "text",
           WebkitTextFillColor: "transparent",
         }}>
           Daily Stars Explorer
-        </h1>
-        <p style={{ fontSize: "12px", color: "#6b7280", margin: 0 }}>
-          GitHub Repository Star History
-        </p>
+        </div>
+        {totalStars > 0 && (
+          <button
+            type="button"
+            onClick={handleCopyLink}
+            aria-label={copied ? "Link copied" : "Copy share link"}
+            style={{
+              padding: "6px 10px",
+              minHeight: "32px",
+              borderRadius: "8px",
+              background: copied
+                ? "rgba(16, 185, 129, 0.15)"
+                : (isDark ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.9)"),
+              border: `1px solid ${copied ? "rgba(16, 185, 129, 0.4)" : currentTheme.cardBorder}`,
+              color: copied ? "#10b981" : currentTheme.textSecondary,
+              fontSize: "12px",
+              fontWeight: "600",
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "4px",
+            }}
+          >
+            {copied ? "✓ Copied" : "🔗 Share"}
+          </button>
+        )}
       </div>
+
+      {/* Hero — current repo identity + total */}
+      {totalStars > 0 && (
+        <div style={{ marginBottom: "20px" }}>
+          <div style={{
+            fontSize: "20px",
+            fontWeight: "700",
+            color: currentTheme.textPrimary,
+            wordBreak: "break-word",
+            lineHeight: 1.2,
+          }}>
+            {repo}
+          </div>
+          <div style={{
+            marginTop: "6px",
+            fontSize: "14px",
+            color: currentTheme.textSecondary,
+            display: "flex",
+            alignItems: "baseline",
+            gap: "6px",
+            flexWrap: "wrap",
+          }}>
+            <span style={{ fontSize: "22px", color: "#fbbf24", fontWeight: 700 }}>
+              ⭐ {totalStars.toLocaleString()}
+            </span>
+            <span>total stars</span>
+            {starsLast10d > 0 && (
+              <span style={{ color: "#10b981", fontWeight: 600, marginLeft: 4 }}>
+                +{starsLast10d.toLocaleString()} in last 10d
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Pinned Repos Quick Access */}
       {pinnedRepos.length > 0 && (
@@ -339,53 +452,78 @@ const MobileStarsView = () => {
           border: "1px solid rgba(59, 130, 246, 0.3)",
         }}>
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
-            <span style={{ fontSize: "12px", color: "#6b7280" }}>📌</span>
+            <span aria-hidden="true" style={{ fontSize: "12px", color: currentTheme.textMuted }}>📌</span>
             {pinnedRepos.slice(0, 2).map(r => (
               <div
                 key={r}
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: "6px",
-                  padding: "6px 10px",
+                  padding: 0,
                   borderRadius: "8px",
                   background: isDark ? "rgba(59, 130, 246, 0.2)" : "rgba(59, 130, 246, 0.1)",
                   border: "1px solid rgba(59, 130, 246, 0.3)",
-                  fontSize: "13px",
+                  overflow: "hidden",
                 }}
               >
-                <span
+                <button
+                  type="button"
                   onClick={() => {
                     setRepo(r);
                     fetchStars(r);
                     navigate(`/${r}`);
                   }}
-                  style={{ cursor: "pointer", flex: 1 }}
+                  aria-label={`Open ${r}`}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    padding: "6px 6px 6px 10px",
+                    minHeight: "32px",
+                    color: currentTheme.textPrimary,
+                    fontSize: "13px",
+                    cursor: "pointer",
+                    flex: 1,
+                    textAlign: "left",
+                  }}
                 >
                   {r}
-                </span>
-                <span
+                </button>
+                <button
+                  type="button"
                   onClick={() => togglePin(r)}
-                  style={{ cursor: "pointer", fontSize: "16px", lineHeight: 1 }}
+                  aria-label={`Unpin ${r}`}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    color: currentTheme.textMuted,
+                    padding: "6px 10px",
+                    minHeight: "32px",
+                    fontSize: "16px",
+                    lineHeight: 1,
+                    cursor: "pointer",
+                  }}
                 >
                   ×
-                </span>
+                </button>
               </div>
             ))}
             {pinnedRepos.length > 2 && (
-              <span style={{ fontSize: "11px", color: "#6b7280" }}>
+              <span style={{ fontSize: "11px", color: currentTheme.textMuted }}>
                 +{pinnedRepos.length - 2} more
               </span>
             )}
             <button
+              type="button"
               onClick={clearPinned}
+              aria-label="Clear all pinned repositories"
               style={{
                 background: "transparent",
                 border: "none",
-                color: "#6b7280",
+                color: currentTheme.textMuted,
                 fontSize: "11px",
                 cursor: "pointer",
                 padding: "4px 8px",
+                minHeight: "32px",
               }}
             >
               Clear All
@@ -441,20 +579,30 @@ const MobileStarsView = () => {
                 zIndex: 100,
               }}>
                 {filteredRepos.map((r) => (
-                  <div
+                  <button
                     key={r}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => handleSelectRepo(r)}
+                    aria-label={`Load ${r}`}
                     style={{
+                      display: "block",
+                      width: "100%",
+                      textAlign: "left",
                       padding: "12px 16px",
+                      minHeight: "44px",
                       cursor: "pointer",
-                      borderBottom: "1px solid rgba(255,255,255,0.05)",
+                      border: "none",
+                      borderBottom: "1px solid rgba(148,163,184,0.15)",
+                      background: "transparent",
+                      color: currentTheme.textPrimary,
                       fontSize: "14px",
                     }}
-                    onMouseEnter={(e) => e.target.style.background = "rgba(59, 130, 246, 0.2)"}
-                    onMouseLeave={(e) => e.target.style.background = "transparent"}
+                    onMouseEnter={(e) => e.currentTarget.style.background = "rgba(59, 130, 246, 0.2)"}
+                    onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
                   >
                     {r}
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
@@ -462,11 +610,17 @@ const MobileStarsView = () => {
           <button
             onClick={() => togglePin(repo)}
             type="button"
+            aria-label={pinnedRepos.includes(repo) ? `Unpin ${repo}` : `Pin ${repo}`}
+            aria-pressed={pinnedRepos.includes(repo)}
             style={{
               padding: "14px 16px",
+              minHeight: "44px",
+              minWidth: "44px",
               borderRadius: "12px",
               border: "none",
-              background: pinnedRepos.includes(repo) ? "#3b82f6" : "rgba(255,255,255,0.1)",
+              background: pinnedRepos.includes(repo)
+                ? "#3b82f6"
+                : (isDark ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.06)"),
               fontSize: "20px",
               cursor: "pointer",
             }}
@@ -527,62 +681,116 @@ const MobileStarsView = () => {
         </div>
       )}
 
-      {/* Stats Cards */}
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr",
-        gap: "12px",
-        marginBottom: "20px",
-      }}>
+      {/* Stats Cards — three compact cards; Total already shown in hero */}
+      {totalStars > 0 && (
         <div style={{
-          padding: "16px",
-          borderRadius: "12px",
-          background: "rgba(59, 130, 246, 0.1)",
-          border: "1px solid rgba(59, 130, 246, 0.2)",
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: "10px",
+          marginBottom: "20px",
         }}>
-          <div style={{ fontSize: "11px", color: "#9ca3af", marginBottom: "4px", textTransform: "uppercase" }}>
-            Total Stars
+          <div style={{
+            padding: "12px 14px",
+            borderRadius: "12px",
+            background: "rgba(16, 185, 129, 0.1)",
+            border: "1px solid rgba(16, 185, 129, 0.2)",
+          }}>
+            <div style={{
+              fontSize: "11px",
+              color: currentTheme.textMuted,
+              marginBottom: "4px",
+              textTransform: "uppercase",
+              letterSpacing: "0.03em",
+            }}>
+              Last 10 Days
+            </div>
+            <div style={{ fontSize: "20px", fontWeight: "700", color: "#10b981" }}>
+              +{starsLast10d.toLocaleString()}
+            </div>
           </div>
-          <div style={{ fontSize: "24px", fontWeight: "700", color: "#fbbf24" }}>
-            {totalStars.toLocaleString()}
+          <div style={{
+            padding: "12px 14px",
+            borderRadius: "12px",
+            background: "rgba(59, 130, 246, 0.1)",
+            border: "1px solid rgba(59, 130, 246, 0.2)",
+          }}>
+            <div style={{
+              fontSize: "11px",
+              color: currentTheme.textMuted,
+              marginBottom: "4px",
+              textTransform: "uppercase",
+              letterSpacing: "0.03em",
+            }}>
+              Age
+            </div>
+            <div style={{
+              fontSize: "20px",
+              fontWeight: "700",
+              color: currentTheme.textPrimary,
+            }}>
+              {age || "—"}
+            </div>
+          </div>
+          <div style={{
+            gridColumn: "1 / -1",
+            padding: "12px 14px",
+            borderRadius: "12px",
+            background: "rgba(245, 158, 11, 0.1)",
+            border: "1px solid rgba(245, 158, 11, 0.25)",
+          }}>
+            <div style={{
+              fontSize: "11px",
+              color: currentTheme.textMuted,
+              marginBottom: "4px",
+              textTransform: "uppercase",
+              letterSpacing: "0.03em",
+            }}>
+              Best Day
+            </div>
+            {bestDay ? (
+              <div style={{ display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
+                <span style={{ fontSize: "20px", fontWeight: "700", color: "#fbbf24" }}>
+                  {bestDay.stars.toLocaleString()}⭐
+                </span>
+                <span style={{ fontSize: "13px", color: currentTheme.textSecondary }}>
+                  on {formatDay(bestDay.date)}
+                </span>
+              </div>
+            ) : (
+              <div style={{ fontSize: "20px", fontWeight: "700", color: currentTheme.textPrimary }}>
+                —
+              </div>
+            )}
           </div>
         </div>
-        <div style={{
-          padding: "16px",
-          borderRadius: "12px",
-          background: "rgba(16, 185, 129, 0.1)",
-          border: "1px solid rgba(16, 185, 129, 0.2)",
-        }}>
-          <div style={{ fontSize: "11px", color: "#9ca3af", marginBottom: "4px", textTransform: "uppercase" }}>
-            Last 10 Days
-          </div>
-          <div style={{ fontSize: "24px", fontWeight: "700", color: "#10b981" }}>
-            +{starsLast10d.toLocaleString()}
-          </div>
-        </div>
-      </div>
+      )}
 
       {/* Hourly View Link */}
       {totalStars > 0 && (
-        <div
+        <button
+          type="button"
           onClick={() => navigate(`/hourly/${repo.replace(' / ', '/')}`)}
+          aria-label={`View hourly stars for ${repo} (last 24 hours)`}
           style={{
             padding: "12px 16px",
             marginBottom: "20px",
             borderRadius: "12px",
             background: "rgba(139, 92, 246, 0.1)",
-            border: "1px solid rgba(139, 92, 246, 0.2)",
+            border: "1px solid rgba(139, 92, 246, 0.25)",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
             cursor: "pointer",
+            width: "100%",
+            minHeight: "44px",
+            textAlign: "left",
           }}
         >
-          <div style={{ fontSize: "13px", color: "#a78bfa" }}>
+          <div style={{ fontSize: "13px", color: "#a78bfa", fontWeight: 600 }}>
             View hourly stars (last 24h)
           </div>
-          <div style={{ fontSize: "16px", color: "#a78bfa" }}>→</div>
-        </div>
+          <div aria-hidden="true" style={{ fontSize: "16px", color: "#a78bfa" }}>→</div>
+        </button>
       )}
 
       {/* Daily Stars Bar Chart */}
@@ -590,8 +798,8 @@ const MobileStarsView = () => {
         <div style={{
           padding: "16px",
           borderRadius: "12px",
-          background: "rgba(255, 255, 255, 0.02)",
-          border: "1px solid rgba(255, 255, 255, 0.1)",
+          background: isDark ? "rgba(255, 255, 255, 0.02)" : "rgba(255, 255, 255, 0.85)",
+          border: `1px solid ${currentTheme.cardBorder}`,
         }}>
           <div style={{
             display: "flex",
@@ -600,16 +808,18 @@ const MobileStarsView = () => {
           }}>
             <button
               type="button"
-              onClick={() => setDailyChartRange("30d")}
+              onClick={() => { setDailyChartRange("30d"); setSelectedBar(null); }}
+              aria-pressed={dailyChartRange === "30d"}
               style={{
                 flex: 1,
+                minHeight: "36px",
                 padding: "7px 10px",
                 borderRadius: "8px",
                 border: "1px solid rgba(59, 130, 246, 0.4)",
                 background: dailyChartRange === "30d"
                   ? "rgba(59, 130, 246, 0.8)"
-                  : "rgba(255, 255, 255, 0.05)",
-                color: "#fff",
+                  : (isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(59, 130, 246, 0.05)"),
+                color: dailyChartRange === "30d" ? "#fff" : currentTheme.textPrimary,
                 fontSize: "12px",
                 fontWeight: "600",
                 cursor: "pointer",
@@ -619,16 +829,18 @@ const MobileStarsView = () => {
             </button>
             <button
               type="button"
-              onClick={() => setDailyChartRange("all")}
+              onClick={() => { setDailyChartRange("all"); setSelectedBar(null); }}
+              aria-pressed={dailyChartRange === "all"}
               style={{
                 flex: 1,
+                minHeight: "36px",
                 padding: "7px 10px",
                 borderRadius: "8px",
                 border: "1px solid rgba(59, 130, 246, 0.4)",
                 background: dailyChartRange === "all"
                   ? "rgba(59, 130, 246, 0.8)"
-                  : "rgba(255, 255, 255, 0.05)",
-                color: "#fff",
+                  : (isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(59, 130, 246, 0.05)"),
+                color: dailyChartRange === "all" ? "#fff" : currentTheme.textPrimary,
                 fontSize: "12px",
                 fontWeight: "600",
                 cursor: "pointer",
@@ -640,8 +852,8 @@ const MobileStarsView = () => {
           <div style={{
             fontSize: "14px",
             fontWeight: "600",
-            marginBottom: "16px",
-            color: "#fff",
+            marginBottom: "12px",
+            color: currentTheme.textPrimary,
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
@@ -651,11 +863,55 @@ const MobileStarsView = () => {
               <div style={{ fontSize: "13px", color: "#fbbf24", fontWeight: "600" }}>
                 max: {displayedMax.toLocaleString()}
               </div>
-              <div style={{ fontSize: "12px", color: "#6b7280", fontWeight: "400" }}>
+              <div style={{ fontSize: "12px", color: currentTheme.textMuted, fontWeight: "400" }}>
                 total: {displayedTotal.toLocaleString()}
               </div>
             </div>
           </div>
+
+          {/* Readout for tapped bar */}
+          {selectedBar !== null && displayedHistory[selectedBar] && (
+            <div
+              role="status"
+              aria-live="polite"
+              style={{
+                padding: "8px 12px",
+                marginBottom: "12px",
+                borderRadius: "8px",
+                background: "rgba(59, 130, 246, 0.12)",
+                border: "1px solid rgba(59, 130, 246, 0.35)",
+                fontSize: "13px",
+                color: currentTheme.textPrimary,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <div>
+                <span style={{ color: currentTheme.textMuted, marginRight: 6 }}>
+                  {formatDay(displayedHistory[selectedBar].date)}
+                </span>
+                <strong>{displayedHistory[selectedBar].daily.toLocaleString()} stars</strong>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedBar(null)}
+                aria-label="Clear selection"
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: currentTheme.textMuted,
+                  cursor: "pointer",
+                  fontSize: "18px",
+                  lineHeight: 1,
+                  padding: "0 4px",
+                }}
+              >
+                ×
+              </button>
+            </div>
+          )}
+
           <div style={{ overflowX: dailyChartRange === "all" ? "auto" : "visible" }}>
             <div style={{
               display: "flex",
@@ -667,20 +923,30 @@ const MobileStarsView = () => {
             }}>
               {displayedHistory.map((day, index) => {
                 const heightPercent = Math.min((day.daily / maxDaily) * 100, 100);
+                const isSelected = selectedBar === index;
                 return (
-                  <div
+                  <button
                     key={index}
+                    type="button"
+                    onClick={() => setSelectedBar(isSelected ? null : index)}
+                    aria-label={`${day.date}: ${day.daily} stars`}
+                    aria-pressed={isSelected}
                     style={{
                       flex: dailyChartRange === "all" ? "0 0 2px" : 1,
-                      background: day.daily > 0
-                        ? `linear-gradient(180deg, #60a5fa 0%, #3b82f6 100%)`
-                        : "rgba(255, 255, 255, 0.1)",
+                      background: isSelected
+                        ? "linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%)"
+                        : day.daily > 0
+                          ? "linear-gradient(180deg, #60a5fa 0%, #3b82f6 100%)"
+                          : (isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(15, 23, 42, 0.1)"),
                       height: `${Math.max(heightPercent, 3)}%`,
                       borderRadius: "3px 3px 0 0",
                       minHeight: "3px",
-                      position: "relative",
+                      border: "none",
+                      padding: 0,
+                      cursor: "pointer",
+                      boxShadow: isSelected ? "0 0 0 1px #f59e0b" : undefined,
+                      transition: "background 120ms ease",
                     }}
-                    title={`${day.date}: ${day.daily} stars`}
                   />
                 );
               })}
@@ -690,10 +956,10 @@ const MobileStarsView = () => {
             <div style={{
               marginTop: "8px",
               fontSize: "11px",
-              color: "#6b7280",
+              color: currentTheme.textMuted,
               textAlign: "center",
             }}>
-              Swipe horizontally to explore the full timeline
+              Swipe horizontally to explore the full timeline · Tap a bar for the date
             </div>
           )}
           <div style={{
@@ -701,7 +967,7 @@ const MobileStarsView = () => {
             justifyContent: "space-between",
             marginTop: "12px",
             fontSize: "11px",
-            color: "#6b7280",
+            color: currentTheme.textMuted,
           }}>
             <span>{displayedHistory[0]?.date || "Start"}</span>
             <span>{displayedHistory[displayedHistory.length - 1]?.date || "Latest"}</span>
@@ -714,21 +980,21 @@ const MobileStarsView = () => {
         <div style={{
           padding: "16px",
           borderRadius: "12px",
-          background: "rgba(255, 255, 255, 0.02)",
-          border: "1px solid rgba(255, 255, 255, 0.1)",
+          background: isDark ? "rgba(255, 255, 255, 0.02)" : "rgba(255, 255, 255, 0.85)",
+          border: `1px solid ${currentTheme.cardBorder}`,
           marginTop: "12px",
         }}>
           <div style={{
             fontSize: "14px",
             fontWeight: "600",
             marginBottom: "16px",
-            color: "#fff",
+            color: currentTheme.textPrimary,
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
           }}>
             <span>Cumulative Stars</span>
-            <span style={{ fontSize: "11px", color: "#6b7280", fontWeight: "400" }}>
+            <span style={{ fontSize: "11px", color: currentTheme.textMuted, fontWeight: "400" }}>
               {totalStars.toLocaleString()} total
             </span>
           </div>
@@ -771,7 +1037,7 @@ const MobileStarsView = () => {
             justifyContent: "space-between",
             marginTop: "12px",
             fontSize: "11px",
-            color: "#6b7280",
+            color: currentTheme.textMuted,
           }}>
             <span>{starHistory[0]?.date || ''}</span>
             <span>{starHistory[starHistory.length - 1]?.date || ''}</span>
@@ -785,7 +1051,7 @@ const MobileStarsView = () => {
         marginTop: "24px",
         paddingBottom: "20px",
         fontSize: "11px",
-        color: "#4b5563",
+        color: currentTheme.textMuted,
         lineHeight: "1.6",
       }}>
         <div>For full features (compare, transforms, feeds, exports)</div>
