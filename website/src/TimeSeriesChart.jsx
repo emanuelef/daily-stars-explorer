@@ -2135,29 +2135,20 @@ function TimeSeriesChart() {
         </Alert>
       )}
 
-<Alert
-  severity="warning"
-  icon={<WarningAmberIcon />}
-  sx={{ mb: 1.5 }}
->
-  <strong>Known issue:</strong> GitHub appears to have recently applied API restrictions that are affecting Daily Stars Explorer. Repository star history and related statistics may be incomplete or unavailable while I investigate. This is likely related to{" "}
-  <a
-    href="https://github.blog/changelog/2026-06-30-upcoming-access-restrictions-to-public-api-endpoints-and-ui-views/"
-    target="_blank"
-    rel="noopener noreferrer"
-  >
-    GitHub's recent API changes
-  </a>
-  . Follow updates or report any findings in{" "}
-  <a
-    href="https://github.com/emanuelef/daily-stars-explorer/issues/363"
-    target="_blank"
-    rel="noopener noreferrer"
-  >
-    Issue #363
-  </a>
-  .
-</Alert>
+      <Alert severity="warning" sx={{ mb: 1.5 }}>
+      <strong>Known issue:</strong> GitHub appears to have recently applied API
+      restrictions that are affecting Daily Stars Explorer. Repository star history
+      and related statistics may be incomplete or unavailable while this is being
+      investigated. Follow updates in{" "}
+      <a
+        href="https://github.com/emanuelef/daily-stars-explorer/issues/363"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Issue #363
+      </a>
+      .
+      </Alert>
 
       {/* Pinned Repos Quick Access */}
       {pinnedRepos.length > 0 && (
