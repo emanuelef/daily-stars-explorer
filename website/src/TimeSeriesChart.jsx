@@ -2135,26 +2135,29 @@ function TimeSeriesChart() {
         </Alert>
       )}
 
-      {showFeedbackBanner && (
-        <Alert
-          severity="info"
-          action={
-            <IconButton
-              aria-label="close"
-              color="inherit"
-              size="small"
-              onClick={() => {
-                setShowFeedbackBanner(false);
-              }}
-            >
-              <CloseIcon fontSize="inherit" />
-            </IconButton>
-          }
-          sx={{ mb: 1.5 }}
-        >
-          If you have a moment, please share your feedback or suggestions in the <a href="https://github.com/emanuelef/daily-stars-explorer/discussions/218" target="_blank" rel="noopener noreferrer" style={{ color: '#2196f3', textDecoration: 'underline' }}>GitHub Discussion</a>. Your input helps improve the tool!
-        </Alert>
-      )}
+<Alert
+  severity="warning"
+  icon={<WarningAmberIcon />}
+  sx={{ mb: 1.5 }}
+>
+  <strong>Known issue:</strong> GitHub appears to have recently applied API restrictions that are affecting Daily Stars Explorer. Repository star history and related statistics may be incomplete or unavailable while I investigate. This is likely related to{" "}
+  <a
+    href="https://github.blog/changelog/2026-06-30-upcoming-access-restrictions-to-public-api-endpoints-and-ui-views/"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    GitHub's recent API changes
+  </a>
+  . Follow updates or report any findings in{" "}
+  <a
+    href="https://github.com/emanuelef/daily-stars-explorer/issues/363"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    Issue #363
+  </a>
+  .
+</Alert>
 
       {/* Pinned Repos Quick Access */}
       {pinnedRepos.length > 0 && (
