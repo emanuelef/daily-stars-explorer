@@ -2134,7 +2134,7 @@ function TimeSeriesChart() {
           {error}
         </Alert>
       )}
-
+/*
       <Alert severity="warning" sx={{ mb: 1.5 }}>
       <strong>Known issue:</strong> GitHub appears to have recently applied API
       restrictions that are affecting Daily Stars Explorer. Repository star history
@@ -2149,7 +2149,7 @@ function TimeSeriesChart() {
       </a>
       .
       </Alert>
-
+*/
       {/* Pinned Repos Quick Access */}
       {pinnedRepos.length > 0 && (
         <div style={{
