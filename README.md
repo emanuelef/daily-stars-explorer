@@ -16,7 +16,9 @@
 
 A tool to explore the **complete history** of any GitHub repository. Not just stars, but commits, forks, PRs, issues, and contributors over time.
 
-Unlike other star history tools that show a straight line from 40K to the current count, this one shows the actual daily data for repos with 40K+ stars.
+Exact daily star counts used to be the hard part — reconstructing them meant paging through every stargazer, so most tools sampled and drew a near-straight line for large repos. [GitHub's star history endpoint](#-star-history-and-the-2026-api-changes) made that cheap for everyone in September 2026, which is a good thing.
+
+So the point of this tool isn't the star curve on its own — it's the **context around it**: what the repo was actually doing at the time (commits, PRs, issues, contributors), what was said about it on HN, Reddit and YouTube when a spike happened, how two repos compare side by side, and the aggregations that turn a noisy daily series into a trend.
 
 ---
 
