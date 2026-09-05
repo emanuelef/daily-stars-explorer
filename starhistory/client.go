@@ -376,7 +376,7 @@ func (c *Client) do(ctx context.Context, endpoint, repo string) (http.Header, []
 	if err != nil {
 		return nil, nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
