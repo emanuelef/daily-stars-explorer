@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"log"
 	"math/rand"
 	"net/url"
@@ -10,6 +11,7 @@ import (
 
 	cache "github.com/Code-Hex/go-generics-cache"
 	"github.com/emanuelef/gh-repo-stats-server/config"
+	"github.com/emanuelef/gh-repo-stats-server/starhistory"
 	"github.com/emanuelef/github-repo-activity-stats/repostats"
 	"github.com/emanuelef/github-repo-activity-stats/stats"
 	"github.com/gofiber/fiber/v2"
@@ -20,6 +22,16 @@ import (
 
 // classifyGitHubError returns the appropriate HTTP status code and message based on the error
 func classifyGitHubError(err error) (int, string) {
+	// REST star-history failures carry their status, so classify them
+	// structurally. The string matching below is a fallback for the GraphQL
+	// library's errors, and is unreliable here: the error text embeds the
+	// repository name, so a 404 for "aws/aws-sdk-exceeded" would match the
+	// "exceeded" rate-limit rule.
+	var apiErr *starhistory.APIError
+	if errors.As(err, &apiErr) {
+		return apiErr.HTTPStatus()
+	}
+
 	errStr := strings.ToLower(err.Error())
 
 	// Check for rate limit errors

@@ -14,6 +14,7 @@ import (
 	cache "github.com/Code-Hex/go-generics-cache"
 	"github.com/emanuelef/gh-repo-stats-server/config"
 	"github.com/emanuelef/gh-repo-stats-server/session"
+	"github.com/emanuelef/gh-repo-stats-server/starhistory"
 	"github.com/emanuelef/gh-repo-stats-server/types"
 	"github.com/emanuelef/github-repo-activity-stats/repostats"
 	"github.com/emanuelef/github-repo-activity-stats/stats"
@@ -26,6 +27,7 @@ import (
 // AllStarsHandler handles the /allStars endpoint
 func AllStarsHandler(
 	ghStatClients map[string]*repostats.ClientGQL,
+	starClients map[string]*starhistory.Client,
 	cacheStars *cache.Cache[string, types.StarsWithStatsResponse],
 	onGoingStars map[string]bool,
 	currentSessions *session.SessionsLock,
@@ -39,6 +41,10 @@ func AllStarsHandler(
 
 		clientKey, client := SelectBestClient(ctx, ghStatClients, overrideClient)
 		if client == nil {
+			return c.Status(500).SendString("No GitHub API client available")
+		}
+		starClient := selectStarClient(starClients, clientKey)
+		if starClient == nil {
 			return c.Status(500).SendString("No GitHub API client available")
 		}
 		log.Printf("AllStars using client: %s", clientKey)
@@ -96,13 +102,13 @@ func AllStarsHandler(
 		MarkClientBusy(clientKey, repo)
 
 		updateChannel := make(chan int)
-		var allStars []stats.StarsPerDay
+		var allStars []starhistory.StarsPerDay
 
 		eg, localCtx := errgroup.WithContext(ctx)
 
 		eg.Go(func() error {
 			var err error
-			allStars, err = client.GetAllStarsHistoryTwoWays(localCtx, repo, updateChannel)
+			allStars, err = starClient.DailyHistory(localCtx, repo, updateChannel)
 			if err != nil {
 				return err
 			}
@@ -132,23 +138,24 @@ func AllStarsHandler(
 			return c.Status(status).SendString(message)
 		}
 
-		defer close(updateChannel)
+		// The fetch owns updateChannel and closes it; closing again here would
+		// panic once the range loop above returns.
 
 		// Remove incomplete (today's) day before creating response and caching in /allStars ---
 		if len(allStars) > 0 {
 			todayStr := time.Now().Format("02-01-2006")
-			lastDayStr := time.Time(allStars[len(allStars)-1].Day).Format("02-01-2006")
+			lastDayStr := allStars[len(allStars)-1].Day.Time().Format("02-01-2006")
 			if lastDayStr == todayStr {
 				allStars = allStars[:len(allStars)-1] // remove incomplete day
 			}
 		}
 
-		maxPeriods, maxPeaks, err := repostats.FindMaxConsecutivePeriods(allStars, 10)
+		maxPeriods, maxPeaks, err := starhistory.FindMaxConsecutivePeriods(allStars, 10)
 		if err != nil {
 			return err
 		}
 
-		newLastNDays := repostats.NewStarsLastDays(allStars, 10)
+		newLastNDays := starhistory.NewStarsLastDays(allStars, 10)
 
 		res := types.StarsWithStatsResponse{
 			Stars:         allStars,
@@ -172,6 +179,7 @@ func AllStarsHandler(
 // RecentStarsHandler handles the /recentStars endpoint
 func RecentStarsHandler(
 	ghStatClients map[string]*repostats.ClientGQL,
+	starClients map[string]*starhistory.Client,
 	cacheStars *cache.Cache[string, types.StarsWithStatsResponse],
 	ctx context.Context,
 ) fiber.Handler {
@@ -182,6 +190,10 @@ func RecentStarsHandler(
 
 		clientKey, client := SelectBestClient(ctx, ghStatClients, overrideClient)
 		if client == nil {
+			return c.Status(500).SendString("No GitHub API client available")
+		}
+		starClient := selectStarClient(starClients, clientKey)
+		if starClient == nil {
 			return c.Status(500).SendString("No GitHub API client available")
 		}
 		log.Printf("RecentStars using client: %s", clientKey)
@@ -216,13 +228,15 @@ func RecentStarsHandler(
 		span.SetAttributes(attribute.String("caller.ip", ip))
 
 		// 1. Fetch recent daily stars (no cumulative) for the last N days
-		recentStars, err := client.GetRecentStarsHistoryTwoWays(ctx, repo, lastDays, nil)
+		recentStars, err := starClient.RecentDailyHistory(ctx, repo, lastDays)
 		if err != nil {
-			return err
+			log.Printf("Error fetching recent stars for %s: %v", repo, err)
+			status, message := classifyGitHubError(err)
+			return c.Status(status).SendString(message)
 		}
 
 		// 2. Get cached stars for this repo (if any)
-		var cachedStars []stats.StarsPerDay
+		var cachedStars []starhistory.StarsPerDay
 		var cachedRes types.StarsWithStatsResponse
 		var found bool
 		if cachedRes, found = cacheStars.Get(repo); found {
@@ -230,9 +244,9 @@ func RecentStarsHandler(
 		}
 
 		// 3. Create a map to hold all stars data (both cached and recent)
-		mergedMap := make(map[string]stats.StarsPerDay)
+		mergedMap := make(map[string]starhistory.StarsPerDay)
 		for _, entry := range cachedStars {
-			dayStr := time.Time(entry.Day).Format("02-01-2006")
+			dayStr := entry.Day.Time().Format("02-01-2006")
 			mergedMap[dayStr] = entry
 		}
 
@@ -240,7 +254,7 @@ func RecentStarsHandler(
 		todayStr := time.Now().Format("02-01-2006")
 		var hasNewEntries bool
 		for _, entry := range recentStars {
-			entryDayStr := time.Time(entry.Day).Format("02-01-2006")
+			entryDayStr := entry.Day.Time().Format("02-01-2006")
 			if entryDayStr == todayStr {
 				continue // skip today
 			}
@@ -256,14 +270,14 @@ func RecentStarsHandler(
 		}
 
 		// 4. Convert map back to slice and sort by date
-		var mergedStars []stats.StarsPerDay
+		var mergedStars []starhistory.StarsPerDay
 		for _, entry := range mergedMap {
 			mergedStars = append(mergedStars, entry)
 		}
 
 		// Sort by date
 		sort.Slice(mergedStars, func(i, j int) bool {
-			return time.Time(mergedStars[i].Day).Before(time.Time(mergedStars[j].Day))
+			return mergedStars[i].Day.Time().Before(mergedStars[j].Day.Time())
 		})
 
 		// 5. Recalculate cumulative totals
@@ -275,11 +289,11 @@ func RecentStarsHandler(
 			}
 		}
 
-		maxPeriods, maxPeaks, err := repostats.FindMaxConsecutivePeriods(mergedStars, 10)
+		maxPeriods, maxPeaks, err := starhistory.FindMaxConsecutivePeriods(mergedStars, 10)
 		if err != nil {
 			return err
 		}
-		newLastNDays := repostats.NewStarsLastDays(mergedStars, 10)
+		newLastNDays := starhistory.NewStarsLastDays(mergedStars, 10)
 
 		res := types.StarsWithStatsResponse{
 			Stars:         mergedStars,
