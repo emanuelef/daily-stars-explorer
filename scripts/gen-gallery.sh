@@ -22,24 +22,32 @@ CAPTION="emanuelef.github.io/daily-stars-explorer"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 run_chart() { (cd "$ROOT" && go run ./cmd/starchart "$@"); }
 
-mkdir -p "$ROOT/$OUT_DIR"
-echo "Rendering $REPO into $OUT_DIR/"
+# Resolve the output directory to an absolute path once. run_chart cd's into
+# $ROOT, so a relative path has to be anchored there — but blindly prefixing
+# $ROOT would mangle an absolute path into "$ROOT//tmp/...".
+case "$OUT_DIR" in
+  /*) OUT_ABS="$OUT_DIR" ;;
+  *) OUT_ABS="$ROOT/$OUT_DIR" ;;
+esac
 
-run_chart -repo "$REPO" -out "$OUT_DIR/$REPO_SLUG-light.png"       -theme light       -caption "$CAPTION"
-run_chart -repo "$REPO" -out "$OUT_DIR/$REPO_SLUG-dark.png"        -theme dark        -caption "$CAPTION"
-run_chart -repo "$REPO" -out "$OUT_DIR/$REPO_SLUG-transparent.png" -theme transparent -caption "$CAPTION"
-run_chart -repo "$REPO" -out "$OUT_DIR/$REPO_SLUG-daily.png"       -theme light       -daily -caption "$CAPTION"
-run_chart -repo "$REPO" -out "$OUT_DIR/$REPO_SLUG-wide.png"        -theme light       -width 1200 -height 300
-run_chart -repo "$REPO" -out "$OUT_DIR/$REPO_SLUG.svg"             -theme light       -caption "$CAPTION"
-run_chart -repo "$REPO" -out "$OUT_DIR/$REPO_SLUG-mermaid.md"      -format mermaid
+mkdir -p "$OUT_ABS"
+echo "Rendering $REPO into $OUT_ABS/"
 
-MERMAID="$(cat "$ROOT/$OUT_DIR/$REPO_SLUG-mermaid.md")"
+run_chart -repo "$REPO" -out "$OUT_ABS/$REPO_SLUG-light.png"       -theme light       -caption "$CAPTION"
+run_chart -repo "$REPO" -out "$OUT_ABS/$REPO_SLUG-dark.png"        -theme dark        -caption "$CAPTION"
+run_chart -repo "$REPO" -out "$OUT_ABS/$REPO_SLUG-transparent.png" -theme transparent -caption "$CAPTION"
+run_chart -repo "$REPO" -out "$OUT_ABS/$REPO_SLUG-daily.png"       -theme light       -daily -caption "$CAPTION"
+run_chart -repo "$REPO" -out "$OUT_ABS/$REPO_SLUG-wide.png"        -theme light       -width 1200 -height 300
+run_chart -repo "$REPO" -out "$OUT_ABS/$REPO_SLUG.svg"             -theme light       -caption "$CAPTION"
+run_chart -repo "$REPO" -out "$OUT_ABS/$REPO_SLUG-mermaid.md"      -format mermaid
+
+MERMAID="$(cat "$OUT_ABS/$REPO_SLUG-mermaid.md")"
 # Count the x-axis labels, not every comma in the file: the line series has the
 # same number again, which would double the figure.
-MERMAID_POINTS="$(sed -n 's/.*x-axis \[\(.*\)\].*/\1/p' "$ROOT/$OUT_DIR/$REPO_SLUG-mermaid.md" | tr ',' '\n' | wc -l | tr -d ' ')"
+MERMAID_POINTS="$(sed -n 's/.*x-axis \[\(.*\)\].*/\1/p' "$OUT_ABS/$REPO_SLUG-mermaid.md" | tr ',' '\n' | wc -l | tr -d ' ')"
 GENERATED="$(date -u '+%Y-%m-%d %H:%M UTC')"
 
-cat > "$ROOT/$OUT_DIR/README.md" <<EOF
+cat > "$OUT_ABS/README.md" <<EOF
 # Star chart gallery — \`$REPO\`
 
 Every output the [\`starchart\`](../../cmd/starchart) tool can produce, so you can
@@ -130,4 +138,4 @@ picture to the full interactive chart:
 [![Star History](./$REPO_SLUG-light.png)](https://emanuelef.github.io/daily-stars-explorer/#/$REPO)
 EOF
 
-echo "Wrote $OUT_DIR/README.md"
+echo "Wrote $OUT_ABS/README.md"

@@ -7,7 +7,7 @@ pick one for your own README. Regenerate with:
 ./scripts/gen-gallery.sh gofiber/fiber
 ```
 
-Generated 2026-09-06 19:17 UTC.
+Generated 2026-09-06 19:22 UTC.
 
 ## PNG — `-theme light` (default)
 
