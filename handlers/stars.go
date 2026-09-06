@@ -634,3 +634,61 @@ func RecentStarsByHourHandler(
 		return c.JSON(filtered)
 	}
 }
+
+// TodayStarsHandler handles the /todayStars endpoint.
+//
+// The main chart draws today separately: /allStars strips today's incomplete
+// day before caching it for a week, so something uncached has to supply the
+// current day's count. That used to come from /recentStarsByHour, which walked
+// the now-restricted stargazer connection and quietly returned nothing —
+// leaving every chart with a 0 bar for today.
+//
+// The star history endpoint carries today's count in the current week's bucket,
+// so this costs a single uncached GitHub request.
+func TodayStarsHandler(
+	ghStatClients map[string]*repostats.ClientGQL,
+	starClients map[string]*starhistory.Client,
+	ctx context.Context,
+) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		param := c.Query("repo")
+		overrideClient := c.Query("client", "")
+
+		clientKey, _ := SelectBestClient(ctx, ghStatClients, overrideClient)
+		starClient := selectStarClient(starClients, clientKey)
+		if starClient == nil {
+			return c.Status(500).SendString("No GitHub API client available")
+		}
+
+		repo, err := url.QueryUnescape(param)
+		if err != nil {
+			return err
+		}
+		repo = strings.ToLower(repo)
+		repo = strings.Clone(repo) // Fiber's c.Query returns unsafe strings backed by a reusable buffer
+
+		span := trace.SpanFromContext(c.UserContext())
+		span.SetAttributes(attribute.String("github.repo", repo))
+
+		series, err := starClient.RecentDailyHistory(ctx, repo, 1)
+		if err != nil {
+			log.Printf("Error fetching today's stars for %s: %v", repo, err)
+			status, message := classifyGitHubError(err)
+			return c.Status(status).SendString(message)
+		}
+
+		stars := 0
+		day := time.Now().UTC().Format("02-01-2006")
+		if len(series) > 0 {
+			today := series[len(series)-1]
+			stars = today.Stars
+			day = today.Day.Time().Format("02-01-2006")
+		}
+
+		return c.JSON(fiber.Map{
+			"repo":  repo,
+			"day":   day,
+			"stars": stars,
+		})
+	}
+}

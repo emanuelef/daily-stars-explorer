@@ -120,6 +120,11 @@ func RegisterStarsRoutes(
 		caches.Stars,
 		ctx,
 	))
+	app.Get("/todayStars", handlers.TodayStarsHandler(
+		ghStatClients,
+		starClients,
+		ctx,
+	))
 	app.Get("/recentStarsByHour", handlers.RecentStarsByHourHandler(
 		ghStatClients,
 		caches.RecentStarsByHour,

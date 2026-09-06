@@ -347,10 +347,11 @@ function TimeSeriesChart() {
   const currentPeaks = useRef([]);
   const chartRef = useRef(null);
   const currentRepoRef = useRef(defaultRepo); // Track current repo for async operations
-  // Today's stars derived from /recentStarsByHour (consistent with the edges-based
-  // cumulative). Using /totalStars (GraphQL StargazerCount) here causes a phantom
-  // +N today, where N is the count of deleted/suspended stargazers (usually 1).
-  const todayHourlyStarsRef = useRef({ repo: null, count: 0 });
+  // Today's stars come from /todayStars, which reads the current day out of
+  // GitHub's star history endpoint. Using /totalStars (StargazerCount) here
+  // causes a phantom +N today, where N is the count of deleted/suspended
+  // stargazers excluded from the history aggregate (usually 1).
+  const todayStarsRef = useRef({ repo: null, count: 0 });
 
   const [feed, setFeed] = useState("none");
   const [theme, setTheme] = useState(defaultChartTheme);
@@ -1121,29 +1122,26 @@ function TimeSeriesChart() {
         // Get the previous day's total stars (if available)
         const prevTotalStars = starHistory[starHistory.length - 1][2];
 
-        // Today's daily count comes from /recentStarsByHour (hourly buckets summed over
-        // today's wall-clock day). Do NOT use (StargazerCount - prevTotalStars): the
-        // StargazerCount includes deleted/suspended users that are filtered out of the
-        // walked stargazer edges that built prevTotalStars, leaving a persistent +N skew
-        // (usually +1) that produced a phantom bar on every repo.
+        // Today's daily count comes from /todayStars, which reads the current day
+        // out of GitHub's star history endpoint. Do NOT use
+        // (StargazerCount - prevTotalStars): StargazerCount includes
+        // deleted/suspended users that the history aggregate excludes, leaving a
+        // persistent +N skew (usually +1) that produced a phantom bar on every repo.
         const repo = currentRepoRef.current;
         let todayDailyStars = 0;
-        if (todayHourlyStarsRef.current.repo === repo) {
-          todayDailyStars = todayHourlyStarsRef.current.count;
+        if (todayStarsRef.current.repo === repo) {
+          todayDailyStars = todayStarsRef.current.count;
         } else {
           try {
-            const r = await fetch(`${HOST}/recentStarsByHour?repo=${repo}&lastDays=1`);
+            const r = await fetch(`${HOST}/todayStars?repo=${repo}`);
             if (r.ok) {
-              const hours = await r.json();
-              const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
-              todayDailyStars = (hours || [])
-                .filter((h) => new Date(h.hour).getTime() >= startOfToday)
-                .reduce((s, h) => s + (h.stars || 0), 0);
+              const todayData = await r.json();
+              todayDailyStars = todayData?.stars || 0;
             }
           } catch (_e) {
             todayDailyStars = 0;
           }
-          todayHourlyStarsRef.current = { repo, count: todayDailyStars };
+          todayStarsRef.current = { repo, count: todayDailyStars };
         }
         // Cumulative for the synthesised today must extend prevTotalStars (the
         // walked-edges cumulative) so the chart stays internally consistent.
@@ -1486,7 +1484,7 @@ function TimeSeriesChart() {
     // Clear old mentions when fetching new repo data
     currentHNnews.current = {};
     currentPeaks.current = [];
-    todayHourlyStarsRef.current = { repo: null, count: 0 };
+    todayStarsRef.current = { repo: null, count: 0 };
 
     // 1. Check status first
     const status = await fetchStatus(repo);
@@ -2134,20 +2132,6 @@ function TimeSeriesChart() {
           {error}
         </Alert>
       )}
-      <Alert severity="warning" sx={{ mb: 1.5 }}>
-      <strong>Known issue:</strong> GitHub appears to have recently applied API
-      restrictions that are affecting Daily Stars Explorer. Repository star history
-      and related statistics may be incomplete or unavailable while this is being
-      investigated. Follow updates in{" "}
-      <a
-        href="https://github.com/emanuelef/daily-stars-explorer/issues/363"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Issue #363
-      </a>
-      .
-      </Alert>
       {/* Pinned Repos Quick Access */}
       {pinnedRepos.length > 0 && (
         <div style={{

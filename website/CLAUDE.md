@@ -48,8 +48,9 @@ The frontend talks to the Go backend. In dev, the Vite dev server proxies to `lo
 
 | Endpoint              | Purpose                        |
 | --------------------- | ------------------------------ |
-| `/allStars?repo=x`    | Full daily star history        |
-| `/recentStarsByHour`  | Hourly star data               |
+| `/allStars?repo=x`    | Full daily star history (today stripped as incomplete) |
+| `/todayStars?repo=x`  | Today's star count, uncached — the chart appends this as the final point |
+| `/recentStarsByHour`  | Hourly star data — **dead**, needs per-stargazer timestamps GitHub no longer exposes |
 | `/allIssues?repo=x`   | Issues timeline                |
 | `/allForks?repo=x`    | Forks timeline                 |
 | `/allPRs?repo=x`      | PRs timeline                   |
