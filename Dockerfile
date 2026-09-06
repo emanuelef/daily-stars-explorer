@@ -19,7 +19,10 @@ COPY go.mod go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     go mod download
-# Then copy source code
+# Then copy source code.
+# These are listed individually so frontend-only changes don't invalidate the Go
+# build cache. Adding a new top-level Go package means adding a COPY here too —
+# otherwise the build fails with "no required module provides package ...".
 COPY main.go .
 COPY cache ./cache
 COPY config ./config
@@ -28,6 +31,7 @@ COPY news ./news
 COPY otel_instrumentation ./otel_instrumentation
 COPY routes ./routes
 COPY session ./session
+COPY starhistory ./starhistory
 COPY types ./types
 COPY utils ./utils
 RUN --mount=type=cache,target=/go/pkg/mod \
