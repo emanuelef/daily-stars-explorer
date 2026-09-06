@@ -10,6 +10,7 @@ import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import Alert from "@mui/material/Alert";
+import Link from "@mui/material/Link";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
 import SendIcon from "@mui/icons-material/Send";
@@ -583,9 +584,14 @@ function HourlyStarsChart() {
           privacy-safe replacement
         </a>{" "}
         only goes down to one day, so daily star history still works — see the{" "}
-        <a href="#/" rel="noopener noreferrer">
+        <Link
+          component="button"
+          type="button"
+          onClick={() => navigate(selectedRepo ? `/${selectedRepo}` : "/")}
+          sx={{ verticalAlign: "baseline" }}
+        >
           Stars
-        </a>{" "}
+        </Link>{" "}
         page. This page is kept for reference and will show no data.
       </Alert>
 
