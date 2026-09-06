@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	cache "github.com/Code-Hex/go-generics-cache"
+	"github.com/emanuelef/gh-repo-stats-server/starhistory"
 	"github.com/emanuelef/gh-repo-stats-server/types"
 	"github.com/emanuelef/gh-repo-stats-server/utils"
 	"github.com/emanuelef/github-repo-activity-stats/stats"
@@ -113,7 +114,7 @@ func DeleteRecentStarsCacheHandler(cacheStars *cache.Cache[string, types.StarsWi
 		}
 
 		if n >= len(cached.Stars) {
-			cached.Stars = []stats.StarsPerDay{}
+			cached.Stars = []starhistory.StarsPerDay{}
 		} else {
 			cached.Stars = cached.Stars[:len(cached.Stars)-n]
 		}

@@ -7,6 +7,7 @@ import (
 	"github.com/emanuelef/gh-repo-stats-server/handlers"
 	"github.com/emanuelef/gh-repo-stats-server/news"
 	"github.com/emanuelef/gh-repo-stats-server/session"
+	"github.com/emanuelef/gh-repo-stats-server/starhistory"
 	"github.com/emanuelef/gh-repo-stats-server/types"
 	"github.com/emanuelef/github-repo-activity-stats/repostats"
 	"github.com/emanuelef/github-repo-activity-stats/stats"
@@ -98,6 +99,7 @@ func RegisterStarsRoutes(
 	app *fiber.App,
 	ctx context.Context,
 	ghStatClients map[string]*repostats.ClientGQL,
+	starClients map[string]*starhistory.Client,
 	caches *Caches,
 	onGoingStars map[string]bool,
 	currentSessions *session.SessionsLock,
@@ -105,6 +107,7 @@ func RegisterStarsRoutes(
 ) {
 	app.Get("/allStars", handlers.AllStarsHandler(
 		ghStatClients,
+		starClients,
 		caches.Stars,
 		onGoingStars,
 		currentSessions,
@@ -113,6 +116,7 @@ func RegisterStarsRoutes(
 	))
 	app.Get("/recentStars", handlers.RecentStarsHandler(
 		ghStatClients,
+		starClients,
 		caches.Stars,
 		ctx,
 	))

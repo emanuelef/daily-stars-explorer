@@ -20,6 +20,7 @@ import (
 	"github.com/emanuelef/gh-repo-stats-server/otel_instrumentation"
 	"github.com/emanuelef/gh-repo-stats-server/routes"
 	"github.com/emanuelef/gh-repo-stats-server/session"
+	"github.com/emanuelef/gh-repo-stats-server/starhistory"
 	"github.com/emanuelef/gh-repo-stats-server/types"
 	"github.com/emanuelef/gh-repo-stats-server/utils"
 	"github.com/emanuelef/github-repo-activity-stats/repostats"
@@ -80,6 +81,17 @@ func main() {
 	ghStatClients["PAT"] = utils.NewClientWithPAT(os.Getenv("PAT"))
 	if pat2 := os.Getenv("PAT2"); pat2 != "" {
 		ghStatClients["PAT2"] = utils.NewClientWithPAT(pat2)
+	}
+
+	// Star history comes from the REST API rather than GraphQL: GitHub
+	// restricted the stargazers connection the library walks, and the
+	// restriction is silent (HTTP 200 with an empty edge list), so the old path
+	// charted a flat zero line instead of failing. REST also spends a separate
+	// rate-limit bucket from the GraphQL queries the other features use.
+	starClients := make(map[string]*starhistory.Client)
+	starClients["PAT"] = starhistory.New(os.Getenv("PAT"))
+	if pat2 := os.Getenv("PAT2"); pat2 != "" {
+		starClients["PAT2"] = starhistory.New(pat2)
 	}
 
 	app := fiber.New()
@@ -184,7 +196,7 @@ func main() {
 	routes.RegisterRequestStatsRoutes(app, &allStarsRequestStats)
 
 	// Register stars routes
-	routes.RegisterStarsRoutes(app, ctx, ghStatClients, caches, onGoingStars, &currentSessions, &allStarsRequestStats)
+	routes.RegisterStarsRoutes(app, ctx, ghStatClients, starClients, caches, onGoingStars, &currentSessions, &allStarsRequestStats)
 
 	// Register repository activity routes
 	routes.RegisterRepoActivityRoutes(app, ctx, ghStatClients, caches, onGoingMaps, &currentSessions)

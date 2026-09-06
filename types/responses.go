@@ -1,15 +1,23 @@
 package types
 
 import (
+	"github.com/emanuelef/gh-repo-stats-server/starhistory"
 	"github.com/emanuelef/github-repo-activity-stats/repostats"
 	"github.com/emanuelef/github-repo-activity-stats/stats"
 )
 
+// StarsWithStatsResponse is the /allStars and /recentStars payload.
+//
+// Star types come from the local starhistory package rather than the
+// github-repo-activity-stats library: GitHub restricted the GraphQL stargazers
+// connection the library walks, so stars are now fetched over REST here. The
+// JSON is unchanged — starhistory's wire test pins it against the library
+// types these replaced.
 type StarsWithStatsResponse struct {
-	Stars         []stats.StarsPerDay   `json:"stars"`
-	NewLast10Days int                   `json:"newLast10Days"`
-	MaxPeriods    []repostats.MaxPeriod `json:"maxPeriods"`
-	MaxPeaks      []repostats.PeakDay   `json:"maxPeaks"`
+	Stars         []starhistory.StarsPerDay `json:"stars"`
+	NewLast10Days int                       `json:"newLast10Days"`
+	MaxPeriods    []starhistory.MaxPeriod   `json:"maxPeriods"`
+	MaxPeaks      []starhistory.PeakDay     `json:"maxPeaks"`
 }
 
 type IssuesWithStatsResponse struct {

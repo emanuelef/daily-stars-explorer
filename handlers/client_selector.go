@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/emanuelef/gh-repo-stats-server/starhistory"
 	"github.com/emanuelef/github-repo-activity-stats/repostats"
 )
 
@@ -233,4 +234,17 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// selectStarClient returns the REST star-history client matching the key the
+// GraphQL selector chose, so both paths log and mark busy under the same name.
+// Falls back to any available client if that key has none.
+func selectStarClient(starClients map[string]*starhistory.Client, key string) *starhistory.Client {
+	if client, ok := starClients[key]; ok {
+		return client
+	}
+	for _, client := range starClients {
+		return client
+	}
+	return nil
 }
