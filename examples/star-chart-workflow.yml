@@ -1,0 +1,67 @@
+# Example: keep a star history chart in your README up to date.
+#
+# Copy this into your own repository as .github/workflows/star-history.yml,
+# then embed the image in your README:
+#
+#     ![Star History](./star-history.png)
+#
+# Or, to serve a light and a dark version and let GitHub pick:
+#
+#     <picture>
+#       <source media="(prefers-color-scheme: dark)" srcset="./star-history-dark.png">
+#       <img alt="Star History" src="./star-history.png">
+#     </picture>
+#
+# It is NOT active in this repository — it lives under examples/ deliberately,
+# so it never commits here on a schedule.
+
+name: Star history chart
+
+on:
+  schedule:
+    # Once a day. Star history changes slowly; hourly would just churn commits.
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+# Needed only by the commit step below.
+permissions:
+  contents: write
+
+jobs:
+  chart:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Render light chart
+        uses: emanuelef/gh-repo-stats-server@v0.1.0
+        id: chart
+        with:
+          output: star-history.png
+          theme: light
+          caption: emanuelef.github.io/daily-stars-explorer
+
+      - name: Render dark chart
+        uses: emanuelef/gh-repo-stats-server@v0.1.0
+        with:
+          output: star-history-dark.png
+          theme: dark
+          caption: emanuelef.github.io/daily-stars-explorer
+
+      - name: Commit if the chart changed
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Nothing to do when the pixels are identical — avoids a daily
+          # no-op commit on repositories that gained no stars.
+          if git diff --quiet -- star-history.png star-history-dark.png; then
+            echo "Chart unchanged (${{ steps.chart.outputs.stars }} stars); skipping commit."
+            exit 0
+          fi
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add star-history.png star-history-dark.png
+          git commit -m "chore: update star history chart (${{ steps.chart.outputs.stars }} stars)"
+          git push
