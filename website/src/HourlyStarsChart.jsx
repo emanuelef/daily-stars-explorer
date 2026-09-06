@@ -563,6 +563,32 @@ function HourlyStarsChart() {
 
   return (
     <div style={{ background: currentTheme.background, minHeight: '100vh', padding: '10px' }}>
+      <Alert severity="warning" sx={{ mb: 2 }}>
+        <strong>Hourly stars are no longer available.</strong> Building an
+        hour-by-hour view required the timestamp of each individual star, and
+        GitHub{" "}
+        <a
+          href="https://github.blog/changelog/2026-06-30-upcoming-access-restrictions-to-public-api-endpoints-and-ui-views/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          restricted access to stargazer data
+        </a>{" "}
+        in 2026 to protect user privacy. Its{" "}
+        <a
+          href="https://github.blog/changelog/2026-09-04-new-api-endpoint-provides-privacy-safe-star-history-data/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          privacy-safe replacement
+        </a>{" "}
+        only goes down to one day, so daily star history still works — see the{" "}
+        <a href="#/" rel="noopener noreferrer">
+          Stars
+        </a>{" "}
+        page. This page is kept for reference and will show no data.
+      </Alert>
+
       {showError && (
         <Alert
           severity="error"
