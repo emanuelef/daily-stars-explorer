@@ -351,7 +351,7 @@ function TimeSeriesChart() {
   // GitHub's star history endpoint. Using /totalStars (StargazerCount) here
   // causes a phantom +N today, where N is the count of deleted/suspended
   // stargazers excluded from the history aggregate (usually 1).
-  const todayStarsRef = useRef({ repo: null, count: 0 });
+  const todayStarsRef = useRef({ repo: null, count: 0, started: false });
 
   const [feed, setFeed] = useState("none");
   const [theme, setTheme] = useState(defaultChartTheme);
@@ -1124,30 +1124,41 @@ function TimeSeriesChart() {
 
         // Today's daily count comes from /todayStars, which reads the current day
         // out of GitHub's star history endpoint. Do NOT use
-        // (StargazerCount - prevTotalStars): StargazerCount includes
-        // deleted/suspended users that the history aggregate excludes, leaving a
-        // persistent +N skew (usually +1) that produced a phantom bar on every repo.
+        // (StargazerCount - prevTotalStars): StargazerCount can run ahead of the
+        // aggregate, and the difference is skew rather than stars, which used to
+        // produce a phantom bar on every repo.
+        //
+        // `started` says whether GitHub has begun counting the current UTC day at
+        // all. Its day boundary trails UTC by 7-8 hours, so for those hours
+        // "0 stars today" means "this day does not exist yet", not "no stars" —
+        // plotting it drew a hard drop to zero that looked like collapsed activity.
         const repo = currentRepoRef.current;
         let todayDailyStars = 0;
+        let todayStarted = false;
         if (todayStarsRef.current.repo === repo) {
           todayDailyStars = todayStarsRef.current.count;
+          todayStarted = todayStarsRef.current.started;
         } else {
           try {
             const r = await fetch(`${HOST}/todayStars?repo=${repo}`);
             if (r.ok) {
               const todayData = await r.json();
               todayDailyStars = todayData?.stars || 0;
+              todayStarted = todayData?.started === true;
             }
           } catch (_e) {
             todayDailyStars = 0;
+            todayStarted = false;
           }
-          todayStarsRef.current = { repo, count: todayDailyStars };
+          todayStarsRef.current = { repo, count: todayDailyStars, started: todayStarted };
         }
-        // Cumulative for the synthesised today must extend prevTotalStars (the
-        // walked-edges cumulative) so the chart stays internally consistent.
-        const todayTotalStars = prevTotalStars + todayDailyStars;
-        starHistory.push([formattedToday, todayDailyStars, todayTotalStars]);
-        console.log("Added today's data point:", formattedToday, todayDailyStars, todayTotalStars);
+
+        if (todayStarted) {
+          // Cumulative for the synthesised today must extend prevTotalStars so
+          // the chart stays internally consistent.
+          const todayTotalStars = prevTotalStars + todayDailyStars;
+          starHistory.push([formattedToday, todayDailyStars, todayTotalStars]);
+        }
 
         // Update the starsLast10d value to include today's stars
         const updatedLast10DaysStars = calculateStarsLast10Days(starHistory);
@@ -1484,7 +1495,7 @@ function TimeSeriesChart() {
     // Clear old mentions when fetching new repo data
     currentHNnews.current = {};
     currentPeaks.current = [];
-    todayStarsRef.current = { repo: null, count: 0 };
+    todayStarsRef.current = { repo: null, count: 0, started: false };
 
     // 1. Check status first
     const status = await fetchStatus(repo);

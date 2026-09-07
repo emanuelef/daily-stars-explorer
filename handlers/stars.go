@@ -22,6 +22,10 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/sync/errgroup"
+
+	// Embeds the IANA time zone database so githubBucketDay works in the bare
+	// alpine runtime image, which ships no tzdata.
+	_ "time/tzdata"
 )
 
 // AllStarsHandler handles the /allStars endpoint
@@ -88,6 +92,20 @@ func AllStarsHandler(
 		}
 
 		if res, hit := cacheStars.Get(repo); hit {
+			// A cached series stops at the last day that was complete when it
+			// was built, so top it up before serving rather than handing back
+			// a chart that is silently days behind.
+			updated, changed, err := refreshCachedStars(ctx, starClient, repo, res)
+			switch {
+			case err != nil:
+				// Serving a slightly stale chart beats failing the request.
+				log.Printf("Could not refresh cached stars for %s, serving as cached: %v", repo, err)
+			case changed:
+				cacheStars.Set(repo, updated, cache.WithExpiration(starsCacheExpiry()))
+				res = updated
+				log.Printf("Refreshed cached stars for %s up to %s", repo,
+					updated.Stars[len(updated.Stars)-1].Day.Time().Format("02-01-2006"))
+			}
 			return c.JSON(res)
 		}
 
@@ -635,19 +653,46 @@ func RecentStarsByHourHandler(
 	}
 }
 
+// githubBucketLocation is the time zone GitHub appears to bucket star days in.
+//
+// The API docs only warn that "week and day boundaries are not guaranteed to
+// align with UTC" without saying which zone. Observation pins it to US Pacific:
+// at 06:23 UTC on 2026-09-07 (23:23 PDT on the 6th), every repository checked
+// reported 0 stars for the 7th and a full day's worth for the 6th, and the live
+// stargazers_count agreed exactly. tzdata is embedded (see the blank import in
+// this package) because the runtime image is bare alpine.
+const githubBucketZone = "America/Los_Angeles"
+
+// pacificFallback is used if the zone cannot be loaded: PST, the larger of the
+// two offsets, so we err towards reporting a day as not-yet-started.
+var pacificFallback = time.FixedZone("PST", -8*60*60)
+
+func githubBucketDay(now time.Time) time.Time {
+	loc, err := time.LoadLocation(githubBucketZone)
+	if err != nil {
+		loc = pacificFallback
+	}
+	local := now.In(loc)
+	return time.Date(local.Year(), local.Month(), local.Day(), 0, 0, 0, 0, time.UTC)
+}
+
 // TodayStarsHandler handles the /todayStars endpoint.
 //
 // The main chart draws today separately: /allStars strips today's incomplete
 // day before caching it for a week, so something uncached has to supply the
-// current day's count. That used to come from /recentStarsByHour, which walked
-// the now-restricted stargazer connection and quietly returned nothing —
-// leaving every chart with a 0 bar for today.
+// current day's count.
 //
-// The star history endpoint carries today's count in the current week's bucket,
-// so this costs a single uncached GitHub request.
+// It also reports whether GitHub has actually begun counting the current UTC
+// day. Because GitHub's day boundary trails UTC by 7-8 hours, "0 stars today"
+// is ambiguous for several hours after UTC midnight: it can mean "no stars yet"
+// or "this day does not exist in GitHub's data yet". Callers need to tell those
+// apart, otherwise the chart plots a hard 0 that reads as a collapse in
+// activity. Returning the live count alongside lets a caller sanity-check the
+// aggregate without re-deriving the skew rule.
 func TodayStarsHandler(
 	ghStatClients map[string]*repostats.ClientGQL,
 	starClients map[string]*starhistory.Client,
+	cacheStars *cache.Cache[string, types.StarsWithStatsResponse],
 	ctx context.Context,
 ) fiber.Handler {
 	return func(c *fiber.Ctx) error {
@@ -677,18 +722,143 @@ func TodayStarsHandler(
 			return c.Status(status).SendString(message)
 		}
 
+		now := time.Now()
+		utcToday := now.UTC().Truncate(24 * time.Hour)
+
 		stars := 0
-		day := time.Now().UTC().Format("02-01-2006")
+		day := utcToday
 		if len(series) > 0 {
 			today := series[len(series)-1]
 			stars = today.Stars
-			day = today.Day.Time().Format("02-01-2006")
+			day = today.Day.Time()
 		}
 
+		// Cumulative through yesterday, taken from the cached series that
+		// /allStars just refreshed. Absent on a cold cache, which only costs us
+		// the live cross-check.
+		throughYesterday := 0
+		if cached, hit := cacheStars.Get(repo); hit && len(cached.Stars) > 0 {
+			last := cached.Stars[len(cached.Stars)-1]
+			if !last.Day.Time().Before(utcToday.AddDate(0, 0, -1)) {
+				throughYesterday = last.TotalStars
+			}
+		}
+
+		// The live counter is authoritative for "right now"; the aggregate is
+		// authoritative per-day. Their difference is today's not-yet-bucketed
+		// stars plus any skew, so report it rather than silently trusting it.
+		totalStars, liveDelta := 0, 0
+		if info, infoErr := starClient.RepoInfo(ctx, repo); infoErr != nil {
+			log.Printf("Could not read live star count for %s: %v", repo, infoErr)
+		} else {
+			totalStars = info.StargazersCount
+			if throughYesterday > 0 {
+				liveDelta = totalStars - throughYesterday
+			}
+		}
+
+		// Started when GitHub's own day has caught up with the UTC day, or when
+		// either source has already seen a star for it.
+		started := !githubBucketDay(now).Before(utcToday) || stars > 0 || liveDelta > 0
+
 		return c.JSON(fiber.Map{
-			"repo":  repo,
-			"day":   day,
-			"stars": stars,
+			"repo":             repo,
+			"day":              day.Format("02-01-2006"),
+			"stars":            stars,
+			"started":          started,
+			"totalStars":       totalStars,
+			"throughYesterday": throughYesterday,
+			"liveDelta":        liveDelta,
 		})
 	}
+}
+
+// starsCacheExpiry is how long a stars response stays cached.
+func starsCacheExpiry() time.Duration {
+	now := time.Now()
+	nextDay := now.UTC().Truncate(24 * time.Hour).Add(config.DayCached * 24 * time.Hour)
+	return nextDay.Sub(now)
+}
+
+// mergeDailySeries merges updates into base keyed by day, discards any day on
+// or after cutoff, and recomputes the running totals.
+func mergeDailySeries(base, updates []starhistory.StarsPerDay, cutoff time.Time) []starhistory.StarsPerDay {
+	byDay := make(map[string]starhistory.StarsPerDay, len(base)+len(updates))
+	for _, entry := range base {
+		byDay[entry.Day.Time().Format("02-01-2006")] = entry
+	}
+	for _, entry := range updates {
+		if !entry.Day.Time().Before(cutoff) {
+			continue // still in progress; never cache a partial day
+		}
+		byDay[entry.Day.Time().Format("02-01-2006")] = entry
+	}
+
+	merged := make([]starhistory.StarsPerDay, 0, len(byDay))
+	for _, entry := range byDay {
+		merged = append(merged, entry)
+	}
+	sort.Slice(merged, func(i, j int) bool {
+		return merged[i].Day.Time().Before(merged[j].Day.Time())
+	})
+
+	running := 0
+	for i := range merged {
+		running += merged[i].Stars
+		merged[i].TotalStars = running
+	}
+	return merged
+}
+
+// refreshCachedStars tops a cached series up with the days that have completed
+// since it was built, returning whether anything changed.
+//
+// /allStars strips the incomplete current day before caching, so a response
+// cached on day D ends on D-1. By D+1 that cached series is two days behind,
+// and the frontend only appends today when the series already reaches
+// yesterday — so a day-old cache silently dropped both yesterday and today from
+// the chart. Topping up here costs one REST request and keeps every response
+// current.
+func refreshCachedStars(
+	ctx context.Context,
+	client *starhistory.Client,
+	repo string,
+	cached types.StarsWithStatsResponse,
+) (types.StarsWithStatsResponse, bool, error) {
+	if len(cached.Stars) == 0 {
+		return cached, false, nil
+	}
+
+	today := time.Now().UTC().Truncate(24 * time.Hour)
+	yesterday := today.AddDate(0, 0, -1)
+
+	lastDay := cached.Stars[len(cached.Stars)-1].Day.Time().UTC().Truncate(24 * time.Hour)
+	if !lastDay.Before(yesterday) {
+		return cached, false, nil // already complete through yesterday
+	}
+
+	// +1 so the window includes the last cached day itself, letting the merge
+	// correct it if it was stored while still partial.
+	days := int(today.Sub(lastDay)/(24*time.Hour)) + 1
+	recent, err := client.RecentDailyHistory(ctx, repo, days)
+	if err != nil {
+		return cached, false, err
+	}
+
+	merged := mergeDailySeries(cached.Stars, recent, today)
+	if len(merged) == len(cached.Stars) {
+		return cached, false, nil
+	}
+
+	maxPeriods, maxPeaks, err := starhistory.FindMaxConsecutivePeriods(merged, 10)
+	if err != nil {
+		return cached, false, err
+	}
+
+	return types.StarsWithStatsResponse{
+		Stars:         merged,
+		NewLast10Days: starhistory.NewStarsLastDays(merged, 10),
+		MaxPeriods:    maxPeriods,
+		MaxPeaks:      maxPeaks,
+	}, true, nil
 }

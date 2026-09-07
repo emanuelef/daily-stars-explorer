@@ -1,0 +1,82 @@
+# Renders every starchart variant for a repository and commits the gallery, so
+# the result can be reviewed on GitHub as rendered Markdown.
+#
+# Run it from the Actions tab: "Star chart gallery" -> Run workflow.
+# Manual only — it never runs on a schedule or on push.
+
+name: Star chart gallery
+
+on:
+  workflow_dispatch:
+    inputs:
+      repo:
+        description: "Repository to chart, as owner/name"
+        required: true
+        default: "gofiber/fiber"
+      commit:
+        description: "Commit the gallery back to this repository"
+        type: boolean
+        required: false
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  gallery:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Render gallery
+        id: gallery
+        env:
+          # Optional. Lifts the unauthenticated 60 requests/hour limit; a full
+          # gallery is ~7 renders, each costing about one request per 30 weeks.
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          chmod +x ./scripts/gen-gallery.sh
+          ./scripts/gen-gallery.sh "${{ inputs.repo }}" examples/gallery
+
+      - name: Add the gallery to the run summary
+        run: |
+          set -euo pipefail
+          {
+            echo "## Star chart gallery — \`${{ inputs.repo }}\`"
+            echo
+            echo "PNG and SVG files are in \`examples/gallery/\`; they cannot render"
+            echo "in this summary because it has no access to the workspace files."
+            echo "The Mermaid chart below does render here:"
+            echo
+            cat examples/gallery/*-mermaid.md
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload gallery as an artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: star-chart-gallery
+          path: examples/gallery/
+
+      - name: Commit the gallery
+        if: ${{ inputs.commit }}
+        run: |
+          set -euo pipefail
+
+          if git diff --quiet -- examples/gallery && git diff --quiet --cached -- examples/gallery; then
+            if [ -z "$(git status --porcelain -- examples/gallery)" ]; then
+              echo "Gallery unchanged; nothing to commit."
+              exit 0
+            fi
+          fi
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add examples/gallery
+          git commit -m "chore: star chart gallery for ${{ inputs.repo }}"
+          git push

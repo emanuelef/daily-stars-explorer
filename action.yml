@@ -1,0 +1,106 @@
+name: "Star History Chart"
+description: "Generate a star history chart (PNG, SVG or Mermaid) for a GitHub repository, ready to embed in a README."
+author: "emanuelef"
+
+branding:
+  icon: "trending-up"
+  color: "blue"
+
+inputs:
+  repo:
+    description: "Repository to chart, as owner/name. Defaults to the repository running the workflow."
+    required: false
+    default: ${{ github.repository }}
+  output:
+    description: "Path to write. The extension picks the format unless `format` is set: .png, .svg, .md."
+    required: false
+    default: "star-history.png"
+  format:
+    description: "png, svg or mermaid. Defaults to whatever the output extension implies."
+    required: false
+    default: ""
+  theme:
+    description: "light, dark, or transparent (transparent adapts to the reader's GitHub theme)."
+    required: false
+    default: "light"
+  width:
+    description: "Image width in pixels. Ignored for mermaid."
+    required: false
+    default: "800"
+  height:
+    description: "Image height in pixels. Ignored for mermaid."
+    required: false
+    default: "400"
+  daily:
+    description: "Overlay per-day counts on a second axis in addition to the cumulative curve."
+    required: false
+    default: "false"
+  caption:
+    description: "Small attribution text in the bottom-right corner. Empty for none."
+    required: false
+    default: ""
+  token:
+    description: >-
+      GitHub token. Optional: the star history endpoint serves public repositories
+      unauthenticated at 60 requests/hour, and one chart costs ~1-33 requests. A token
+      raises that to 5000/hour.
+    required: false
+    default: ${{ github.token }}
+  version:
+    description: "Version of the starchart tool to run (a git tag, or 'latest')."
+    required: false
+    default: "latest"
+  go-version:
+    description: "Go version used to build the tool."
+    required: false
+    default: "1.27"
+
+outputs:
+  stars:
+    description: "Total stars in the rendered history."
+    value: ${{ steps.render.outputs.stars }}
+  days:
+    description: "Number of days in the rendered history."
+    value: ${{ steps.render.outputs.days }}
+  file:
+    description: "Path that was written."
+    value: ${{ steps.render.outputs.file }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Go
+      uses: actions/setup-go@v6
+      with:
+        go-version: ${{ inputs.go-version }}
+        cache: false
+
+    - name: Render star history chart
+      id: render
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+        STARCHART_REPO: ${{ inputs.repo }}
+        STARCHART_OUT: ${{ inputs.output }}
+        STARCHART_FORMAT: ${{ inputs.format }}
+        STARCHART_THEME: ${{ inputs.theme }}
+        STARCHART_WIDTH: ${{ inputs.width }}
+        STARCHART_HEIGHT: ${{ inputs.height }}
+        STARCHART_DAILY: ${{ inputs.daily }}
+        STARCHART_CAPTION: ${{ inputs.caption }}
+        STARCHART_VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+
+        args=(
+          -repo "$STARCHART_REPO"
+          -out "$STARCHART_OUT"
+          -theme "$STARCHART_THEME"
+          -width "$STARCHART_WIDTH"
+          -height "$STARCHART_HEIGHT"
+        )
+        [ -n "$STARCHART_FORMAT" ] && args+=(-format "$STARCHART_FORMAT")
+        [ -n "$STARCHART_CAPTION" ] && args+=(-caption "$STARCHART_CAPTION")
+        [ "$STARCHART_DAILY" = "true" ] && args+=(-daily)
+
+        go run "github.com/emanuelef/gh-repo-stats-server/cmd/starchart@${STARCHART_VERSION}" "${args[@]}"
