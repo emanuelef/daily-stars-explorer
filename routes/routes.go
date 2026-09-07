@@ -123,6 +123,7 @@ func RegisterStarsRoutes(
 	app.Get("/todayStars", handlers.TodayStarsHandler(
 		ghStatClients,
 		starClients,
+		caches.Stars,
 		ctx,
 	))
 	app.Get("/recentStarsByHour", handlers.RecentStarsByHourHandler(

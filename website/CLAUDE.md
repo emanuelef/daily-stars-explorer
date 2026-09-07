@@ -49,7 +49,7 @@ The frontend talks to the Go backend. In dev, the Vite dev server proxies to `lo
 | Endpoint              | Purpose                        |
 | --------------------- | ------------------------------ |
 | `/allStars?repo=x`    | Full daily star history (today stripped as incomplete) |
-| `/todayStars?repo=x`  | Today's star count, uncached — the chart appends this as the final point |
+| `/todayStars?repo=x`  | Today's count + `started` (has GitHub begun this UTC day — its boundary trails UTC by 7-8h) + `totalStars`/`liveDelta` cross-check. The chart appends today only when `started`. |
 | `/recentStarsByHour`  | Hourly star data — **dead**, needs per-stargazer timestamps GitHub no longer exposes |
 | `/allIssues?repo=x`   | Issues timeline                |
 | `/allForks?repo=x`    | Forks timeline                 |
