@@ -1,1081 +1,398 @@
 import { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { intervalToDuration, parseISO } from "date-fns";
 import { parseGitHubRepoURL } from "./githubUtils";
 import { useAppTheme } from "./ThemeContext";
 import { useLastRepo } from "./RepoContext";
+import MobileStarsChart from "./MobileStarsChart";
+import "./MobileStarsView.css";
 
 const HOST = import.meta.env.VITE_HOST;
+const normalizeRepo = (value) => {
+  const trimmed = value.trim();
+  const parsed = parseGitHubRepoURL(/^github\.com\//i.test(trimmed) ? `https://${trimmed}` : trimmed);
+  return parsed && /^[\w.-]+\/[\w.-]+$/.test(parsed) ? parsed : null;
+};
 
-// dd-mm-yyyy → "May 12, 2023"
-const formatDay = (ddmmyyyy) => {
-  if (!ddmmyyyy) return "";
-  const [d, m, y] = ddmmyyyy.split("-").map(Number);
-  if (!d || !m || !y) return ddmmyyyy;
-  return new Date(y, m - 1, d).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
+const formatDay = (value) => {
+  const [day, month, year] = value.split("-").map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString("en-US", {
+    month: "short", day: "numeric", year: "numeric",
   });
 };
 
 const formatAge = (createdAt) => {
   if (!createdAt) return "";
   try {
-    const { years, months, days } = intervalToDuration({
-      start: parseISO(createdAt),
-      end: Date.now(),
-    });
+    const { years, months, days } = intervalToDuration({ start: parseISO(createdAt), end: Date.now() });
     return [years ? `${years}y` : "", months ? `${months}m` : "", days ? `${days}d` : ""]
-      .filter(Boolean)
-      .join(" ");
+      .filter(Boolean).join(" ") || "<1d";
   } catch {
     return "";
   }
 };
 
+// Cancel retry timers as well as network requests when switching repositories.
+const waitForRetry = (signal) => new Promise((resolve, reject) => {
+  const cancel = () => {
+    clearTimeout(timer);
+    reject(new DOMException("Aborted", "AbortError"));
+  };
+  const timer = setTimeout(() => {
+    signal.removeEventListener("abort", cancel);
+    resolve();
+  }, 2000);
+  signal.addEventListener("abort", cancel, { once: true });
+  if (signal.aborted) cancel();
+});
+
 const MobileStarsView = () => {
   const navigate = useNavigate();
   const { user, repository } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { lastRepo, setLastRepo } = useLastRepo();
-  const { theme, currentTheme } = useAppTheme();
-  const isDark = theme === 'dark';
-  const [repo, setRepo] = useState(user && repository ? `${user}/${repository}` : lastRepo);
-  const [loading, setLoading] = useState(false);
+  const { theme } = useAppTheme();
+  const routeRepo = user && repository ? `${user}/${repository}` : lastRepo;
+  const activeRepo = normalizeRepo(routeRepo) || routeRepo;
+  const requestedRange = searchParams.get("range");
+  const dailyChartRange = ["30d", "90d", "all"].includes(requestedRange) ? requestedRange : "30d";
+  const [repo, setRepo] = useState(activeRepo);
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [starHistory, setStarHistory] = useState([]);
-  const [totalStars, setTotalStars] = useState(0);
-  const [starsLast10d, setStarsLast10d] = useState(0);
+  const [inputError, setInputError] = useState("");
+  const [retry, setRetry] = useState(0);
   const [progress, setProgress] = useState(0);
   const [maxProgress, setMaxProgress] = useState(0);
   const [starsRepos, setStarsRepos] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [filteredRepos, setFilteredRepos] = useState([]);
-  const [dailyChartRange, setDailyChartRange] = useState("30d");
-  const [age, setAge] = useState("");
-  const [bestDay, setBestDay] = useState(null); // { stars, date }
-  const [selectedBar, setSelectedBar] = useState(null); // index into displayedHistory
-  const [copied, setCopied] = useState(false);
+  const [activeSuggestion, setActiveSuggestion] = useState(-1);
+  const [shareMessage, setShareMessage] = useState("");
+  const [shareFallback, setShareFallback] = useState("");
   const [pinnedRepos, setPinnedRepos] = useState(() => {
     try {
-      const saved = localStorage.getItem('pinned-repos');
-      return saved ? JSON.parse(saved) : [];
+      const saved = JSON.parse(localStorage.getItem("pinned-repos") || "[]");
+      return Array.isArray(saved)
+        ? [...new Set(saved.filter(r => typeof r === "string").map(normalizeRepo).filter(Boolean))]
+        : [];
     } catch {
       return [];
     }
   });
-  const eventSourceRef = useRef(null);
-  const isMountedRef = useRef(true);
   const inputRef = useRef(null);
+  const filteredRepos = repo.trim()
+    ? starsRepos.filter(r => r.toLowerCase().includes(repo.trim().toLowerCase())).slice(0, 8)
+    : [];
+  const suggestionsOpen = showSuggestions && filteredRepos.length > 0;
 
   useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-      }
-    };
+    const controller = new AbortController();
+    fetch(`${HOST}/allStarsKeys`, { signal: controller.signal })
+      .then(response => response.ok ? response.json() : [])
+      .then(data => setStarsRepos(Array.isArray(data) ? data.filter(r => typeof r === "string").sort() : []))
+      .catch(() => {});
+    return () => controller.abort();
   }, []);
 
-  // Fetch available repos for autocomplete
-  useEffect(() => {
-    const fetchRepos = async () => {
-      try {
-        const response = await fetch(`${HOST}/allStarsKeys`);
-        if (!response.ok) throw new Error("Failed to fetch repos");
-        const data = await response.json();
-        setStarsRepos(data.sort());
-      } catch (e) {
-        console.error(e);
-      }
-    };
-    fetchRepos();
-  }, []);
-
-  // Sync pinned repos with localStorage
   useEffect(() => {
     try {
-      localStorage.setItem('pinned-repos', JSON.stringify(pinnedRepos));
-    } catch (e) {
-      console.error('Failed to save pinned repos:', e);
-    }
+      localStorage.setItem("pinned-repos", JSON.stringify(pinnedRepos));
+    } catch { /* Pins remain usable when browser storage is unavailable. */ }
   }, [pinnedRepos]);
 
-  const togglePin = (repoName) => {
-    setPinnedRepos(prev => {
-      if (prev.includes(repoName)) {
-        return prev.filter(r => r !== repoName);
-      } else {
-        return [...prev, repoName];
-      }
-    });
-  };
-
-  const clearPinned = () => {
-    if (window.confirm('Clear all pinned repositories?')) {
-      setPinnedRepos([]);
-    }
-  };
-
-  // Fetch on initial mount or when URL params change
   useEffect(() => {
-    const initialRepo = user && repository ? `${user}/${repository}` : lastRepo;
-    setRepo(initialRepo);
-    fetchStars(initialRepo);
-  }, [user, repository]);
+    setLastRepo(activeRepo);
+  }, [activeRepo, setLastRepo]);
 
-  // Filter repos for autocomplete
   useEffect(() => {
-    if (repo && starsRepos.length > 0) {
-      const filtered = starsRepos
-        .filter(r => r.toLowerCase().includes(repo.toLowerCase()))
-        .slice(0, 8);
-      setFilteredRepos(filtered);
-    } else {
-      setFilteredRepos([]);
-    }
-  }, [repo, starsRepos]);
-
-  const fetchStars = async (repoToFetch) => {
-    const repoName = repoToFetch || repo;
-    if (!repoName) return;
-
-    const parsed = parseGitHubRepoURL(repoName);
-    const normalizedRepo = parsed || repoName;
-
-    setLastRepo(normalizedRepo);
+    const controller = new AbortController();
+    const { signal } = controller;
+    let eventSource;
+    let sseReceivedProgress = false;
+    const request = (path) => fetch(`${HOST}/${path}?repo=${encodeURIComponent(activeRepo)}`, { signal });
+    setRepo(activeRepo);
     setLoading(true);
+    setResult(null);
     setError("");
+    setInputError("");
+    setShareMessage("");
+    setShareFallback("");
     setProgress(0);
     setMaxProgress(0);
-    setStarHistory([]);
     setShowSuggestions(false);
-    setTotalStars(0);
-    setStarsLast10d(0);
-    setDailyChartRange("30d");
-    setAge("");
-    setBestDay(null);
-    setSelectedBar(null);
+    setActiveSuggestion(-1);
 
-    // Close any existing SSE connection
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-    }
-
-    // Fetch total stars first to calculate progress
-    let callsNeeded = 100; // default
-    try {
-      const totalResponse = await fetch(`${HOST}/totalStars?repo=${encodeURIComponent(normalizedRepo)}`);
-      if (totalResponse.ok) {
-        const totalData = await totalResponse.json();
-        if (totalData.stars) {
-          callsNeeded = Math.floor(totalData.stars / 100);
-          setMaxProgress(callsNeeded);
-        }
-        if (totalData.createdAt) {
-          setAge(formatAge(totalData.createdAt));
-        }
-      }
-    } catch (e) {
-      console.error("Error fetching total stars:", e);
-    }
-
-    // Set up SSE for progress updates
-    const eventSource = new EventSource(`${HOST}/sse?repo=${encodeURIComponent(normalizedRepo)}`);
-    eventSourceRef.current = eventSource;
-
-    // Track if SSE has received any progress (means repo is being processed)
-    let sseReceivedProgress = false;
-
-    eventSource.addEventListener("current-value", (event) => {
-      if (isMountedRef.current) {
+    const load = async () => {
+      let metadata = {};
+      try {
         try {
-          const parsedData = JSON.parse(event.data);
-          const progressValue = parsedData.data;
-          if (!isNaN(progressValue)) {
-            sseReceivedProgress = true;
-            setProgress(progressValue);
-          }
-        } catch (e) {
-          console.error("Error parsing SSE data:", e);
+          const response = await request("totalStars");
+          if (response.ok) metadata = await response.json();
+        } catch (err) {
+          if (signal.aborted) throw err;
         }
-      }
-    });
-
-    eventSource.onerror = () => {
-      eventSource.close();
-    };
-
-    // Helper to fetch allStars with retry on 500 (for new repos being processed)
-    const fetchAllStarsWithRetry = async () => {
-      const maxRetries = 60; // Up to 2 minutes of retries
-      const retryDelay = 2000;
-
-      for (let attempt = 0; attempt < maxRetries; attempt++) {
-        if (!isMountedRef.current) return null;
-
-        const response = await fetch(`${HOST}/allStars?repo=${encodeURIComponent(normalizedRepo)}`);
-
-        if (response.ok) {
-          // 204 No Content means the repo is currently being fetched by another request
-          // Wait and retry until the fetch completes and we get a 200 with actual data
-          if (response.status === 204) {
-            await new Promise(resolve => setTimeout(resolve, retryDelay));
-            continue;
-          }
-          return response;
-        }
-
-        if (response.status === 429) {
-          throw new Error("Rate limit exceeded. Please try again later.");
-        } else if (response.status === 404) {
-          throw new Error("Repository not found on GitHub.");
-        } else if (response.status === 504) {
-          throw new Error("Server timeout. The request took too long. Please try again.");
-        } else if (response.status === 500) {
-          // Check if SSE is showing progress - means repo is being processed
-          // Also check status endpoint to see if processing is ongoing
+        if (signal.aborted) return;
+        setMaxProgress(Math.ceil((metadata.stars || 0) / 100));
+        eventSource = new EventSource(`${HOST}/sse?repo=${encodeURIComponent(activeRepo)}`);
+        eventSource.addEventListener("current-value", (event) => {
+          if (signal.aborted) return;
           try {
-            const statusResponse = await fetch(`${HOST}/status?repo=${encodeURIComponent(normalizedRepo)}`);
-            if (statusResponse.ok) {
-              const statusData = await statusResponse.json();
-              if (statusData.onGoing || sseReceivedProgress) {
-                // Repo is being processed, wait and retry
-                await new Promise(resolve => setTimeout(resolve, retryDelay));
-                continue;
-              }
+            const value = Number(JSON.parse(event.data).data);
+            if (Number.isFinite(value)) {
+              sseReceivedProgress = true;
+              setProgress(value);
             }
-          } catch (e) {
-            console.error("Error checking status:", e);
-          }
-          // If we get here on first attempt, the 500 might be because processing just started
-          // Give it a chance by waiting once
-          if (attempt === 0) {
-            await new Promise(resolve => setTimeout(resolve, retryDelay));
+          } catch { /* Ignore malformed progress events; fetching can continue. */ }
+        });
+        eventSource.onerror = () => eventSource.close();
+
+        for (let attempt = 0; attempt < 60; attempt++) {
+          const response = await request("allStars");
+          if (response.status === 204) {
+            await waitForRetry(signal);
             continue;
           }
-          throw new Error("Internal server error. Please try again later.");
-        } else {
-          throw new Error(`Failed to fetch stars data. (${response.status})`);
+          if (response.ok) {
+            const data = await response.json();
+            if (signal.aborted) return;
+            const history = (data.stars || []).map(item => ({ date: item[0], daily: item[1], total: item[2] }));
+            const best = history.reduce((peak, day) => !peak || day.daily > peak.daily ? day : peak, null);
+            setResult({
+              repo: activeRepo,
+              history,
+              total: history.length ? history[history.length - 1].total : (metadata.stars || 0),
+              recent: history.slice(-10).reduce((sum, day) => sum + day.daily, 0),
+              age: formatAge(metadata.createdAt),
+              best,
+            });
+            return;
+          }
+          if (response.status === 500) {
+            let ongoing = sseReceivedProgress;
+            try {
+              const statusResponse = await request("status");
+              if (statusResponse.ok) ongoing ||= (await statusResponse.json()).onGoing;
+            } catch (err) {
+              if (signal.aborted) throw err;
+            }
+            if (ongoing || attempt === 0) {
+              await waitForRetry(signal);
+              continue;
+            }
+          }
+          const messages = {
+            404: "Repository not found. Check the owner and repository name.",
+            429: "GitHub’s rate limit has been reached. Please try again later.",
+            504: "This repository is taking longer than expected. Please try again.",
+          };
+          throw new Error(messages[response.status] || "Couldn’t load this repository. Please try again.");
         }
+        throw new Error("This repository is still being processed. Please try again shortly.");
+      } catch (err) {
+        if (!signal.aborted) setError(err instanceof TypeError
+          ? "Couldn’t connect. Check your connection and try again."
+          : err.message);
+      } finally {
+        eventSource?.close();
+        if (!signal.aborted) setLoading(false);
       }
-      throw new Error("Timed out waiting for repository data. Please try again.");
     };
+    load();
+    return () => {
+      controller.abort();
+      eventSource?.close();
+    };
+  }, [activeRepo, retry]);
 
+  const openRepo = (value) => {
+    const normalized = normalizeRepo(value);
+    if (!normalized) {
+      setInputError("Enter owner/repository or paste a GitHub repository URL.");
+      inputRef.current?.focus();
+      return;
+    }
+    setRepo(normalized);
+    setShowSuggestions(false);
+    setActiveSuggestion(-1);
+    setInputError("");
+    inputRef.current?.blur();
+    if (normalized === activeRepo) setRetry(value => value + 1);
+    else navigate(`/${normalized}?range=${dailyChartRange}`);
+  };
+
+  const togglePin = (name) => setPinnedRepos(previous => previous.includes(name)
+    ? previous.filter(r => r !== name) : [...previous, name]);
+
+  const changeRange = (range) => {
+    setSearchParams(previous => {
+      const next = new URLSearchParams(previous);
+      next.set("range", range);
+      return next;
+    }, { replace: true });
+    setShareMessage("");
+    setShareFallback("");
+  };
+
+  const shareRepo = async () => {
+    const url = new URL(import.meta.env.BASE_URL, window.location.origin);
+    url.hash = `/${result.repo}?range=${dailyChartRange}`;
+    setShareMessage("");
+    setShareFallback("");
     try {
-      const response = await fetchAllStarsWithRetry();
-
-      if (!response || !isMountedRef.current) return;
-
-      const data = await response.json();
-
-      if (isMountedRef.current) {
-        // Process star history for the chart
-        // API returns data.stars as arrays: [date, dailyStars, totalStars]
-        const history = data.stars || [];
-        const processedHistory = history.map((item) => ({
-          date: item[0],
-          daily: item[1],
-          total: item[2],
-        }));
-
-        setStarHistory(processedHistory);
-
-        // Calculate totals
-        if (processedHistory.length > 0) {
-          setTotalStars(processedHistory[processedHistory.length - 1].total);
-
-          // Calculate last 10 days
-          const last10 = processedHistory.slice(-10);
-          const last10Sum = last10.reduce((sum, day) => sum + day.daily, 0);
-          setStarsLast10d(last10Sum);
-        }
-
-        // Best day (used in stats grid)
-        if (Array.isArray(data.maxPeaks) && data.maxPeaks.length > 0) {
-          const best = data.maxPeaks.reduce((acc, p) => (p.Stars > acc.Stars ? p : acc));
-          setBestDay({ stars: best.Stars, date: best.Day });
-        }
-
-        // Update URL
-        navigate(`/${normalizedRepo}`, { replace: true });
+      if (navigator.share) {
+        await navigator.share({ title: `${result.repo} · Daily Stars Explorer`, url: url.toString() });
+      } else {
+        await navigator.clipboard.writeText(url.toString());
+        setShareMessage("Link copied");
       }
     } catch (err) {
-      if (isMountedRef.current) {
-        // Network errors show generic "Failed to fetch" - make it more helpful
-        if (err.message === "Failed to fetch") {
-          setError(`Cannot connect to server at ${HOST}. Make sure the backend is running.`);
-        } else {
-          setError(err.message);
-        }
-      }
-    } finally {
-      if (isMountedRef.current) {
-        setLoading(false);
-        setProgress(100);
-      }
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
+      if (err.name !== "AbortError") {
+        setShareFallback(url.toString());
+        setShareMessage("Select and copy the link below.");
       }
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setShowSuggestions(false);
-    fetchStars();
-  };
-
-  const handleSelectRepo = (selectedRepo) => {
-    setRepo(selectedRepo);
-    setShowSuggestions(false);
-    fetchStars(selectedRepo);
-  };
-
-  const handleCopyLink = async () => {
-    try {
-      const url = new URL(window.location.href);
-      url.searchParams.set("range", dailyChartRange);
-      await navigator.clipboard.writeText(url.toString());
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (e) {
-      console.error("Copy failed:", e);
-    }
-  };
-
-  const displayedHistory = dailyChartRange === "all" ? starHistory : starHistory.slice(-30);
-  const displayedMax = Math.max(...displayedHistory.map(d => d.daily), 1);
-  const displayedTotal = displayedHistory.reduce((sum, d) => sum + d.daily, 0);
-
-  // Find max daily stars for scaling from the displayed data only
-  // Use 95th percentile to avoid outliers making all other bars too small
-  const sortedDaily = [...displayedHistory].map(d => d.daily).sort((a, b) => a - b);
-  const p95Index = Math.floor(sortedDaily.length * 0.95);
-  const maxDaily = sortedDaily[p95Index] || displayedMax;
+  const percentage = maxProgress > 0 && progress > 0
+    ? Math.min(Math.round(progress / maxProgress * 100), 99) : null;
+  const history = result?.history || [];
+  const cumulativeMax = Math.max(result?.total || 0, 1);
+  const cumulativePoints = history.map((day, index) =>
+    `${history.length === 1 ? 150 : index / (history.length - 1) * 300},${110 - day.total / cumulativeMax * 100}`
+  ).join(" ");
 
   return (
-    <div style={{
-      minHeight: "100vh",
-      background: isDark
-        ? "linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%)"
-        : "linear-gradient(135deg, #f5f5f5 0%, #e8f0fe 100%)",
-      padding: "16px",
-      color: isDark ? "#fff" : "#1a1a2e",
-    }}>
-      {/* Brand strip + share */}
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        marginBottom: totalStars > 0 ? "12px" : "20px",
+    <div className="mobile-stars" data-theme={theme}>
+      <form className="mobile-stars__search" onSubmit={(event) => {
+        event.preventDefault();
+        openRepo(repo);
+      }} onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setShowSuggestions(false);
       }}>
-        <div style={{
-          fontSize: "13px",
-          fontWeight: "600",
-          letterSpacing: "0.02em",
-          background: "linear-gradient(90deg, #3b82f6, #10b981)",
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
-        }}>
-          Daily Stars Explorer
-        </div>
-        {totalStars > 0 && (
-          <button
-            type="button"
-            onClick={handleCopyLink}
-            aria-label={copied ? "Link copied" : "Copy share link"}
-            style={{
-              padding: "6px 10px",
-              minHeight: "32px",
-              borderRadius: "8px",
-              background: copied
-                ? "rgba(16, 185, 129, 0.15)"
-                : (isDark ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.9)"),
-              border: `1px solid ${copied ? "rgba(16, 185, 129, 0.4)" : currentTheme.cardBorder}`,
-              color: copied ? "#10b981" : currentTheme.textSecondary,
-              fontSize: "12px",
-              fontWeight: "600",
-              cursor: "pointer",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "4px",
+        <label htmlFor="mobile-repo">Explore a GitHub repository</label>
+        <div className="mobile-stars__search-row">
+          <input
+            id="mobile-repo" ref={inputRef} type="text" value={repo}
+            role="combobox" aria-autocomplete="list" aria-expanded={suggestionsOpen}
+            aria-controls={suggestionsOpen ? "mobile-repo-suggestions" : undefined}
+            aria-activedescendant={suggestionsOpen && activeSuggestion >= 0 ? `mobile-repo-option-${activeSuggestion}` : undefined}
+            aria-invalid={!!inputError} aria-describedby={inputError ? "mobile-repo-error" : "mobile-repo-hint"}
+            autoCapitalize="none" autoCorrect="off" spellCheck={false} autoComplete="off" enterKeyHint="go"
+            placeholder="owner/repository"
+            onChange={(event) => {
+              setRepo(event.target.value);
+              setInputError("");
+              setShowSuggestions(true);
+              setActiveSuggestion(-1);
             }}
-          >
-            {copied ? "✓ Copied" : "🔗 Share"}
-          </button>
-        )}
-      </div>
-
-      {/* Hero — current repo identity + total */}
-      {totalStars > 0 && (
-        <div style={{ marginBottom: "20px" }}>
-          <div style={{
-            fontSize: "20px",
-            fontWeight: "700",
-            color: currentTheme.textPrimary,
-            wordBreak: "break-word",
-            lineHeight: 1.2,
-          }}>
-            {repo}
-          </div>
-          <div style={{
-            marginTop: "6px",
-            fontSize: "14px",
-            color: currentTheme.textSecondary,
-            display: "flex",
-            alignItems: "baseline",
-            gap: "6px",
-            flexWrap: "wrap",
-          }}>
-            <span style={{ fontSize: "22px", color: "#fbbf24", fontWeight: 700 }}>
-              ⭐ {totalStars.toLocaleString()}
-            </span>
-            <span>total stars</span>
-            {starsLast10d > 0 && (
-              <span style={{ color: "#10b981", fontWeight: 600, marginLeft: 4 }}>
-                +{starsLast10d.toLocaleString()} in last 10d
-              </span>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Pinned Repos Quick Access */}
-      {pinnedRepos.length > 0 && (
-        <div style={{
-          background: isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(255, 255, 255, 0.9)",
-          borderRadius: "12px",
-          padding: "12px",
-          marginBottom: "16px",
-          border: "1px solid rgba(59, 130, 246, 0.3)",
-        }}>
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
-            <span aria-hidden="true" style={{ fontSize: "12px", color: currentTheme.textMuted }}>📌</span>
-            {pinnedRepos.slice(0, 2).map(r => (
-              <div
-                key={r}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  padding: 0,
-                  borderRadius: "8px",
-                  background: isDark ? "rgba(59, 130, 246, 0.2)" : "rgba(59, 130, 246, 0.1)",
-                  border: "1px solid rgba(59, 130, 246, 0.3)",
-                  overflow: "hidden",
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRepo(r);
-                    fetchStars(r);
-                    navigate(`/${r}`);
-                  }}
-                  aria-label={`Open ${r}`}
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    padding: "6px 6px 6px 10px",
-                    minHeight: "32px",
-                    color: currentTheme.textPrimary,
-                    fontSize: "13px",
-                    cursor: "pointer",
-                    flex: 1,
-                    textAlign: "left",
-                  }}
-                >
-                  {r}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => togglePin(r)}
-                  aria-label={`Unpin ${r}`}
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    color: currentTheme.textMuted,
-                    padding: "6px 10px",
-                    minHeight: "32px",
-                    fontSize: "16px",
-                    lineHeight: 1,
-                    cursor: "pointer",
-                  }}
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-            {pinnedRepos.length > 2 && (
-              <span style={{ fontSize: "11px", color: currentTheme.textMuted }}>
-                +{pinnedRepos.length - 2} more
-              </span>
-            )}
-            <button
-              type="button"
-              onClick={clearPinned}
-              aria-label="Clear all pinned repositories"
-              style={{
-                background: "transparent",
-                border: "none",
-                color: currentTheme.textMuted,
-                fontSize: "11px",
-                cursor: "pointer",
-                padding: "4px 8px",
-                minHeight: "32px",
-              }}
-            >
-              Clear All
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Search Form with Autocomplete */}
-      <form onSubmit={handleSubmit} style={{ marginBottom: "20px", position: "relative" }}>
-        <div style={{
-          display: "flex",
-          gap: "8px",
-          marginBottom: "0",
-        }}>
-          <div style={{ flex: 1, position: "relative" }}>
-            <input
-              ref={inputRef}
-              type="text"
-              value={repo}
-              onChange={(e) => {
-                setRepo(e.target.value);
+            onFocus={() => setShowSuggestions(true)}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                setShowSuggestions(false);
+                setActiveSuggestion(-1);
+              }
+              if (filteredRepos.length && ["ArrowDown", "ArrowUp"].includes(event.key)) {
+                event.preventDefault();
                 setShowSuggestions(true);
-              }}
-              onFocus={() => setShowSuggestions(true)}
-              onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-              placeholder="owner/repository"
-              style={{
-                width: "100%",
-                padding: "14px 16px",
-                borderRadius: "12px",
-                border: "1px solid rgba(59, 130, 246, 0.3)",
-                background: isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(255, 255, 255, 0.9)",
-                color: isDark ? "#fff" : "#1a1a2e",
-                fontSize: "16px",
-                outline: "none",
-                boxSizing: "border-box",
-              }}
-            />
-            {/* Autocomplete Dropdown */}
-            {showSuggestions && filteredRepos.length > 0 && (
-              <div style={{
-                position: "absolute",
-                top: "100%",
-                left: 0,
-                right: 0,
-                background: isDark ? "#1a1a2e" : "#ffffff",
-                border: "1px solid rgba(59, 130, 246, 0.3)",
-                borderRadius: "12px",
-                marginTop: "4px",
-                maxHeight: "200px",
-                overflowY: "auto",
-                zIndex: 100,
-              }}>
-                {filteredRepos.map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => handleSelectRepo(r)}
-                    aria-label={`Load ${r}`}
-                    style={{
-                      display: "block",
-                      width: "100%",
-                      textAlign: "left",
-                      padding: "12px 16px",
-                      minHeight: "44px",
-                      cursor: "pointer",
-                      border: "none",
-                      borderBottom: "1px solid rgba(148,163,184,0.15)",
-                      background: "transparent",
-                      color: currentTheme.textPrimary,
-                      fontSize: "14px",
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = "rgba(59, 130, 246, 0.2)"}
-                    onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
-                  >
-                    {r}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          <button
-            onClick={() => togglePin(repo)}
-            type="button"
-            aria-label={pinnedRepos.includes(repo) ? `Unpin ${repo}` : `Pin ${repo}`}
-            aria-pressed={pinnedRepos.includes(repo)}
-            style={{
-              padding: "14px 16px",
-              minHeight: "44px",
-              minWidth: "44px",
-              borderRadius: "12px",
-              border: "none",
-              background: pinnedRepos.includes(repo)
-                ? "#3b82f6"
-                : (isDark ? "rgba(255,255,255,0.1)" : "rgba(15,23,42,0.06)"),
-              fontSize: "20px",
-              cursor: "pointer",
+                const next = event.key === "ArrowDown"
+                  ? (activeSuggestion + 1) % filteredRepos.length
+                  : (activeSuggestion <= 0 ? filteredRepos.length - 1 : activeSuggestion - 1);
+                setActiveSuggestion(next);
+                document.getElementById(`mobile-repo-option-${next}`)?.scrollIntoView({ block: "nearest" });
+              }
+              if (event.key === "Enter" && suggestionsOpen && filteredRepos[activeSuggestion]) {
+                event.preventDefault();
+                openRepo(filteredRepos[activeSuggestion]);
+              }
             }}
-          >
-            📌
-          </button>
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              padding: "14px 24px",
-              borderRadius: "12px",
-              border: "none",
-              background: loading
-                ? "rgba(59, 130, 246, 0.5)"
-                : "linear-gradient(90deg, #3b82f6, #2563eb)",
-              color: "#fff",
-              fontSize: "16px",
-              fontWeight: "600",
-              cursor: loading ? "not-allowed" : "pointer",
-            }}
-          >
-            {loading ? "Loading" : "Go"}
-          </button>
+          />
+          <button className="mobile-stars__primary" type="submit" disabled={!repo.trim()}>Go <span aria-hidden="true">→</span></button>
         </div>
+        <p id={inputError ? "mobile-repo-error" : "mobile-repo-hint"} className={inputError ? "mobile-stars__input-error" : "mobile-stars__hint"} role={inputError ? "alert" : undefined}>
+          {inputError || "Paste a GitHub URL or enter owner/repository"}
+        </p>
+        {suggestionsOpen && (
+          <ul id="mobile-repo-suggestions" className="mobile-stars__suggestions" role="listbox" aria-label="Repository suggestions">
+            {filteredRepos.map((name, index) => (
+              <li key={name} role="option" id={`mobile-repo-option-${index}`} aria-selected={activeSuggestion === index}
+                onPointerDown={event => event.preventDefault()} onClick={() => openRepo(name)}>
+                {name}
+              </li>
+            ))}
+          </ul>
+        )}
       </form>
 
-      {/* Progress Bar */}
+      {pinnedRepos.length > 0 && (
+        <nav className="mobile-stars__pins" aria-label="Pinned repositories">
+          <span className="mobile-stars__eyebrow">Pinned repositories</span>
+          <div className="mobile-stars__pin-list">
+            {pinnedRepos.map(name => (
+              <div className="mobile-stars__pin" key={name}>
+                <button type="button" onClick={() => openRepo(name)} aria-label={`Open ${name}`} aria-current={name === activeRepo ? "page" : undefined}>{name}</button>
+                <button type="button" onClick={() => togglePin(name)} aria-label={`Unpin ${name}`}>×</button>
+              </div>
+            ))}
+          </div>
+        </nav>
+      )}
+
       {loading && (
-        <div style={{
-          marginBottom: "20px",
-          background: "rgba(255, 255, 255, 0.1)",
-          borderRadius: "8px",
-          overflow: "hidden",
-          height: "6px",
-        }}>
-          <div style={{
-            width: `${maxProgress > 0 ? Math.min((progress / maxProgress) * 100, 100) : 0}%`,
-            height: "100%",
-            background: "linear-gradient(90deg, #3b82f6, #10b981)",
-            transition: "width 0.3s ease",
-          }} />
+        <div className="mobile-stars__card mobile-stars__loading">
+          <div role="status"><strong>Loading {activeRepo}</strong><p>Fetching star history. Large repositories may take a few minutes.</p></div>
+          <div className="mobile-stars__progress" role="progressbar" aria-label="Loading star history"
+            aria-valuemin={0} aria-valuemax={100} aria-valuenow={percentage ?? undefined}>
+            <div className={percentage === null ? "is-indeterminate" : ""} style={{ width: percentage === null ? "35%" : `${percentage}%` }} />
+          </div>
+          <p className="mobile-stars__hint">{percentage === null ? "Waiting for repository data…" : `${percentage}% complete`}</p>
         </div>
       )}
 
-      {/* Error Message */}
       {error && (
-        <div style={{
-          padding: "12px 16px",
-          marginBottom: "20px",
-          borderRadius: "12px",
-          background: "rgba(239, 68, 68, 0.1)",
-          border: "1px solid rgba(239, 68, 68, 0.3)",
-          color: "#f87171",
-          fontSize: "14px",
-        }}>
-          {error}
+        <div className="mobile-stars__error">
+          <div role="alert"><strong>Couldn’t load {activeRepo}</strong><p>{error}</p></div>
+          <button type="button" onClick={() => setRetry(value => value + 1)}>Try again</button>
         </div>
       )}
 
-      {/* Stats Cards — three compact cards; Total already shown in hero */}
-      {totalStars > 0 && (
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: "10px",
-          marginBottom: "20px",
-        }}>
-          <div style={{
-            padding: "12px 14px",
-            borderRadius: "12px",
-            background: "rgba(16, 185, 129, 0.1)",
-            border: "1px solid rgba(16, 185, 129, 0.2)",
-          }}>
-            <div style={{
-              fontSize: "11px",
-              color: currentTheme.textMuted,
-              marginBottom: "4px",
-              textTransform: "uppercase",
-              letterSpacing: "0.03em",
-            }}>
-              Last 10 Days
-            </div>
-            <div style={{ fontSize: "20px", fontWeight: "700", color: "#10b981" }}>
-              +{starsLast10d.toLocaleString()}
-            </div>
-          </div>
-          <div style={{
-            padding: "12px 14px",
-            borderRadius: "12px",
-            background: "rgba(59, 130, 246, 0.1)",
-            border: "1px solid rgba(59, 130, 246, 0.2)",
-          }}>
-            <div style={{
-              fontSize: "11px",
-              color: currentTheme.textMuted,
-              marginBottom: "4px",
-              textTransform: "uppercase",
-              letterSpacing: "0.03em",
-            }}>
-              Age
-            </div>
-            <div style={{
-              fontSize: "20px",
-              fontWeight: "700",
-              color: currentTheme.textPrimary,
-            }}>
-              {age || "—"}
-            </div>
-          </div>
-          <div style={{
-            gridColumn: "1 / -1",
-            padding: "12px 14px",
-            borderRadius: "12px",
-            background: "rgba(245, 158, 11, 0.1)",
-            border: "1px solid rgba(245, 158, 11, 0.25)",
-          }}>
-            <div style={{
-              fontSize: "11px",
-              color: currentTheme.textMuted,
-              marginBottom: "4px",
-              textTransform: "uppercase",
-              letterSpacing: "0.03em",
-            }}>
-              Best Day
-            </div>
-            {bestDay ? (
-              <div style={{ display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
-                <span style={{ fontSize: "20px", fontWeight: "700", color: "#fbbf24" }}>
-                  {bestDay.stars.toLocaleString()}⭐
-                </span>
-                <span style={{ fontSize: "13px", color: currentTheme.textSecondary }}>
-                  on {formatDay(bestDay.date)}
-                </span>
-              </div>
-            ) : (
-              <div style={{ fontSize: "20px", fontWeight: "700", color: currentTheme.textPrimary }}>
-                —
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Hourly View Link */}
-      {totalStars > 0 && (
-        <button
-          type="button"
-          onClick={() => navigate(`/hourly/${repo.replace(' / ', '/')}`)}
-          aria-label={`View hourly stars for ${repo} (last 24 hours)`}
-          style={{
-            padding: "12px 16px",
-            marginBottom: "20px",
-            borderRadius: "12px",
-            background: "rgba(139, 92, 246, 0.1)",
-            border: "1px solid rgba(139, 92, 246, 0.25)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            cursor: "pointer",
-            width: "100%",
-            minHeight: "44px",
-            textAlign: "left",
-          }}
-        >
-          <div style={{ fontSize: "13px", color: "#a78bfa", fontWeight: 600 }}>
-            View hourly stars (last 24h)
-          </div>
-          <div aria-hidden="true" style={{ fontSize: "16px", color: "#a78bfa" }}>→</div>
-        </button>
-      )}
-
-      {/* Daily Stars Bar Chart */}
-      {displayedHistory.length > 0 && (
-        <div style={{
-          padding: "16px",
-          borderRadius: "12px",
-          background: isDark ? "rgba(255, 255, 255, 0.02)" : "rgba(255, 255, 255, 0.85)",
-          border: `1px solid ${currentTheme.cardBorder}`,
-        }}>
-          <div style={{
-            display: "flex",
-            gap: "8px",
-            marginBottom: "12px",
-          }}>
-            <button
-              type="button"
-              onClick={() => { setDailyChartRange("30d"); setSelectedBar(null); }}
-              aria-pressed={dailyChartRange === "30d"}
-              style={{
-                flex: 1,
-                minHeight: "36px",
-                padding: "7px 10px",
-                borderRadius: "8px",
-                border: "1px solid rgba(59, 130, 246, 0.4)",
-                background: dailyChartRange === "30d"
-                  ? "rgba(59, 130, 246, 0.8)"
-                  : (isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(59, 130, 246, 0.05)"),
-                color: dailyChartRange === "30d" ? "#fff" : currentTheme.textPrimary,
-                fontSize: "12px",
-                fontWeight: "600",
-                cursor: "pointer",
-              }}
-            >
-              Last 30 days
-            </button>
-            <button
-              type="button"
-              onClick={() => { setDailyChartRange("all"); setSelectedBar(null); }}
-              aria-pressed={dailyChartRange === "all"}
-              style={{
-                flex: 1,
-                minHeight: "36px",
-                padding: "7px 10px",
-                borderRadius: "8px",
-                border: "1px solid rgba(59, 130, 246, 0.4)",
-                background: dailyChartRange === "all"
-                  ? "rgba(59, 130, 246, 0.8)"
-                  : (isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(59, 130, 246, 0.05)"),
-                color: dailyChartRange === "all" ? "#fff" : currentTheme.textPrimary,
-                fontSize: "12px",
-                fontWeight: "600",
-                cursor: "pointer",
-              }}
-            >
-              All history
-            </button>
-          </div>
-          <div style={{
-            fontSize: "14px",
-            fontWeight: "600",
-            marginBottom: "12px",
-            color: currentTheme.textPrimary,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}>
-            <span>Daily Stars ({dailyChartRange === "all" ? "All history" : "Last 30 days"})</span>
-            <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: "13px", color: "#fbbf24", fontWeight: "600" }}>
-                max: {displayedMax.toLocaleString()}
-              </div>
-              <div style={{ fontSize: "12px", color: currentTheme.textMuted, fontWeight: "400" }}>
-                total: {displayedTotal.toLocaleString()}
-              </div>
-            </div>
-          </div>
-
-          {/* Readout for tapped bar */}
-          {selectedBar !== null && displayedHistory[selectedBar] && (
-            <div
-              role="status"
-              aria-live="polite"
-              style={{
-                padding: "8px 12px",
-                marginBottom: "12px",
-                borderRadius: "8px",
-                background: "rgba(59, 130, 246, 0.12)",
-                border: "1px solid rgba(59, 130, 246, 0.35)",
-                fontSize: "13px",
-                color: currentTheme.textPrimary,
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <div>
-                <span style={{ color: currentTheme.textMuted, marginRight: 6 }}>
-                  {formatDay(displayedHistory[selectedBar].date)}
-                </span>
-                <strong>{displayedHistory[selectedBar].daily.toLocaleString()} stars</strong>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedBar(null)}
-                aria-label="Clear selection"
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  color: currentTheme.textMuted,
-                  cursor: "pointer",
-                  fontSize: "18px",
-                  lineHeight: 1,
-                  padding: "0 4px",
-                }}
-              >
-                ×
+      {result && (
+        <>
+          <section className="mobile-stars__hero" aria-label="Repository overview">
+            <h1><a href={`https://github.com/${result.repo}`} target="_blank" rel="noopener noreferrer">{result.repo}</a></h1>
+            <div className="mobile-stars__total"><span aria-hidden="true">★</span> {result.total.toLocaleString()} <span>stars</span></div>
+            <p className="mobile-stars__hint">{history.length ? `Through ${formatDay(history[history.length - 1].date)} (UTC)` : "No completed daily history yet"}{result.age && ` · ${result.age} old`}</p>
+            <div className="mobile-stars__actions">
+              <button type="button" onClick={() => togglePin(result.repo)} aria-pressed={pinnedRepos.includes(result.repo)}>
+                {pinnedRepos.includes(result.repo) ? "✓ Pinned" : "+ Pin repository"}
               </button>
+              <button type="button" onClick={shareRepo}>Share <span aria-hidden="true">↗</span></button>
             </div>
-          )}
+            <span className="mobile-stars__share-status" role="status">{shareMessage}</span>
+            {shareFallback && <input className="mobile-stars__share-link" aria-label="Share link" readOnly value={shareFallback} onFocus={event => event.target.select()} />}
+          </section>
 
-          <div style={{ overflowX: dailyChartRange === "all" ? "auto" : "visible" }}>
-            <div style={{
-              display: "flex",
-              alignItems: "flex-end",
-              gap: dailyChartRange === "all" ? "2px" : "3px",
-              height: "140px",
-              padding: "0 4px",
-              minWidth: dailyChartRange === "all" ? `${Math.max(displayedHistory.length * 4, 260)}px` : "auto",
-            }}>
-              {displayedHistory.map((day, index) => {
-                const heightPercent = Math.min((day.daily / maxDaily) * 100, 100);
-                const isSelected = selectedBar === index;
-                return (
-                  <button
-                    key={index}
-                    type="button"
-                    onClick={() => setSelectedBar(isSelected ? null : index)}
-                    aria-label={`${day.date}: ${day.daily} stars`}
-                    aria-pressed={isSelected}
-                    style={{
-                      flex: dailyChartRange === "all" ? "0 0 2px" : 1,
-                      background: isSelected
-                        ? "linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%)"
-                        : day.daily > 0
-                          ? "linear-gradient(180deg, #60a5fa 0%, #3b82f6 100%)"
-                          : (isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(15, 23, 42, 0.1)"),
-                      height: `${Math.max(heightPercent, 3)}%`,
-                      borderRadius: "3px 3px 0 0",
-                      minHeight: "3px",
-                      border: "none",
-                      padding: 0,
-                      cursor: "pointer",
-                      boxShadow: isSelected ? "0 0 0 1px #f59e0b" : undefined,
-                      transition: "background 120ms ease",
-                    }}
-                  />
-                );
-              })}
-            </div>
-          </div>
-          {dailyChartRange === "all" && (
-            <div style={{
-              marginTop: "8px",
-              fontSize: "11px",
-              color: currentTheme.textMuted,
-              textAlign: "center",
-            }}>
-              Swipe horizontally to explore the full timeline · Tap a bar for the date
-            </div>
-          )}
-          <div style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginTop: "12px",
-            fontSize: "11px",
-            color: currentTheme.textMuted,
-          }}>
-            <span>{displayedHistory[0]?.date || "Start"}</span>
-            <span>{displayedHistory[displayedHistory.length - 1]?.date || "Latest"}</span>
-          </div>
-        </div>
+          {history.length > 0 ? (
+            <>
+              <MobileStarsChart key={result.repo} history={history} range={dailyChartRange} onRangeChange={changeRange} theme={theme} />
+              <div className="mobile-stars__stats">
+                <div className="mobile-stars__card"><span className="mobile-stars__eyebrow">Last 10 days</span><strong className="mobile-stars__growth">+{result.recent.toLocaleString()}</strong><span className="mobile-stars__hint">stars added</span></div>
+                <div className="mobile-stars__card"><span className="mobile-stars__eyebrow">Best day</span><strong>{result.best.daily.toLocaleString()}</strong><span className="mobile-stars__hint">{formatDay(result.best.date)}</span></div>
+              </div>
+              <section className="mobile-stars__card mobile-stars__cumulative" aria-label="Cumulative stars">
+                <h2>Total stars over time</h2>
+                <svg viewBox="0 0 300 120" preserveAspectRatio="none" role="img" aria-label={`Cumulative stars from ${formatDay(history[0].date)} to ${formatDay(history[history.length - 1].date)}: ${result.total.toLocaleString()} stars. Vertical scale starts at zero.`}>
+                  <defs><linearGradient id="mobile-cumulative-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="currentColor" stopOpacity="0.3" /><stop offset="100%" stopColor="currentColor" stopOpacity="0.02" /></linearGradient></defs>
+                  <polygon points={`0,110 ${cumulativePoints} 300,110`} fill="url(#mobile-cumulative-fill)" />
+                  <polyline points={cumulativePoints} fill="none" stroke="currentColor" strokeWidth="2.5" vectorEffect="non-scaling-stroke" />
+                  {history.length === 1 && <circle cx="150" cy={110 - history[0].total / cumulativeMax * 100} r="3" fill="currentColor" />}
+                </svg>
+                <div className="mobile-stars__dates"><span>{formatDay(history[0].date)}</span><span>{formatDay(history[history.length - 1].date)}</span></div>
+              </section>
+            </>
+          ) : <div className="mobile-stars__card"><h2>No daily history yet</h2><p>Daily charts include completed days. Check back after the next UTC day, or try another repository.</p></div>}
+        </>
       )}
-
-      {/* Cumulative Chart */}
-      {starHistory.length > 0 && (
-        <div style={{
-          padding: "16px",
-          borderRadius: "12px",
-          background: isDark ? "rgba(255, 255, 255, 0.02)" : "rgba(255, 255, 255, 0.85)",
-          border: `1px solid ${currentTheme.cardBorder}`,
-          marginTop: "12px",
-        }}>
-          <div style={{
-            fontSize: "14px",
-            fontWeight: "600",
-            marginBottom: "16px",
-            color: currentTheme.textPrimary,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}>
-            <span>Cumulative Stars</span>
-            <span style={{ fontSize: "11px", color: currentTheme.textMuted, fontWeight: "400" }}>
-              {totalStars.toLocaleString()} total
-            </span>
-          </div>
-          <svg
-            viewBox="0 0 300 120"
-            style={{ width: "100%", height: "120px" }}
-            preserveAspectRatio="none"
-          >
-            <defs>
-              <linearGradient id="cumGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#10b981" stopOpacity="0.4" />
-                <stop offset="100%" stopColor="#10b981" stopOpacity="0.05" />
-              </linearGradient>
-            </defs>
-            {(() => {
-              const maxTotal = Math.max(...starHistory.map(d => d.total));
-              const minTotal = Math.min(...starHistory.map(d => d.total));
-              const range = maxTotal - minTotal || 1;
-              const points = starHistory.map((d, i) => {
-                const x = (i / (starHistory.length - 1)) * 300;
-                const y = 110 - ((d.total - minTotal) / range) * 100;
-                return `${x},${y}`;
-              }).join(" ");
-              const areaPoints = `0,110 ${points} 300,110`;
-              return (
-                <>
-                  <polygon points={areaPoints} fill="url(#cumGradient)" />
-                  <polyline
-                    points={points}
-                    fill="none"
-                    stroke="#10b981"
-                    strokeWidth="2.5"
-                  />
-                </>
-              );
-            })()}
-          </svg>
-          <div style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginTop: "12px",
-            fontSize: "11px",
-            color: currentTheme.textMuted,
-          }}>
-            <span>{starHistory[0]?.date || ''}</span>
-            <span>{starHistory[starHistory.length - 1]?.date || ''}</span>
-          </div>
-        </div>
-      )}
-
-      {/* Footer */}
-      <div style={{
-        textAlign: "center",
-        marginTop: "24px",
-        paddingBottom: "20px",
-        fontSize: "11px",
-        color: currentTheme.textMuted,
-        lineHeight: "1.6",
-      }}>
-        <div>For full features (compare, transforms, feeds, exports)</div>
-        <div>use a laptop or larger screen</div>
-        {totalStars > 0 && (
-          <div style={{ marginTop: "12px" }}>
-            <a
-              href={`https://github.com/${repo}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                color: "#3b82f6",
-                textDecoration: "none",
-                fontSize: "12px",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "4px",
-              }}
-            >
-              View on GitHub →
-            </a>
-          </div>
-        )}
-      </div>
+      <p className="mobile-stars__footer">Daily history includes completed days in UTC.</p>
     </div>
   );
 };

@@ -4,6 +4,7 @@ import "./App.css";
 import MainPage from "./MainPage";
 import TimeSeriesChart from "./TimeSeriesChart";
 import MobileStarsView from "./MobileStarsView";
+import MobileNavigation from "./MobileNavigation";
 import HourlyStarsChart from "./HourlyStarsChart";
 import CompareChart from "./CompareChart";
 import IssuesTimeSeriesChart from "./IssuesTimeSeriesChart";
@@ -15,7 +16,7 @@ import NewReposTimeSeriesChart from "./NewReposTimeSeriesChart";
 import InfoPage from "./InfoPage";
 import FeaturedReposPage from "./FeaturedReposPage";
 import { ThemeProvider as AppThemeProvider, useAppTheme } from "./ThemeContext";
-import { RepoProvider } from "./RepoContext";
+import { RepoProvider, useLastRepo } from "./RepoContext";
 
 import { Sidebar, Menu, MenuItem } from "react-pro-sidebar";
 import { Routes, Route, Link, useLocation, Navigate } from "react-router-dom";
@@ -47,6 +48,7 @@ function AppContent() {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const location = useLocation();
   const { theme, currentTheme, toggleTheme } = useAppTheme();
+  const { lastRepo } = useLastRepo();
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
@@ -69,7 +71,8 @@ function AppContent() {
   return (
     <ThemeProvider theme={muiTheme}>
       <CssBaseline />
-      <div className="app-container">
+      <div className="app-container" style={{ background: currentTheme.background }}>
+        {isMobile && <MobileNavigation theme={theme} currentTheme={currentTheme} toggleTheme={toggleTheme} lastRepo={lastRepo} />}
         <Sidebar
           className="sidebar"
           collapsed={collapsed}
