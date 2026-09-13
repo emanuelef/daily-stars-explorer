@@ -12,7 +12,11 @@ When zooming in is possible to see each day with the actual number of new stars 
 
 ## Trend
 
-The trend is generated using [Prophet](https://github.com/facebook/prophet) in a separate [repo](https://github.com/emanuelef/daily-stars-predictor)
+The trend service uses [Prophet](https://github.com/facebook/prophet), maintained in a separate [repository](https://github.com/emanuelef/daily-stars-predictor).
+
+If the service is unavailable, the browser fits a robust, regularized piecewise linear trend. It groups observed daily star counts into calendar weeks, fits the average daily rates, and limits changes in the fitted slope to capture longer-term movement. Histories shorter than six weeks use individual days to retain enough observations for the fit. Robust fitting reduces the influence of isolated spikes. Missing dates are not treated as zero-star days. This local model is separate from Prophet and may produce different estimates.
+
+The local trend includes a 30-day projection starting the day after the last observation. It continues the latest fitted direction, with estimated daily stars bounded at zero. If fewer than seven observations exist within the final 14 calendar days, the projection holds the final fitted rate constant. Historical cumulative totals remain unchanged; projected totals add each estimated day's stars to the last observed total. The subtitle identifies locally calculated results, and dashed lines mark projected dates. “Recent + projection” shows the last 30 observed days alongside the estimates.
 
 <img width="862" alt="Screenshot 2024-03-14 at 20 13 21" src="https://github.com/emanuelef/daily-stars-explorer/assets/48717/8011300a-240d-47c1-b8ac-a69f5512c0b7">
 
@@ -78,4 +82,3 @@ Second order discrete derivative.
 Should indicate the acceleration of the new stars, porsitve values mean it is accelerating.
 
 <img width="813" alt="Screenshot 2024-03-14 at 21 30 09" src="https://github.com/emanuelef/daily-stars-explorer/assets/48717/b275decc-8394-4c8f-a3b7-9d3d7bca5f43">
-

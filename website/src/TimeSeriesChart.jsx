@@ -36,6 +36,8 @@ import "react-toastify/dist/ReactToastify.css";
 import Alert from "@mui/material/Alert";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
+import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
+import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
 import Box from "@mui/material/Box";
 import {
   addRunningMedian,
@@ -58,6 +60,7 @@ import "./DesktopStarsView.css";
 
 const HOST = import.meta.env.VITE_HOST;
 const PREDICTOR_HOST = "https://emafuma.mywire.org:8082";
+const LOADING_FEEDBACK_DELAY_MS = 500;
 
 const YEARLY_BINNING = {
   year: [1],
@@ -277,14 +280,6 @@ function TimeSeriesChart() {
         exportMode: "client",
         exportFormats: "PNG=Export as PNG|PDF=Export as PDF",
       },
-      extensions: {
-        prediction: {
-          date: "", // 22-09-2023
-          style: {
-            plot: "line",
-          },
-        },
-      },
     },
     events: {
       selectionChange: function (ev) {
@@ -324,6 +319,8 @@ function TimeSeriesChart() {
   const [starsLast10d, setStarsLast10d] = useState("");
   const [progressValue, setProgressValue] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [loadingFeedbackReady, setLoadingFeedbackReady] = useState(false);
+  const [loadingFeedbackRequest, setLoadingFeedbackRequest] = useState(0);
   const [showForceRefetch, setShowForceRefetch] = useState(false);
   const [forceRefetch, setForceRefetch] = useState(false);
   const [checkedYAxisType, setCheckedYAxisType] = useState(false);
@@ -333,6 +330,7 @@ function TimeSeriesChart() {
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const [keepLast30Zoom, setKeepLast30Zoom] = useState(false);
   const [last30Active, setLast30Active] = useState(false); // false: button applies last 30; true: button restores full timeline
+  const [isChartExpanded, setIsChartExpanded] = useState(false);
   const [pinnedRepos, setPinnedRepos] = useState(() => {
     try {
       const saved = localStorage.getItem('pinned-repos');
@@ -347,6 +345,7 @@ function TimeSeriesChart() {
   const currentPeaks = useRef([]);
   const chartRef = useRef(null);
   const chartHostRef = useRef(null);
+  const chartScrollTopRef = useRef(0);
   const historyRetryRef = useRef(null);
   const pendingRepoRef = useRef(null);
   const requestVersionRef = useRef(0);
@@ -393,6 +392,17 @@ function TimeSeriesChart() {
   const [selectedRepo, setSelectedRepo] = useState(defaultRepo);
   const [repoInput, setRepoInput] = useState(defaultRepo);
   const [checkedDateRange, setCheckedDateRange] = useState(false);
+
+  // Cached requests can finish before any loading message or spinner is needed.
+  const showLoading = loading && loadingFeedbackReady;
+  useEffect(() => {
+    if (!loading) {
+      setLoadingFeedbackReady(false);
+      return;
+    }
+    const timer = setTimeout(() => setLoadingFeedbackReady(true), LOADING_FEEDBACK_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [loading, loadingFeedbackRequest]);
 
   const sseClient = useSSE();
   const isMountedRef = useRef(true);
@@ -557,7 +567,10 @@ function TimeSeriesChart() {
       const dataArr = ds.dataSource.data._data;
       const lastIdx = dataArr.length - 1;
       const lastDate = dataArr[lastIdx][0];
-      const firstDateLast30 = dataArr[Math.max(0, lastIdx - 29)][0];
+      const recentHistoryStart = parseTimelineDate(rawStarsRef.current[Math.max(0, rawStarsRef.current.length - 30)]?.[0]);
+      const firstDateLast30 = ds.dataSource.extensions?.prediction && recentHistoryStart
+        ? Date.UTC(recentHistoryStart.getFullYear(), recentHistoryStart.getMonth(), recentHistoryStart.getDate())
+        : dataArr[Math.max(0, lastIdx - 29)][0];
 
       setKeepLast30Zoom(true);
       setLast30Active(true);
@@ -1224,6 +1237,7 @@ function TimeSeriesChart() {
         chart: { ...ds.dataSource.chart },
         xAxis: { ...ds.dataSource.xAxis },
         yAxis: ds.dataSource.yAxis.map(axis => ({ ...axis, plot: { ...axis.plot } })),
+        extensions: { ...ds.dataSource.extensions },
       },
     };
 
@@ -1250,6 +1264,7 @@ function TimeSeriesChart() {
     }
 
     options.dataSource.subcaption = "";
+    delete options.dataSource.extensions.prediction;
     options.dataSource.yAxis[0].referenceline = [];
     options.dataSource.yAxis[0].aggregation = "average";
 
@@ -1284,9 +1299,17 @@ function TimeSeriesChart() {
         options.dataSource.yAxis[0].plot.type = "line";
         options.dataSource.subcaption = {
           text: trendResult.source === "local"
-            ? "7-day average · calculated locally"
-            : "API trend · future dates are estimates",
+            ? "Long-term trend · 30-day projection (dashed) · estimated locally"
+            : "API trend · projected dates are estimates (dashed)",
         };
+        const observedDates = new Set(starHistory.map(([date]) => normalizeTimelineDate(date)));
+        const firstProjection = trendResult.data.find(([date]) => !observedDates.has(normalizeTimelineDate(date)));
+        if (firstProjection) {
+          options.dataSource.extensions.prediction = {
+            date: firstProjection[0],
+            style: { plot: { "stroke-dasharray": "5,4" } },
+          };
+        }
         break;
       case "yearlyBinning":
         textBinning = `Daily Stars ${aggregation} by Year`;
@@ -1699,7 +1722,10 @@ function TimeSeriesChart() {
       const dataArr = ds.dataSource.data._data;
       const lastIdx = dataArr.length - 1;
       const end = dataArr[lastIdx][0];
-      const start = dataArr[Math.max(0, lastIdx - 29)][0];
+      const recentHistoryStart = parseTimelineDate(rawStarsRef.current[Math.max(0, rawStarsRef.current.length - 30)]?.[0]);
+      const start = ds.dataSource.extensions?.prediction && recentHistoryStart
+        ? Date.UTC(recentHistoryStart.getFullYear(), recentHistoryStart.getMonth(), recentHistoryStart.getDate())
+        : dataArr[Math.max(0, lastIdx - 29)][0];
 
       chartRef.current.chartObj.setTimeSelection({ start, end });
       setSelectedTimeRange({ start, end });
@@ -1794,6 +1820,7 @@ function TimeSeriesChart() {
     if (pendingRepoRef.current === repoParsed) return;
     pendingRepoRef.current = repoParsed;
     const requestVersion = ++requestVersionRef.current;
+    setLoadingFeedbackRequest(requestVersion);
     graphVersionRef.current += 1;
     trendRequestRef.current?.controller.abort();
     trendRequestRef.current = null;
@@ -1815,6 +1842,7 @@ function TimeSeriesChart() {
     setZoomedStars(0);
     setZoomedStarsPercentageTotal(0);
     setProgressValue(0);
+    setLoadingFeedbackReady(false);
     setLoading(true);
     setds(previous => ({
       ...previous,
@@ -1910,6 +1938,20 @@ function TimeSeriesChart() {
   }, [currentStarsHistory, selectedTimeRange, feed, ds]);
 
   const hasChart = currentStarsHistory.length > 0 && Boolean(ds?.dataSource?.data);
+
+  const toggleChartExpanded = () => {
+    if (!isChartExpanded) {
+      chartScrollTopRef.current = chartHostRef.current.closest(".content")?.scrollTop || 0;
+    }
+    setIsChartExpanded(expanded => !expanded);
+  };
+
+  useEffect(() => {
+    chartHostRef.current?.closest(".content")?.scrollTo({
+      top: isChartExpanded ? 0 : chartScrollTopRef.current,
+    });
+  }, [isChartExpanded]);
+
   useEffect(() => {
     const host = chartHostRef.current;
     const content = host?.closest(".content");
@@ -1922,9 +1964,11 @@ function TimeSeriesChart() {
         const bounds = host.getBoundingClientRect();
         const top = bounds.top - content.getBoundingClientRect().top + content.scrollTop;
         const width = Math.floor(bounds.width);
-        const height = Math.max(360, Math.floor(content.clientHeight - top - 16));
+        const height = isChartExpanded
+          ? Math.floor(bounds.height)
+          : Math.max(360, Math.floor(content.clientHeight - top - 16));
         const size = `${width}:${height}`;
-        if (width > 0 && size !== lastSize && chartRef.current?.chartObj) {
+        if (width > 0 && height > 0 && size !== lastSize && chartRef.current?.chartObj) {
           lastSize = size;
           chartRef.current.chartObj.resizeTo(width, height);
         }
@@ -1940,7 +1984,7 @@ function TimeSeriesChart() {
       cancelAnimationFrame(frame);
       window.removeEventListener("resize", resizeChart);
     };
-  }, [hasChart, pinnedRepos.length]);
+  }, [hasChart, pinnedRepos.length, isChartExpanded, showLoading]);
 
   const chartBusy = loading || !hasChart;
   const transforms = [
@@ -1953,7 +1997,7 @@ function TimeSeriesChart() {
   ];
 
   return (
-    <div className="desktop-stars" data-theme={appTheme}>
+    <div className={`desktop-stars${isChartExpanded ? " desktop-stars--expanded" : ""}`} data-theme={appTheme}>
       <header className="desktop-stars__header">
         <div>
           <p className="desktop-stars__eyebrow">Repository star history</p>
@@ -2010,8 +2054,8 @@ function TimeSeriesChart() {
               <MenuItem value="youtube">YouTube</MenuItem>
             </Select>
           </FormControl>
-          <LoadingButton onClick={handleClick} endIcon={<SendIcon />} loading={loading} loadingPosition="end"
-            variant="contained" size="small" aria-label="Fetch repository" disabled={!repoInput.trim()}>
+          <LoadingButton onClick={handleClick} endIcon={<SendIcon />} loading={showLoading} loadingPosition="end"
+            variant="contained" size="small" aria-label="Fetch repository" disabled={loading || !repoInput.trim()}>
             Fetch
           </LoadingButton>
           <Tooltip title={pinnedRepos.includes(selectedRepo) ? "Unpin repository" : "Pin repository"}>
@@ -2083,19 +2127,32 @@ function TimeSeriesChart() {
           value={hasChart ? `${formatNumber(zoomedStars)} (${zoomedStarsPercentageTotal}%)` : "—"}
           slotProps={{ input: { readOnly: true } }} />
         <Button id="desktop-range" size="small" variant="outlined" onClick={last30Active ? applyFullTimelineView : applyLast30DaysView} disabled={chartBusy}>
-          {last30Active ? "All history" : "Last 30 days"}
+          {last30Active ? "All history" : ds.dataSource.extensions?.prediction ? "Recent + projection" : "Last 30 days"}
         </Button>
         <span className="desktop-stars__separator" aria-hidden="true" />
         <Button size="small" variant="outlined" onClick={openCurrentRepoPage} disabled={!historyLoaded || loading}>Open repo</Button>
       </section>
 
       <section className="desktop-stars__card desktop-stars__chart" aria-label="Star history chart">
-        {loading && <div className="desktop-stars__loading" role="status"><p>Loading {selectedRepo}… {progressValue > 0 && `${progressValue} history requests completed.`}</p><LinearProgress aria-label="Loading repository history" /></div>}
+        {showLoading && <div className="desktop-stars__loading" role="status"><p>Loading {selectedRepo}… {progressValue > 0 && `${progressValue} history requests completed.`}</p><LinearProgress aria-label="Loading repository history" /></div>}
         <Box id="chart-container" ref={chartHostRef} className="desktop-stars__canvas" aria-busy={loading}>
+          {(hasChart || isChartExpanded) && (
+            <Tooltip title={isChartExpanded ? "Show chart options" : "Expand chart (hide options)"}>
+              <IconButton className="desktop-stars__expand" size="small"
+                onClick={toggleChartExpanded} aria-label={isChartExpanded ? "Show chart options" : "Expand chart"}
+                aria-pressed={isChartExpanded} aria-controls="chart-container">
+                {isChartExpanded ? <UnfoldLessIcon fontSize="small" /> : <UnfoldMoreIcon fontSize="small" />}
+              </IconButton>
+            </Tooltip>
+          )}
           {hasChart ? <ReactFC ref={chartRef} {...ds} /> : (
             <div className="desktop-stars__empty">
-              <h2>{loading ? "Fetching star history" : showError ? "History could not be loaded" : "No daily history yet"}</h2>
-              <p>{loading ? "The chart will appear here when the data is ready." : showError ? "Try again above, or choose another repository." : "Daily history includes completed days. Try another repository or check back after the next UTC day."}</p>
+              {(showLoading || (!loading && (showError || historyLoaded))) && (
+                <>
+                  <h2>{showLoading ? "Fetching star history" : showError ? "History could not be loaded" : "No daily history yet"}</h2>
+                  <p>{showLoading ? "The chart will appear here when the data is ready." : showError ? "Try again above, or choose another repository." : "Daily history includes completed days. Try another repository or check back after the next UTC day."}</p>
+                </>
+              )}
             </div>
           )}
         </Box>

@@ -19,37 +19,174 @@ const payload = {
 const options = { endpoint: "https://trend.example", timeoutMs: 50 };
 const response = value => ({ ok: true, json: async () => value });
 
-test("local trend uses seven calendar days and preserves actual cumulative totals", () => {
-  const input = Array.from({ length: 9 }, (_, index) => [
-    `${String(index + 1).padStart(2, "0")}-01-2026`, index + 1, 100 + index,
-  ]);
-  const result = calculateLocalTrend(input);
-  assert.deepEqual(result.map(point => point[1]), [2.5, 3, 3.5, 4, 5, 6, 6.5, 7, 7.5]);
-  assert.deepEqual(result.map(point => [point[0], point[2]]), input.map(point => [point[0], point[2]]));
-  assert.equal(input[0][1], 1);
-});
+const DAY_MS = 24 * 60 * 60 * 1000;
+const dateAfter = (start, days) => {
+  const [year, month, day] = new Date(Date.parse(start) + days * DAY_MS).toISOString().slice(0, 10).split("-");
+  return `${day}-${month}-${year}`;
+};
+const dailyHistory = (length, daily, start = "2024-01-01") => {
+  let total = 100;
+  return Array.from({ length }, (_, index) => {
+    const value = daily(index);
+    total += value;
+    return [dateAfter(start, index), value, total];
+  });
+};
+const approximately = (actual, expected, tolerance = 0.02) => {
+  assert.ok(Math.abs(actual - expected) <= tolerance, `expected ${actual} to be within ${tolerance} of ${expected}`);
+};
 
-test("local trend handles empty, single-day, short, constant and zero histories", () => {
-  assert.deepEqual(calculateLocalTrend([]), []);
-  assert.deepEqual(calculateLocalTrend([["1-3-2024", 3, 9]]), [["01-03-2024", 3, 9]]);
-  assert.deepEqual(calculateLocalTrend(history).map(point => point[1]), [4, 4, 4]);
-  for (const value of [0, 5, Number.MAX_VALUE]) {
-    const result = calculateLocalTrend(history.map(([date, , total]) => [date, value, total]));
-    assert.ok(result.every(point => point[1] === value && Number.isFinite(point[1])));
+test("local trend fits increasing and decreasing historical rates and extends their direction", () => {
+  for (const daily of [index => 5 + index * 0.1, index => 40 - index * 0.1]) {
+    const input = dailyHistory(180, daily);
+    const result = calculateLocalTrend(input);
+    assert.equal(result.length, input.length + 30);
+    result.forEach((point, index) => approximately(point[1], daily(index)));
   }
 });
 
-test("local smoothing respects date gaps and sanitizes unusable observations", () => {
-  assert.deepEqual(calculateLocalTrend([
+test("historical fitted rates preserve actual cumulative totals without changing the input", () => {
+  const input = dailyHistory(180, index => 5 + index * 0.1 + (index % 2 ? 3 : -3));
+  // Actual totals can differ from the integral of the fitted trend.
+  input.at(-1)[2] = 5000;
+  const original = structuredClone(input);
+  const result = calculateLocalTrend(input);
+  assert.deepEqual(result.slice(0, input.length).map(([date, , total]) => [date, total]),
+    input.map(([date, , total]) => [date, total]));
+  assert.deepEqual(input, original);
+  approximately(result[input.length][2], 5000 + result[input.length][1]);
+});
+
+test("an isolated burst does not become a spike in the underlying trend", () => {
+  const input = dailyHistory(365, index => index === 240 ? 1000 : 5);
+  const result = calculateLocalTrend(input);
+  assert.ok(result.slice(220, 260).every(point => point[1] < 10));
+  approximately(result.at(-1)[1], 5, 1);
+});
+
+test("an isolated burst in a short history does not dominate the fit or projection", () => {
+  for (const length of [15, 21, 28, 35]) {
+    for (const burstDay of [0, Math.floor(length / 2), length - 1]) {
+      const result = calculateLocalTrend(dailyHistory(length, index => index === burstDay ? 1000 : 1));
+      assert.ok(result.slice(0, length).every(point => point[1] > 0.5 && point[1] < 2),
+        `historical rates should remain near 1 for ${length} days with a burst on day ${burstDay}`);
+      assert.ok(result.slice(length).every(point => point[1] >= 0 && point[1] < 3),
+        `a single burst should not produce runaway projections for ${length} days with a burst on day ${burstDay}`);
+    }
+  }
+});
+
+test("sparse weekly stars retain a positive underlying rate", () => {
+  const input = dailyHistory(365, index => index % 7 === 0 ? 7 : 0);
+  const result = calculateLocalTrend(input);
+  assert.ok(result.slice(30, 330).every(point => point[1] > 0.8 && point[1] < 1.2));
+  assert.ok(result.slice(365).every(point => point[1] > 0.5 && point[1] < 2));
+});
+
+test("short histories with one star per week retain a positive underlying rate", () => {
+  for (const length of [15, 21, 28, 35]) {
+    const input = dailyHistory(length, index => index % 7 === 0 ? 1 : 0);
+    const observed = calculateLocalTrend(input).slice(0, length);
+    const meanRate = observed.reduce((sum, point) => sum + point[1], 0) / length;
+    assert.ok(meanRate > 0.08 && meanRate < 0.25,
+      `sparse activity in ${length} days should retain a rate near 1/7, received ${meanRate}`);
+    assert.ok(observed.every(point => point[1] > 0 && point[1] < 0.4));
+  }
+});
+
+test("the historical trend follows sustained growth followed by a decline", () => {
+  const input = dailyHistory(720, index => 4 + Math.min(index, 720 - index) * 0.1);
+  const result = calculateLocalTrend(input);
+  assert.ok(result[0][1] < 10);
+  assert.ok(result[360][1] > 30);
+  assert.ok(result[719][1] < 10);
+  assert.ok(result.at(-1)[1] < result[719][1]);
+});
+
+test("local regression uses calendar distance across missing observations", () => {
+  const offsets = [0, 1, 17, 32];
+  const input = offsets.map(index => [dateAfter("2024-05-01", index), index + 1, 100 + index]);
+  const result = calculateLocalTrend(input);
+  assert.deepEqual(result.slice(0, input.length).map(point => point[0]), input.map(point => point[0]));
+  result.slice(0, input.length).forEach((point, index) => approximately(point[1], offsets[index] + 1));
+  result.slice(input.length).forEach(point => approximately(point[1], 33));
+});
+
+test("local trend sorts and normalizes dates and sanitizes unusable observations", () => {
+  const result = calculateLocalTrend([
     ["08-03-2024", 8, 8],
     ["31-02-2024", 100, 100],
-    ["01-03-2024", -1, NaN],
+    ["1-3-2024", -1, NaN],
     ["02-03-2024", Infinity, NaN],
-  ]), [
-    ["01-03-2024", 0, 0],
-    ["02-03-2024", 0, 0],
-    ["08-03-2024", 8, 8],
   ]);
+  assert.equal(result.length, 33);
+  assert.deepEqual(result.slice(0, 3).map(([date, , total]) => [date, total]), [
+    ["01-03-2024", 0],
+    ["02-03-2024", 0],
+    ["08-03-2024", 8],
+  ]);
+  assert.ok(result.every(point => point.slice(1).every(value => Number.isFinite(value) && value >= 0)));
+});
+
+test("local projections integrate 30 daily rates from the last actual cumulative total", () => {
+  const input = dailyHistory(14, index => 2 + index * 2, "2024-02-16");
+  input.at(-1)[2] = 5000;
+  const result = calculateLocalTrend(input);
+  result.slice(0, input.length).forEach((point, index) => approximately(point[1], input[index][1]));
+  const future = result.slice(input.length);
+  assert.equal(future.length, 30);
+  let total = input.at(-1)[2];
+  future.forEach(([date, daily, cumulative], index) => {
+    assert.equal(date, dateAfter("2024-02-29", index + 1));
+    approximately(daily, 30 + index * 2);
+    total += daily;
+    approximately(cumulative, total);
+  });
+});
+
+test("short histories fit historical rates but hold the final rate in projections", () => {
+  for (const input of [history.slice(0, 2), history]) {
+    const result = calculateLocalTrend(input);
+    result.slice(0, input.length).forEach((point, index) => approximately(point[1], input[index][1]));
+    result.slice(input.length).forEach(point => approximately(point[1], input.at(-1)[1]));
+  }
+});
+
+test("a large final date gap does not extrapolate an unsupported daily slope", () => {
+  const input = dailyHistory(180, index => 5 + index * 0.1);
+  input.push([dateAfter("2024-01-01", 1000), 105, 5000]);
+  const result = calculateLocalTrend(input);
+  const fittedEndpoint = result[input.length - 1][1];
+  result.slice(input.length).forEach(point => approximately(point[1], fittedEndpoint));
+});
+
+test("single-day projections use consecutive UTC dates through leap day", () => {
+  const result = calculateLocalTrend([["28-2-2024", 3, 9]]);
+  assert.equal(result.length, 31);
+  result.forEach((point, index) => assert.deepEqual(point, [dateAfter("2024-02-28", index), 3, 9 + index * 3]));
+  assert.equal(result[1][0], "29-02-2024");
+  assert.equal(result[2][0], "01-03-2024");
+  assert.equal(result.at(-1)[0], "29-03-2024");
+});
+
+test("declining projections clamp at zero and never reduce projected totals", () => {
+  const input = dailyHistory(14, index => 27 - index * 2);
+  const future = calculateLocalTrend(input).slice(input.length);
+  assert.equal(future.length, 30);
+  assert.ok(future.every(([, daily, total]) => daily === 0 && total === input.at(-1)[2]));
+});
+
+test("empty, zero, constant and extreme histories stay finite", () => {
+  assert.deepEqual(calculateLocalTrend([]), []);
+  assert.deepEqual(calculateLocalTrend([["31-02-2024", 1, 1]]), []);
+  for (const value of [0, 5, Number.MAX_VALUE]) {
+    const input = dailyHistory(180, () => value).map(([date]) => [date, value, value]);
+    const result = calculateLocalTrend(input);
+    assert.equal(result.length, 210);
+    assert.ok(result.every(point => point.slice(1).every(number => Number.isFinite(number) && number >= 0)));
+    result.forEach(point => approximately(point[1] / (value || 1), value ? 1 : 0, 0.000001));
+    if (value === Number.MAX_VALUE) assert.equal(result.at(-1)[2], Number.MAX_VALUE);
+  }
 });
 
 test("API trend aligns by date and retains future estimates with inclusive projected totals", () => {
