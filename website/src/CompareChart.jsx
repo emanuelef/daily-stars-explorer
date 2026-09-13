@@ -29,6 +29,7 @@ import UmberTheme from "fusioncharts/themes/fusioncharts.theme.umber";
 import CopyToClipboardButton from "./CopyToClipboardButton";
 import { useAppTheme } from "./ThemeContext";
 import { AXIS_STYLE } from "./chartAxisStyle";
+import { loadTrend } from "./trend";
 
 const HOST = import.meta.env.VITE_HOST;
 const PREDICTOR_HOST = "https://emafuma.mywire.org:8082";
@@ -61,11 +62,6 @@ const WEEKLY_BINNING = {
   hour: [],
   minute: [],
   second: [],
-};
-
-const formatDate = (originalDate) => {
-  const parts = originalDate.split("-");
-  return `${parts[2]}-${parts[1]}-${parts[0]}`;
 };
 
 const INCLUDE_DATE_RANGE =
@@ -219,6 +215,11 @@ function CompareChart() {
 
   const currentRepo = useRef(defaultRepo);
   const currentRepo2 = useRef(defaultRepo2);
+  const comparisonRequestRef = useRef(null);
+
+  useEffect(() => () => {
+    comparisonRequestRef.current?.abort();
+  }, []);
 
   const [checkedDateRange, setCheckedDateRange] = useState(false);
 
@@ -389,9 +390,18 @@ function CompareChart() {
     return response.json();
   };
 
-  const options = { ...ds };
-
-  const handleCombinedData = async (combinedData) => {
+  const handleCombinedData = async (combinedData, repo, repo2, signal) => {
+    if (signal.aborted) return;
+    const options = {
+      ...ds,
+      dataSource: {
+        ...ds.dataSource,
+        chart: { ...ds.dataSource.chart },
+        xAxis: { ...ds.dataSource.xAxis },
+        yAxis: ds.dataSource.yAxis.map(axis => ({ ...axis, plot: { ...axis.plot } })),
+        subcaption: { text: "" },
+      },
+    };
     let binning = {};
 
     console.log(combinedData);
@@ -408,60 +418,19 @@ function CompareChart() {
         options.dataSource.yAxis[0].plot.type = "line";
         break;
       case "trend":
-        const repoParsed = parseGitHubRepoURL(selectedRepo);
-        const repoParsed2 = parseGitHubRepoURL(selectedRepo2);
-
-        const [predictions, predictions2] = await Promise.all([
-          fetchPredictions(repoParsed),
-          fetchPredictions(repoParsed2),
-        ]);
-
-        predictions.forEach((subarray) => {
-          subarray.push(repoParsed);
-        });
-
-        predictions2.forEach((subarray) => {
-          subarray.push(repoParsed2);
-        });
-
-        let currentRepo = repoParsed;
-        let currentIndex = 0;
-
-        do {
-          predictions[currentIndex][2] = combinedData[currentIndex][2];
-          currentIndex++;
-          currentRepo = combinedData[currentIndex][3];
-        } while (currentRepo == repoParsed);
-
-        currentIndex--;
-
-        let lastSum = combinedData[currentIndex][2];
-
-        for (let index = currentIndex; index < predictions.length; index++) {
-          predictions[index][2] = lastSum;
-          lastSum += predictions[index][1];
-        }
-
-        currentIndex++;
-
-        for (
-          let index = 0;
-          index < combinedData.length - currentIndex;
-          index++
-        ) {
-          predictions2[index][2] = combinedData[currentIndex + index][2];
-        }
-
-        lastSum = combinedData[combinedData.length - 1][2];
-
-        currentIndex = combinedData.length - currentIndex;
-
-        for (let index = currentIndex; index < predictions2.length; index++) {
-          predictions2[index][2] = lastSum;
-          lastSum += predictions2[index][1];
-        }
-
-        appliedAggregationResult = predictions.concat(predictions2);
+        const repos = [...new Set([repo, repo2])];
+        const trends = await Promise.all(repos.map(name => loadTrend(
+          name,
+          combinedData.filter(point => point[3] === name).map(point => point.slice(0, 3)),
+          { endpoint: PREDICTOR_HOST, signal },
+        )));
+        if (signal.aborted) return;
+        appliedAggregationResult = trends.flatMap((result, index) => result.data.map(point => [...point, repos[index]]));
+        options.dataSource.subcaption = {
+          text: trends.map((result, index) => `${repos[index]}: ${result.source === "local"
+            ? "7-day average calculated locally"
+            : "API trend (future dates are estimates)"}`).join(" · "),
+        };
 
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
@@ -506,7 +475,7 @@ function CompareChart() {
       schema
     );
 
-    options.dataSource.caption = { text: `Stars` };
+    options.dataSource.caption = { text: aggregation === "trend" ? "Stars (Trend)" : "Stars" };
     options.dataSource.data = fusionTable;
     options.dataSource.xAxis.binning = binning;
 
@@ -524,7 +493,17 @@ function CompareChart() {
       "_"
     )}-stars-history`;
 
-    setds(options);
+    if (signal.aborted) return;
+    setds(previous => ({
+      ...options,
+      dataSource: {
+        ...options.dataSource,
+        chart: { ...options.dataSource.chart, theme: previous.dataSource.chart.theme },
+        yAxis: options.dataSource.yAxis.map((axis, index) => ({
+          ...axis, type: previous.dataSource.yAxis[index].type,
+        })),
+      },
+    }));
     setDaysToReach(computeDaysToReach(appliedAggregationResult, targetStars));
   };
 
@@ -551,50 +530,31 @@ function CompareChart() {
     }
   };
 
-  const fetchPredictions = async (repo) => {
-    try {
-      const response = await fetch(`${PREDICTOR_HOST}/predict?repo=${repo}`);
-      const data = await response.json();
-
-      const starsTrend = data.forecast_trend.map((entry) => [
-        formatDate(entry.ds),
-        Math.max(entry.trend, 0),
-        0,
-      ]);
-
-      return starsTrend;
-    } catch (error) {
-      console.error(`An error occurred: ${error}`);
-    }
-  };
-
   const fetchAllStars = (repo, repo2) => {
+    comparisonRequestRef.current?.abort();
+    const controller = new AbortController();
+    comparisonRequestRef.current = controller;
+    const { signal } = controller;
     const fetchUrl = `${HOST}/allStars?repo=${repo}`;
     const fetchUrl2 = `${HOST}/allStars?repo=${repo2}`;
 
     const promises = [
-      fetch(fetchUrl).then(handleFetchResponse),
-      fetch(fetchUrl2).then(handleFetchResponse),
+      fetch(fetchUrl, { signal }).then(handleFetchResponse),
+      fetch(fetchUrl2, { signal }).then(handleFetchResponse),
     ];
 
-    Promise.all(promises)
+    return Promise.all(promises)
       .then((results) => {
+        if (signal.aborted) return;
         const [data1, data2] = results;
-
-        data1.stars.forEach((subarray) => {
-          subarray.push(repo);
-        });
-
-        data2.stars.forEach((subarray) => {
-          subarray.push(repo2);
-        });
-
-        removeUncompleteDay(data1.stars);
-        removeUncompleteDay(data2.stars);
-
-        handleCombinedData(data1.stars.concat(data2.stars));
+        const stars1 = (Array.isArray(data1) ? data1 : data1.stars).map(point => [...point, repo]);
+        const stars2 = (Array.isArray(data2) ? data2 : data2.stars).map(point => [...point, repo2]);
+        removeUncompleteDay(stars1);
+        removeUncompleteDay(stars2);
+        return handleCombinedData(stars1.concat(stars2), repo, repo2, signal);
       })
       .catch((error) => {
+        if (signal.aborted) return;
         console.error(`An error occurred: ${error}`);
       });
   };

@@ -312,10 +312,12 @@ const MobileStarsView = () => {
           {inputError || "Paste a GitHub URL or enter owner/repository"}
         </p>
         {suggestionsOpen && (
-          <ul id="mobile-repo-suggestions" className="mobile-stars__suggestions" role="listbox" aria-label="Repository suggestions">
+          <ul id="mobile-repo-suggestions" className="mobile-stars__suggestions" role="listbox" aria-label="Repository suggestions"
+            // Prevent blur before selection without canceling the touch pointer gesture.
+            onMouseDown={event => event.preventDefault()}>
             {filteredRepos.map((name, index) => (
               <li key={name} role="option" id={`mobile-repo-option-${index}`} aria-selected={activeSuggestion === index}
-                onPointerDown={event => event.preventDefault()} onClick={() => openRepo(name)}>
+                onClick={() => openRepo(name)}>
                 {name}
               </li>
             ))}

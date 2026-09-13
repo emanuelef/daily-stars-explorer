@@ -1,13 +1,49 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import Button from "@mui/material/Button";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
+import DialogTitle from "@mui/material/DialogTitle";
 import Snackbar from "@mui/material/Snackbar";
+import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
-import * as React from "react";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 
-function CopyToClipboardButton({ dateRange, aggregation }) {
+function buildShareUrl(href, { dateRange, transformation, aggregation }) {
+  const url = new URL(href);
+  // HashRouter keeps the route and its query inside the URL fragment.
+  const route = url.hash.startsWith("#/")
+    ? new URL(url.hash.slice(1), url.origin)
+    : url;
+
+  if (dateRange?.start && dateRange?.end) {
+    route.searchParams.set("start", dateRange.start);
+    route.searchParams.set("end", dateRange.end);
+  } else {
+    route.searchParams.delete("start");
+    route.searchParams.delete("end");
+  }
+
+  for (const [name, value] of Object.entries({ transformation, aggregation })) {
+    if (value === undefined) continue;
+    if (value) route.searchParams.set(name, value);
+    else route.searchParams.delete(name);
+  }
+
+  if (route !== url) {
+    url.hash = `${route.pathname}${route.search}${route.hash}`;
+  }
+  return url.toString();
+}
+
+function CopyToClipboardButton({ dateRange, transformation, aggregation, disabled = false }) {
   const [open, setOpen] = useState(false);
+  const [copying, setCopying] = useState(false);
+  const [manualLink, setManualLink] = useState("");
+  const dialogId = useId();
 
   const handleClose = (event, reason) => {
     if (reason === "clickaway") {
@@ -17,44 +53,37 @@ function CopyToClipboardButton({ dateRange, aggregation }) {
     setOpen(false);
   };
 
-  const handleCopyToClipboard = () => {
-    // Get the current URL from the browser's location
-    let currentUrl = window.location.href;
-
-    if (dateRange && dateRange.start && dateRange.end) {
-      currentUrl += `?start=${dateRange.start}&end=${dateRange.end}`;
-      if (aggregation) {
-        currentUrl += `&aggregation=${aggregation}`;
+  const handleCopyToClipboard = async () => {
+    const currentUrl = buildShareUrl(window.location.href, {
+      dateRange,
+      transformation,
+      aggregation,
+    });
+    setCopying(true);
+    setOpen(false);
+    try {
+      if (!navigator.clipboard?.writeText) {
+        setManualLink(currentUrl);
+        return;
       }
-    } else if (aggregation) {
-      currentUrl += `?aggregation=${aggregation}`;
+      await navigator.clipboard.writeText(currentUrl);
+      setOpen(true);
+    } catch {
+      setManualLink(currentUrl);
+    } finally {
+      setCopying(false);
     }
-
-    // Try to copy the URL to the clipboard
-    navigator.clipboard
-      .writeText(currentUrl)
-      .then(() => {
-        // Handle successful copy (e.g., show a success message)
-        console.log("URL copied to clipboard:", currentUrl);
-        setOpen(true);
-      })
-      .catch((error) => {
-        // Handle copy error (e.g., display an error message)
-        console.error("Copy to clipboard failed:", error);
-      });
   };
 
   const action = (
-    <React.Fragment>
-      <IconButton
-        size="small"
-        aria-label="close"
-        color="inherit"
-        onClick={handleClose}
-      >
-        <CloseIcon fontSize="small" />
-      </IconButton>
-    </React.Fragment>
+    <IconButton
+      size="small"
+      aria-label="Dismiss link copied message"
+      color="inherit"
+      onClick={handleClose}
+    >
+      <CloseIcon fontSize="small" />
+    </IconButton>
   );
 
   return (
@@ -64,25 +93,57 @@ function CopyToClipboardButton({ dateRange, aggregation }) {
       }}
     >
       <Tooltip
-        enterDelay={1500}
-        title={"Copy the url to the clipboard to share this repo stars history"}
+        title={disabled ? "Load a repository to share its chart" : "Copy a link with your current chart settings"}
       >
-        <Button
-          variant="contained"
-          size="small"
-          onClick={handleCopyToClipboard}
-        >
-          Share URL
-        </Button>
+        <span>
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<ContentCopyIcon />}
+            disabled={disabled || copying}
+            aria-busy={copying}
+            onClick={handleCopyToClipboard}
+          >
+            {copying ? "Copying…" : "Copy link"}
+          </Button>
+        </span>
       </Tooltip>
       <Snackbar
         open={open}
-        autoHideDuration={3000}
+        autoHideDuration={4000}
         onClose={handleClose}
-        message="URL copied to clipboard"
+        message="Chart link copied to clipboard"
+        slotProps={{ content: { role: "status" } }}
         action={action}
         anchorOrigin={{ vertical: "top", horizontal: "center" }}
       />
+      <Dialog
+        open={Boolean(manualLink)}
+        onClose={() => setManualLink("")}
+        aria-labelledby={`${dialogId}-title`}
+        aria-describedby={`${dialogId}-description`}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle id={`${dialogId}-title`}>Copy chart link</DialogTitle>
+        <DialogContent>
+          <DialogContentText id={`${dialogId}-description`}>
+            Your browser couldn’t copy the link automatically. Select and copy it below to share this chart.
+          </DialogContentText>
+          <TextField
+            autoFocus
+            fullWidth
+            label="Chart link"
+            value={manualLink}
+            margin="normal"
+            slotProps={{ htmlInput: { readOnly: true } }}
+            onFocus={(event) => event.target.select()}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setManualLink("")}>Done</Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 }

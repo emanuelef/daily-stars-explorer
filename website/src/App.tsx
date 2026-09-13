@@ -5,6 +5,7 @@ import MainPage from "./MainPage";
 import TimeSeriesChart from "./TimeSeriesChart";
 import MobileStarsView from "./MobileStarsView";
 import MobileNavigation from "./MobileNavigation";
+import DesktopNavigation from "./DesktopNavigation";
 import HourlyStarsChart from "./HourlyStarsChart";
 import CompareChart from "./CompareChart";
 import IssuesTimeSeriesChart from "./IssuesTimeSeriesChart";
@@ -18,35 +19,13 @@ import FeaturedReposPage from "./FeaturedReposPage";
 import { ThemeProvider as AppThemeProvider, useAppTheme } from "./ThemeContext";
 import { RepoProvider, useLastRepo } from "./RepoContext";
 
-import { Sidebar, Menu, MenuItem } from "react-pro-sidebar";
-import { Routes, Route, Link, useLocation, Navigate } from "react-router-dom";
-
-import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
-import SpeedOutlinedIcon from "@mui/icons-material/SpeedOutlined";
-import QueryStatsRoundedIcon from "@mui/icons-material/QueryStatsRounded";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import SsidChartRoundedIcon from "@mui/icons-material/SsidChartRounded";
-import BugReportRoundedIcon from "@mui/icons-material/BugReportRounded";
-import AltRouteOutlinedIcon from "@mui/icons-material/AltRouteOutlined";
-import CallMergeRoundedIcon from '@mui/icons-material/CallMergeRounded';
-import CommitRoundedIcon from '@mui/icons-material/CommitRounded';
-import Diversity3OutlinedIcon from '@mui/icons-material/Diversity3Outlined';
-import AddBoxOutlinedIcon from '@mui/icons-material/AddBoxOutlined';
-import ArticleIcon from '@mui/icons-material/Article';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import StarOutlineRoundedIcon from '@mui/icons-material/StarOutlineRounded';
-import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined';
-import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined';
+import { Routes, Route, Navigate } from "react-router-dom";
 
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
-import Tooltip from "@mui/material/Tooltip";
-import IconButton from "@mui/material/IconButton";
 
 function AppContent() {
-  const [collapsed, setCollapsed] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
-  const location = useLocation();
   const { theme, currentTheme, toggleTheme } = useAppTheme();
   const { lastRepo } = useLastRepo();
 
@@ -66,258 +45,25 @@ function AppContent() {
     [theme]
   );
 
-  const isDark = theme === 'dark';
-
   return (
     <ThemeProvider theme={muiTheme}>
       <CssBaseline />
+      <a
+        className="skip-to-content"
+        href="#main-content"
+        onClick={(event) => {
+          event.preventDefault();
+          const mainContent = document.getElementById("main-content");
+          mainContent?.focus();
+          mainContent?.scrollTo({ top: 0 });
+        }}
+      >
+        Skip to content
+      </a>
       <div className="app-container" style={{ background: currentTheme.background }}>
         {isMobile && <MobileNavigation theme={theme} currentTheme={currentTheme} toggleTheme={toggleTheme} lastRepo={lastRepo} />}
-        <Sidebar
-          className="sidebar"
-          collapsed={collapsed}
-          backgroundColor={currentTheme.sidebarBg}
-          width={collapsed ? "70px" : "200px"}
-          rootStyles={{
-            borderColor: currentTheme.cardBorder,
-            display: isMobile ? 'none' : 'flex',
-          }}
-        >
-          <Menu
-            menuItemStyles={{
-              button: ({ level, active, disabled }) => {
-                if (level >= 0)
-                  return {
-                    color: disabled ? currentTheme.textMuted : currentTheme.textSecondary,
-                    backgroundColor: active ? currentTheme.accentBg : undefined,
-                    "&:hover": {
-                      backgroundColor: currentTheme.accentHover,
-                    },
-                  };
-              },
-            }}
-          >
-            <MenuItem
-              component={<Link to="/" className="link" />}
-              className="menu1"
-              icon={
-                <Tooltip title="Toggle Menu" placement="right">
-                  <MenuRoundedIcon
-                    onClick={() => {
-                      setCollapsed(!collapsed);
-                    }}
-                  />
-                </Tooltip>
-              }
-            >
-              <h2 style={{ color: currentTheme.textPrimary, fontSize: "16px", fontWeight: 600 }}>Stars Explorer</h2>
-            </MenuItem>
-            <MenuItem
-              component={<Link to="/starstimeline/:id" className="link" />}
-              icon={
-                <Tooltip title="Stars Timeline" placement="right">
-                  <QueryStatsRoundedIcon />
-                </Tooltip>
-              }
-              active={
-                !(
-                  location.pathname.includes("/compare") ||
-                  location.pathname.includes("/limits") ||
-                  location.pathname.includes("/info") ||
-                  location.pathname.includes("/issues") ||
-                  location.pathname.includes("/forks") ||
-                  location.pathname.includes("/prs") ||
-                  location.pathname.includes("/commits") ||
-                  location.pathname.includes("/contributors") ||
-                  location.pathname.includes("/newrepos") ||
-                  location.pathname.includes("/featured") ||
-                  location.pathname.includes("/hourly")
-                )
-              }
-            >
-              Repo Star History
-            </MenuItem>
-            <MenuItem
-              component={<Link to="/hourly" className="link" />}
-              icon={
-                <Tooltip title="Hourly Stars" placement="right">
-                  <AccessTimeIcon />
-                </Tooltip>
-              }
-              active={location.pathname.includes("/hourly")}
-            >
-              Hourly Stars
-            </MenuItem>
-            <MenuItem
-              component={<Link to="/compare" className="link" />}
-              icon={
-                <Tooltip title="Compare" placement="right">
-                  <SsidChartRoundedIcon />
-                </Tooltip>
-              }
-              active={location.pathname.includes("/compare")}
-            >
-              Compare
-            </MenuItem>
-            <MenuItem
-              component={<Link to="/commits" className="link" />}
-              icon={
-                <Tooltip title="Commits Timeline" placement="right">
-                  <CommitRoundedIcon />
-                </Tooltip>
-              }
-              active={location.pathname.includes("/commits")}
-            >
-              Commits
-            </MenuItem>
-            <MenuItem
-              component={<Link to="/prs" className="link" />}
-              icon={
-                <Tooltip title="PRs Timeline" placement="right">
-                  <CallMergeRoundedIcon />
-                </Tooltip>
-              }
-              active={location.pathname.includes("/prs")}
-            >
-              PRs
-            </MenuItem>
-            <MenuItem
-              component={<Link to="/issues" className="link" />}
-              icon={
-                <Tooltip title="Issues Timeline" placement="right">
-                  <BugReportRoundedIcon />
-                </Tooltip>
-              }
-              active={location.pathname.includes("/issues")}
-            >
-              Issues
-            </MenuItem>
-            <MenuItem
-              component={<Link to="/forks" className="link" />}
-              icon={
-                <Tooltip title="Forks Timeline" placement="right">
-                  <AltRouteOutlinedIcon />
-                </Tooltip>
-              }
-              active={location.pathname.includes("/forks")}
-            >
-              Forks
-            </MenuItem>
-            <MenuItem
-              component={<Link to="/contributors" className="link" />}
-              icon={
-                <Tooltip title="Contributors Timeline" placement="right">
-                  <Diversity3OutlinedIcon />
-                </Tooltip>
-              }
-              active={location.pathname.includes("/contributors")}
-            >
-              Contributors
-            </MenuItem>
-            <MenuItem
-              component={<Link to="/newrepos" className="link" />}
-              icon={
-                <Tooltip title="GitHub Global Activity (New Repos & PRs)" placement="right">
-                  <AddBoxOutlinedIcon />
-                </Tooltip>
-              }
-              active={location.pathname.includes("/newrepos")}
-            >
-              Global Activity
-            </MenuItem>
-            <MenuItem
-              component={<Link to="/featured" className="link" />}
-              icon={
-                <Tooltip title="GitHub Repositories Featured on Social Platforms" placement="right">
-                  <ArticleIcon />
-                </Tooltip>
-              }
-              active={location.pathname.includes("/featured")}
-            >
-              Featured Repos
-            </MenuItem>
-            <MenuItem
-              component={<Link to="/limits" className="link" />}
-              icon={
-                <Tooltip title="API Rate Limits" placement="right">
-                  <SpeedOutlinedIcon />
-                </Tooltip>
-              }
-              active={location.pathname === "/limits"}
-            >
-              API Limits
-            </MenuItem>
-            <MenuItem
-              component={<Link to="/info" className="link" />}
-              icon={
-                <Tooltip title="Info" placement="right">
-                  <InfoOutlinedIcon />
-                </Tooltip>
-              }
-              active={location.pathname === "/info"}
-            >
-              Info
-            </MenuItem>
-          </Menu>
-          {/* Bottom controls: theme toggle and star link */}
-          <div style={{
-            position: 'absolute',
-            bottom: '12px',
-            left: 0,
-            right: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '8px',
-          }}>
-            <Tooltip title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"} placement="right">
-              <IconButton
-                onClick={toggleTheme}
-                size="small"
-                sx={{
-                  color: isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)',
-                  '&:hover': {
-                    backgroundColor: currentTheme.accentHover,
-                    color: isDark ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.9)',
-                  },
-                }}
-              >
-                {isDark ? <LightModeOutlinedIcon fontSize="small" /> : <DarkModeOutlinedIcon fontSize="small" />}
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Star this project on GitHub" placement="right">
-              <a
-                className="github-star-link"
-                href="https://github.com/emanuelef/daily-stars-explorer"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)',
-                  textDecoration: 'none',
-                  fontSize: '11px',
-                  padding: '6px 10px',
-                  borderRadius: '6px',
-                  transition: 'all 0.2s',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = isDark ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.8)';
-                  e.currentTarget.style.background = 'rgba(59,130,246,0.1)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)';
-                  e.currentTarget.style.background = 'transparent';
-                }}
-              >
-                <StarOutlineRoundedIcon style={{ fontSize: '14px' }} />
-                {!collapsed && <span>Star</span>}
-              </a>
-            </Tooltip>
-          </div>
-        </Sidebar>
-        <section className="content">
+        {!isMobile && <DesktopNavigation theme={theme} currentTheme={currentTheme} toggleTheme={toggleTheme} lastRepo={lastRepo} />}
+        <main className="content" id="main-content" tabIndex={-1}>
           <Routes>
             <Route path="/" element={isMobile ? <MobileStarsView /> : <TimeSeriesChart />} />
             <Route path="/:user/:repository" element={isMobile ? <MobileStarsView /> : <TimeSeriesChart />} />
@@ -346,7 +92,7 @@ function AppContent() {
             <Route path="/showhn" element={<Navigate to="/featured" replace />} />
             <Route path="/featured" element={<FeaturedReposPage />} />
           </Routes>
-        </section>
+        </main>
       </div>
     </ThemeProvider>
   );

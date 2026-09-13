@@ -16,15 +16,14 @@ import Select from "@mui/material/Select";
 import LoadingButton from "@mui/lab/LoadingButton";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import SendIcon from "@mui/icons-material/Send";
-import SmartphoneIcon from "@mui/icons-material/Smartphone";
 import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
 import PushPinIcon from "@mui/icons-material/PushPin";
 import FusionCharts from "fusioncharts";
 import TimeSeries from "fusioncharts/fusioncharts.timeseries";
+import ExcelExport from "fusioncharts/fusioncharts.excelexport";
 import ReactFC from "react-fusioncharts";
 import schema from "./schema";
-import EstimatedTimeProgress from "./EstimatedTimeProgress";
-import ProgressBar from "./ProgressBar";
+import LinearProgress from "@mui/material/LinearProgress";
 import { parseISO, intervalToDuration } from "date-fns";
 import { parseGitHubRepoURL } from "./githubUtils";
 import GammelTheme from "fusioncharts/themes/fusioncharts.theme.gammel";
@@ -32,14 +31,12 @@ import CandyTheme from "fusioncharts/themes/fusioncharts.theme.candy";
 import ZuneTheme from "fusioncharts/themes/fusioncharts.theme.zune";
 import UmberTheme from "fusioncharts/themes/fusioncharts.theme.umber";
 import CopyToClipboardButton from "./CopyToClipboardButton";
-import GitHubButton from "react-github-btn";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Alert from "@mui/material/Alert";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
 import Box from "@mui/material/Box";
-import Divider from "@mui/material/Divider";
 import {
   addRunningMedian,
   addRunningAverage,
@@ -53,6 +50,8 @@ import {
 import { useAppTheme } from "./ThemeContext";
 import { useLastRepo } from "./RepoContext";
 import { AXIS_STYLE } from "./chartAxisStyle";
+import { loadTrend } from "./trend";
+import "./DesktopStarsView.css";
 
 // This needs to be refactored, focus is mostly on functionalities and implementing ideas
 // But it has reached a point where it's difficult to go over the code
@@ -92,6 +91,7 @@ const WEEKLY_BINNING = {
 
 ReactFC.fcRoot(
   FusionCharts,
+  ExcelExport,
   TimeSeries,
   GammelTheme,
   CandyTheme,
@@ -99,22 +99,11 @@ ReactFC.fcRoot(
   UmberTheme
 );
 
-const formatDate = (originalDate) => {
-  const parts = originalDate.split("-");
-  return `${parts[2]}-${parts[1]}-${parts[0]}`;
-};
-
 const FORCE_REFETCH_TOOLTIP =
-  "Using cached data, force refetching the data from GitHub by checking and press on Fetch again. This will take a while if the repo has a lot of stars.";
+  "Refresh the stored history from GitHub the next time you load this repository.";
 
 const INFO_TOOLTIP =
-  "Stars are fetched until UTC midnight of the previous day. \
-   You can zoom inside the graph by scrolling up and down or dragging the selectors in the underline graph. \
-   Once fetched the history is kept for 7 days but it's possible to refetch again by checking the Update checkbox and press on Fetch again."; const INCLUDE_DATE_RANGE =
-  "When checked the URL to share will include the current time range selected";
-
-const MOBILE_VERSION_INFO =
-  "There's also a mobile-optimized version of this tool available at emanuelef.github.io/daily-stars-mobile";
+  "Scroll over the chart or drag the lower navigator to zoom. History includes completed days; today’s partial count appears when available from GitHub.";
 
 const isToday = (dateString) => {
   const today = new Date();
@@ -189,19 +178,30 @@ function TimeSeriesChart() {
 
   const [zoomedStars, setZoomedStars] = useState(0);
   const [zoomedStarsPercentageTotal, setZoomedStarsPercentageTotal] = useState(0);
+  const rawStarsRef = useRef([]);
 
   const handleZoom = (start, end) => {
-    if (ds && ds.dataSource && ds.dataSource.data && ds.dataSource.data._data && ds.dataSource.data._data.length > 0) {
-      const zoomedData = ds.dataSource.data._data.filter(
-        (dataPoint) => dataPoint[0] >= start && dataPoint[0] <= end
-      );
+    if (rawStarsRef.current.length > 0) {
+      const utcDay = value => {
+        const date = parseTimelineDate(value);
+        return date ? Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) : undefined;
+      };
+      const timestamp = value => typeof value === "number" || /^\d+$/.test(value)
+        ? Number(value) : utcDay(value);
+      const startTime = timestamp(start);
+      const endTime = timestamp(end);
+      const zoomedData = rawStarsRef.current.filter(dataPoint => {
+        const day = utcDay(dataPoint[0]);
+        return (!Number.isFinite(startTime) || day >= startTime)
+          && (!Number.isFinite(endTime) || day <= endTime);
+      });
       const totalStarsSelection = zoomedData.reduce((sum, dataPoint) => sum + dataPoint[1], 0);
       setZoomedStars(totalStarsSelection);
 
-      const lastDataPoint = ds.dataSource.data._data[ds.dataSource.data._data.length - 1];
+      const lastDataPoint = rawStarsRef.current[rawStarsRef.current.length - 1];
       if (lastDataPoint && lastDataPoint[2] !== undefined) {
         setZoomedStarsPercentageTotal(
-          ((totalStarsSelection / lastDataPoint[2]) * 100).toFixed(2)
+          (lastDataPoint[2] > 0 ? (totalStarsSelection / lastDataPoint[2]) * 100 : 0).toFixed(2)
         );
       }
     }
@@ -211,7 +211,7 @@ function TimeSeriesChart() {
   const chart_props = {
     type: "timeseries",
     width: "100%",
-    height: "80%",
+    height: "560",
     dataEmptyMessage: "Fetching data...",
     styleDefinition: {
       colorstyle: {
@@ -270,6 +270,7 @@ function TimeSeriesChart() {
       //      datamarker: [],
       chart: {
         animation: "0",
+        baseFont: "Arial, sans-serif",
         theme: defaultChartTheme,
         paletteColors: "#3b82f6, #f59e0b, #10b981, #ec4899, #8b5cf6", // Blue-500, Amber-500, Emerald-500, Pink-500, Violet-500
         exportEnabled: "1",
@@ -297,15 +298,16 @@ function TimeSeriesChart() {
       },
       rendered: function (e) {
         setTimeout(() => {
-          e.sender.setTimeSelection(selectedTimeRange);
+          if (isMountedRef.current && chartRef.current?.chartObj === e.sender) {
+            e.sender.setTimeSelection?.(selectedTimeRange);
+          }
         }, 1000);
       },
       timeMarkerClick: function (eventObj, dataObj) {
         //console.log(eventObj);
         //console.log(dataObj);
-        console.log(dataObj["startText"]);
-        console.log(currentHNnews.current[dataObj["startText"]]);
-        window.open(currentHNnews.current[dataObj["startText"]]["HNURL"], "_blank");
+        const url = currentHNnews.current[dataObj["startText"]]?.HNURL;
+        if (url) window.open(url, "_blank", "noopener,noreferrer");
       },
     },
   };
@@ -315,14 +317,12 @@ function TimeSeriesChart() {
 
   const [ds, setds] = useState(chart_props);
 
-  const [estimatedTime, setEstimatedTime] = useState(0);
   const [totalStars, setTotalStars] = useState(0);
-  const [creationDate, setCreationDate] = useState("2021-01-01");
+  const [creationDate, setCreationDate] = useState("");
   const [age, setAge] = useState("");
   const [currentStarsHistory, setCurrentStarsHistory] = useState([]);
   const [starsLast10d, setStarsLast10d] = useState("");
   const [progressValue, setProgressValue] = useState(0);
-  const [maxProgress, setMaxProgress] = useState(0);
   const [loading, setLoading] = useState(false);
   const [showForceRefetch, setShowForceRefetch] = useState(false);
   const [forceRefetch, setForceRefetch] = useState(false);
@@ -330,14 +330,14 @@ function TimeSeriesChart() {
   const [error, setError] = useState("");
   const [showError, setShowError] = useState(false);
   const [starsRepos, setStarsRepos] = useState([]);
-  const [isMobile, setIsMobile] = useState(false);
-  const [showFeedbackBanner, setShowFeedbackBanner] = useState(true);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const [keepLast30Zoom, setKeepLast30Zoom] = useState(false);
   const [last30Active, setLast30Active] = useState(false); // false: button applies last 30; true: button restores full timeline
   const [pinnedRepos, setPinnedRepos] = useState(() => {
     try {
       const saved = localStorage.getItem('pinned-repos');
-      return saved ? JSON.parse(saved) : [];
+      const pins = saved ? JSON.parse(saved) : [];
+      return Array.isArray(pins) ? pins.filter(repo => typeof repo === "string") : [];
     } catch {
       return [];
     }
@@ -346,6 +346,12 @@ function TimeSeriesChart() {
   const currentHNnews = useRef({});
   const currentPeaks = useRef([]);
   const chartRef = useRef(null);
+  const chartHostRef = useRef(null);
+  const historyRetryRef = useRef(null);
+  const pendingRepoRef = useRef(null);
+  const requestVersionRef = useRef(0);
+  const graphVersionRef = useRef(0);
+  const trendRequestRef = useRef(null);
   const currentRepoRef = useRef(defaultRepo); // Track current repo for async operations
   // Today's stars come from /todayStars, which reads the current day out of
   // GitHub's star history endpoint. Using /totalStars (StargazerCount) here
@@ -375,7 +381,7 @@ function TimeSeriesChart() {
     queryParams.get("transformation") || "none"
   );
 
-  const [aggregation, setAggregation] = useState("average");
+  const [aggregation, setAggregation] = useState(queryParams.get("aggregation") || "average");
 
   const [selectedTimeRange, setSelectedTimeRange] = useState({
     start: queryParams.get("start"),
@@ -385,6 +391,7 @@ function TimeSeriesChart() {
   const navigate = useNavigate();
 
   const [selectedRepo, setSelectedRepo] = useState(defaultRepo);
+  const [repoInput, setRepoInput] = useState(defaultRepo);
   const [checkedDateRange, setCheckedDateRange] = useState(false);
 
   const sseClient = useSSE();
@@ -396,22 +403,12 @@ function TimeSeriesChart() {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
-    };
-  }, []);
-
-  // Check if user is on a mobile device
-  useEffect(() => {
-    const checkIfMobile = () => {
-      const userAgent = navigator.userAgent.toLowerCase();
-      const mobileRegex = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i;
-      setIsMobile(mobileRegex.test(userAgent) || window.innerWidth <= 768);
-    };
-
-    checkIfMobile();
-    window.addEventListener('resize', checkIfMobile);
-
-    return () => {
-      window.removeEventListener('resize', checkIfMobile);
+      clearTimeout(historyRetryRef.current);
+      pendingRepoRef.current = null;
+      requestVersionRef.current += 1;
+      graphVersionRef.current += 1;
+      trendRequestRef.current?.controller.abort();
+      trendRequestRef.current = null;
     };
   }, []);
 
@@ -580,8 +577,8 @@ function TimeSeriesChart() {
 
   useEffect(() => {
     if (currentStarsHistory.length > 0) {
-      setLoading(true);
-      updateGraph(currentStarsHistory).finally(() => setLoading(false));
+      setShowError(false);
+      updateGraphWithTitle(currentStarsHistory, currentRepoRef.current);
     }
   }, [transformation, feed]);
 
@@ -590,7 +587,7 @@ function TimeSeriesChart() {
   };
 
   const fetchHNFeed = async (options) => {
-    const repoParsedTmp = parseGitHubRepoURL(selectedRepo);
+    const repoParsedTmp = parseGitHubRepoURL(currentRepoRef.current);
 
     let parts = repoParsedTmp.split("/");
     let repoName = parts[1];
@@ -644,8 +641,8 @@ function TimeSeriesChart() {
   }
 
   const fetchRedditFeed = async (options, strict = true) => {
-    const parsedRepo = parseGitHubRepoURL(selectedRepo);
-    const redditQuery = parsedRepo || selectedRepo;
+    const parsedRepo = parseGitHubRepoURL(currentRepoRef.current);
+    const redditQuery = parsedRepo || currentRepoRef.current;
     const redditPosts = await fetchReddit(redditQuery, strict);
 
     if (!redditPosts || redditPosts.length === 0) {
@@ -689,10 +686,10 @@ function TimeSeriesChart() {
   }
 
   const fetchYoutubeFeed = async (options) => {
-    let ytPosts = await fetchYT(parseGitHubRepoURL(selectedRepo).split("/")[1]);
+    let ytPosts = await fetchYT(parseGitHubRepoURL(currentRepoRef.current).split("/")[1]);
     const mapYT = {};
 
-    const repoParsedTmp = parseGitHubRepoURL(selectedRepo);
+    const repoParsedTmp = parseGitHubRepoURL(currentRepoRef.current);
     let parts = repoParsedTmp.split("/");
     let repoName = parts[1];
 
@@ -733,7 +730,7 @@ function TimeSeriesChart() {
 
   const fetchGitHubMentionsFeed = async (options) => {
     try {
-      const repo = parseGitHubRepoURL(selectedRepo);
+      const repo = parseGitHubRepoURL(currentRepoRef.current);
       const response = await fetch(`${HOST}/ghmentions?repo=${repo}&limit=100`);
       
       if (!response.ok) {
@@ -800,39 +797,24 @@ function TimeSeriesChart() {
     }
   }
 
-  const fetchPredictions = async (repo) => {
-    try {
-      setLoading(true);
-      const response = await fetch(`${PREDICTOR_HOST}/predict?repo=${repo}`);
-
-      if (!response.ok) {
-        setLoading(false);
-        toast.error("Internal Server Error. Please try again later.", {
-          position: toast.POSITION.BOTTOM_CENTER,
-        });
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-      setLoading(false);
-
-      const data = await response.json();
-
-      const starsForecast = data.forecast_data.map((entry) => [
-        formatDate(entry.ds),
-        Math.round(entry.yhat),
-        Math.round(entry.yhat_lower),
-      ]);
-
-      const starsTrend = data.forecast_trend.map((entry) => [
-        formatDate(entry.ds),
-        Math.max(entry.trend, 0),
-        0,
-      ]);
-
-      return starsTrend;
-    } catch (error) {
-      console.error(`An error occurred: ${error}`);
-      setLoading(false);
-    }
+  const fetchPredictions = (repo, history) => {
+    const key = JSON.stringify([repo, history]);
+    const cached = trendRequestRef.current;
+    if (cached?.key === key && cached.expiresAt > Date.now()) return cached.promise;
+    cached?.controller.abort();
+    const controller = new AbortController();
+    const request = { key, controller, expiresAt: Infinity, promise: null };
+    request.promise = loadTrend(repo, history, {
+      endpoint: PREDICTOR_HOST,
+      signal: controller.signal,
+    }).then(result => {
+      // Retry a temporarily unavailable API after a minute, reusing pending requests
+      // and recent results when changing chart controls.
+      request.expiresAt = Date.now() + (result.source === "local" ? 60_000 : 300_000);
+      return result;
+    });
+    trendRequestRef.current = request;
+    return request.promise;
   };
 
   const fetchHN = async (repo) => {
@@ -907,7 +889,7 @@ function TimeSeriesChart() {
   const fetchReleasesFeed = async (options) => {
     try {
       setLoading(true);
-      const repo = parseGitHubRepoURL(selectedRepo);
+      const repo = parseGitHubRepoURL(currentRepoRef.current);
       const response = await fetch(`${HOST}/allReleases?repo=${repo}`);
 
       if (!response.ok) {
@@ -994,10 +976,11 @@ function TimeSeriesChart() {
     }
   };
 
-  const fetchTotalStars = async (repo) => {
+  const fetchTotalStars = async (repo, requestVersion = requestVersionRef.current) => {
     try {
       const response = await fetch(`${HOST}/totalStars?repo=${repo}`);
 
+      if (!isMountedRef.current || requestVersionRef.current !== requestVersion) return null;
       if (!response.ok) {
         setLoading(false);
         if (response.status === 404) {
@@ -1017,16 +1000,20 @@ function TimeSeriesChart() {
       const data = await response.json();
       return data;
     } catch (error) {
+      if (!isMountedRef.current || requestVersionRef.current !== requestVersion) return null;
       console.error(`An error occurred: ${error}`);
       setLoading(false);
+      setError("Couldn’t load repository details. Check the repository name and your connection, then try again.");
+      setShowError(true);
       return null;
     }
   };
 
-  const fetchStatus = async (repo) => {
+  const fetchStatus = async (repo, requestVersion = requestVersionRef.current) => {
     try {
       const response = await fetch(`${HOST}/status?repo=${repo}`);
 
+      if (!isMountedRef.current || requestVersionRef.current !== requestVersion) return null;
       if (!response.ok) {
         setLoading(false);
         if (response.status === 404) {
@@ -1046,9 +1033,12 @@ function TimeSeriesChart() {
       const data = await response.json();
       return data;
     } catch (error) {
+      if (!isMountedRef.current || requestVersionRef.current !== requestVersion) return null;
       console.error(`An error occurred: ${error}`);
       setLoading(false);
-      return { cached: false, onGoing: false };
+      setError("Couldn’t check this repository. Check your connection and try again.");
+      setShowError(true);
+      return null;
     }
   };
 
@@ -1075,7 +1065,11 @@ function TimeSeriesChart() {
     return filteredResults;
   };
 
-  const updateGraph = async (starHistory, currentTotalStars = 0) => {
+  const updateGraph = async (starHistory, currentTotalStars = 0, requestVersion = requestVersionRef.current, graphVersion = graphVersionRef.current) => {
+    const isCurrentGraph = () => isMountedRef.current
+      && requestVersionRef.current === requestVersion && graphVersionRef.current === graphVersion;
+    const graphRepo = currentRepoRef.current;
+    starHistory = starHistory.map(day => [...day]);
     // check if last element is today
     if (starHistory.length > 1) {
       const lastElement = starHistory[starHistory.length - 1];
@@ -1150,6 +1144,7 @@ function TimeSeriesChart() {
             todayDailyStars = 0;
             todayStarted = false;
           }
+          if (!isCurrentGraph()) return;
           todayStarsRef.current = { repo, count: todayDailyStars, started: todayStarted };
         }
 
@@ -1215,10 +1210,22 @@ function TimeSeriesChart() {
       }
     }
 
+    if (!isCurrentGraph()) return;
+    rawStarsRef.current = starHistory.map(day => [...day]);
+    handleZoom(selectedTimeRange.start, selectedTimeRange.end);
     let appliedTransformationResult = starHistory;
     let binning = {};
 
-    const options = { ...ds };
+    // Async trend/feed requests must not mutate the currently displayed chart.
+    const options = {
+      ...ds,
+      dataSource: {
+        ...ds.dataSource,
+        chart: { ...ds.dataSource.chart },
+        xAxis: { ...ds.dataSource.xAxis },
+        yAxis: ds.dataSource.yAxis.map(axis => ({ ...axis, plot: { ...axis.plot } })),
+      },
+    };
 
     const res = calculatePercentiles(
       starHistory
@@ -1266,31 +1273,20 @@ function TimeSeriesChart() {
         }
         break;
       case "trend":
-        const repoParsed = parseGitHubRepoURL(selectedRepo);
-        const predictions = await fetchPredictions(repoParsed);
-
-        for (let index = 0; index < starHistory.length; index++) {
-          predictions[index][2] = starHistory[index][2];
-        }
-
-        let lastSum = starHistory[starHistory.length - 1][2];
-
-        for (
-          let index = starHistory.length;
-          index < predictions.length;
-          index++
-        ) {
-          predictions[index][2] = lastSum;
-          lastSum += predictions[index][1];
-        }
-
-        appliedTransformationResult = predictions;
+        const repoParsed = parseGitHubRepoURL(currentRepoRef.current);
+        const trendResult = await fetchPredictions(repoParsed, starHistory);
+        if (!isCurrentGraph()) return;
+        appliedTransformationResult = trendResult.data;
         options.dataSource.yAxis[0].plot.value =
           schema[1].name =
           options.dataSource.yAxis[0].title =
           "Trend";
         options.dataSource.yAxis[0].plot.type = "line";
-        options.dataSource.subcaption = "Trend";
+        options.dataSource.subcaption = {
+          text: trendResult.source === "local"
+            ? "7-day average · calculated locally"
+            : "API trend · future dates are estimates",
+        };
         break;
       case "yearlyBinning":
         textBinning = `Daily Stars ${aggregation} by Year`;
@@ -1456,6 +1452,7 @@ function TimeSeriesChart() {
         break;
     }
 
+    if (!isCurrentGraph()) return;
     const fusionTable = new FusionCharts.DataStore().createDataTable(
       appliedTransformationResult,
       schema
@@ -1465,7 +1462,7 @@ function TimeSeriesChart() {
 
     options.dataSource.xAxis.binning = binning;
     options.dataSource.chart.theme = theme;
-    options.dataSource.chart.exportFileName = `${selectedRepo.replace(
+    options.dataSource.chart.exportFileName = `${currentRepoRef.current.replace(
       "/",
       "_"
     )}-stars-history`;
@@ -1483,12 +1480,19 @@ function TimeSeriesChart() {
     console.log(options.dataSource.yAxis);
     console.log(res);
 
-    setds(options);
+    if (!isCurrentGraph()) return;
+    options.dataSource.caption = { text: `Stars ${graphRepo}` };
+    setds(previous => ({
+      ...options,
+      dataSource: {
+        ...options.dataSource,
+        chart: { ...options.dataSource.chart, theme: previous.dataSource.chart.theme },
+      },
+    }));
   };
 
-  const fetchAllStars = async (repo, ignoreForceRefetch = false, currentTotalStars = 0) => {
-    // Update the current repo ref to track which repo we're fetching
-    currentRepoRef.current = repo;
+  const fetchAllStars = async (repo, ignoreForceRefetch = false, currentTotalStars = 0, attempt = 0, requestVersion = requestVersionRef.current) => {
+    if (!isMountedRef.current || requestVersionRef.current !== requestVersion) return;
 
     setCurrentStarsHistory([]);
     setStarsLast10d("");
@@ -1498,16 +1502,14 @@ function TimeSeriesChart() {
     todayStarsRef.current = { repo: null, count: 0, started: false };
 
     // 1. Check status first
-    const status = await fetchStatus(repo);
+    const status = await fetchStatus(repo, requestVersion);
 
     // If status fetch failed, exit early
+    if (!isMountedRef.current || requestVersionRef.current !== requestVersion) return;
     if (!status) {
       setLoading(false);
-      return;
-    }
-
-    if (status.onGoing) {
-      // If fetching is ongoing, do NOT call recentStars, just wait for SSE
+      pendingRepoRef.current = null;
+      closeSSE();
       return;
     }
 
@@ -1519,11 +1521,16 @@ function TimeSeriesChart() {
     fetch(fetchUrl)
       .then((response) => {
         if (!isMountedRef.current) return null; // Component unmounted
-        if (currentRepoRef.current !== repo) return null; // Stale request
+        if (requestVersionRef.current !== requestVersion) return null; // Stale request
+        if (response.status === 204) {
+          if (attempt >= 60) throw new Error("This repository is still being processed. Please try again shortly.");
+          historyRetryRef.current = setTimeout(() => fetchAllStars(repo, true, currentTotalStars, attempt + 1, requestVersion), 2000);
+          return null;
+        }
         if (!response.ok) {
-          setLoading(false);
-          // Don't show errors for allStars API call - it will be retried automatically
-          throw new Error(`HTTP error! Status: ${response.status}`);
+          throw new Error(response.status === 429
+            ? "GitHub’s rate limit has been reached. Please try again later."
+            : "Couldn’t load star history. Please try again.");
         }
         // Clear any existing errors on successful API call
         setShowError(false);
@@ -1531,17 +1538,22 @@ function TimeSeriesChart() {
       })
       .then((data) => {
         if (!data || !isMountedRef.current) return; // Component unmounted or no data
-        if (currentRepoRef.current !== repo) return; // Stale request
+        if (requestVersionRef.current !== requestVersion) return; // Stale request
         setLoading(false);
 
         // Support both legacy format (plain array) and current format ({stars: [...], ...})
         const isLegacyFormat = Array.isArray(data);
         const starHistory = isLegacyFormat ? data : data.stars;
         if (!starHistory) {
+          pendingRepoRef.current = null;
+          closeSSE();
           setError("No star data received. Please try again.");
           setShowError(true);
           return;
         }
+        setHistoryLoaded(true);
+        pendingRepoRef.current = null;
+        closeSSE();
         setCurrentStarsHistory(starHistory);
 
         // Set starsLast10d from server response
@@ -1607,7 +1619,7 @@ function TimeSeriesChart() {
 
           fetch(`${HOST}/recentStars?repo=${repo}&lastDays=${daysMissing}`)
             .then(res => {
-              if (currentRepoRef.current !== repo) return null; // Stale request
+              if (requestVersionRef.current !== requestVersion) return null; // Stale request
               if (res.ok) {
                 // Clear any existing errors on successful API call
                 setShowError(false);
@@ -1615,7 +1627,7 @@ function TimeSeriesChart() {
               return res.json();
             })
             .then(recentData => {
-              if (!recentData || currentRepoRef.current !== repo) return; // Stale request
+              if (!recentData || requestVersionRef.current !== requestVersion) return; // Stale request
               const existingDays = new Set(starHistory.map(d => d[0]));
               const merged = [
                 ...starHistory,
@@ -1624,42 +1636,53 @@ function TimeSeriesChart() {
               setCurrentStarsHistory(merged);
 
               // Important change here: Update the graph with data AND title together
-              updateGraphWithTitle(merged, repo, totalStarsToUse);
+              updateGraphWithTitle(merged, repo, totalStarsToUse, requestVersion);
 
-              setLoading(false); // <--- Hide spinner after fetch
             })
             .catch((error) => {
-              if (currentRepoRef.current !== repo) return; // Stale request
+              if (requestVersionRef.current !== requestVersion) return; // Stale request
               console.error("Error fetching recent stars:", error);
-              setLoading(false); // <--- Hide spinner on error
               setError("Failed to fetch recent star data. Using cached data instead.");
               setShowError(true);
               // Fall back to using the cached data we already have
 
               // Important change here: Update the graph with data AND title together
-              updateGraphWithTitle(starHistory, repo, totalStarsToUse);
+              updateGraphWithTitle(starHistory, repo, totalStarsToUse, requestVersion);
             });
         } else {
           // Important change here: Update the graph with data AND title together
-          updateGraphWithTitle(starHistory, repo, totalStarsToUse);
+          updateGraphWithTitle(starHistory, repo, totalStarsToUse, requestVersion);
         }
       })
       .catch((e) => {
-        console.error(`An error occurred in fetchAllStars: ${e}`);
+        if (!isMountedRef.current || requestVersionRef.current !== requestVersion) return;
+        pendingRepoRef.current = null;
+        closeSSE();
+        setError(e.message || "Couldn’t load star history. Please try again.");
+        setShowError(true);
         setLoading(false);
       });
   };
 
-  // New function that combines updating graph data and title
-  const updateGraphWithTitle = (starHistory, repo, currentTotalStars = 0) => {
-    // First update the graph data
-    updateGraph(starHistory, currentTotalStars);
-
-    // Then update the title
-    const options = { ...ds };
-    options.dataSource.caption = { text: `Stars ${repo}` };
-    options.dataSource.xAxis.timemarker = currentPeaks.current;
-    setds(options);
+  const updateGraphWithTitle = async (starHistory, repo, currentTotalStars = 0, requestVersion = requestVersionRef.current) => {
+    const graphVersion = ++graphVersionRef.current;
+    const isCurrentGraph = () => isMountedRef.current
+      && requestVersionRef.current === requestVersion && graphVersionRef.current === graphVersion;
+    if (!starHistory.length) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      await updateGraph(starHistory, currentTotalStars, requestVersion, graphVersion);
+    } catch (error) {
+      if (!isCurrentGraph()) return;
+      setError("Couldn’t render this chart. Try loading the repository again.");
+      setShowError(true);
+      console.error(error);
+    } finally {
+      if (isCurrentGraph()) setLoading(false);
+    }
   };
 
   // Re-apply last 30 days zoom immediately when data updates and flag is set
@@ -1684,7 +1707,7 @@ function TimeSeriesChart() {
   }, [ds, keepLast30Zoom]);
 
   const downloadCSV = () => {
-    const repoParsed = parseGitHubRepoURL(selectedRepo);
+    const repoParsed = parseGitHubRepoURL(currentRepoRef.current);
     const downloadUrl = `${HOST}/allStarsCsv?repo=${repoParsed}`;
 
     fetch(downloadUrl)
@@ -1701,6 +1724,7 @@ function TimeSeriesChart() {
         a.download = `${repoParsed.replace("/", "_")}-stars-history.csv`;
         document.body.appendChild(a);
         a.click();
+        a.remove();
         window.URL.revokeObjectURL(url);
       })
       .catch((error) => {
@@ -1711,7 +1735,7 @@ function TimeSeriesChart() {
   };
 
   const downloadJSON = () => {
-    const repoParsed = parseGitHubRepoURL(selectedRepo);
+    const repoParsed = parseGitHubRepoURL(currentRepoRef.current);
     const downloadUrl = `${HOST}/allStars?repo=${repoParsed}`;
 
     fetch(downloadUrl)
@@ -1730,6 +1754,7 @@ function TimeSeriesChart() {
         a.download = `${repoParsed.replace("/", "_")}-stars-history.json`;
         document.body.appendChild(a);
         a.click();
+        a.remove();
         window.URL.revokeObjectURL(url);
       })
       .catch((error) => {
@@ -1740,321 +1765,84 @@ function TimeSeriesChart() {
   };
 
   const openCurrentRepoPage = () => {
-    const repoParsed = parseGitHubRepoURL(selectedRepo);
-    window.open("https://github.com/" + repoParsed, "_blank");
-  };
-
-  const openMobileVersion = () => {
-    const repoParsed = parseGitHubRepoURL(selectedRepo);
-    window.open(`https://emanuelef.github.io/daily-stars-mobile/#/${repoParsed}`, "_blank");
+    const repoParsed = parseGitHubRepoURL(currentRepoRef.current);
+    window.open("https://github.com/" + repoParsed, "_blank", "noopener,noreferrer");
   };
 
   const closeSSE = sseClient.close;
 
-  const startSSEUpates = (repo, callsNeeded, onGoing) => {
-    console.log(repo, callsNeeded, onGoing);
-    // Update current repo ref for SSE callbacks
-    currentRepoRef.current = repo;
-
-    // If callsNeeded is 0, immediately fetch and update the graph (no SSE needed)
-    if (callsNeeded === 0) {
-      setTimeout(async () => {
-        if (!isMountedRef.current) return; // Component unmounted
-        if (currentRepoRef.current !== repo) return; // Stale request
-        const res = await fetchTotalStars(repo);
-        if (res && isMountedRef.current && currentRepoRef.current === repo) {
-          const freshTotalStars = res.stars;
-          fetchAllStars(repo, false, freshTotalStars);
-        } else if (isMountedRef.current && currentRepoRef.current === repo) {
-          handleClick();
-        }
-      }, 1000); // Short delay for consistency
-      setLoading(false);
-      return;
-    }
-    try {
-      const sse = sseClient.open(`${HOST}/sse?repo=${repo}`);
-
-      sse.onerror = (err) => {
-        if (!isMountedRef.current) return; // Component unmounted
-        // Ignore errors if we switched to a different repo (intentional close)
-        if (currentRepoRef.current !== repo) return;
-        // EventSource fires onerror for BOTH transient reconnects and permanent
-        // failures. During long fetches (big repos) transient hiccups are common
-        // and the browser auto-reconnects; hiding the progress bar every time
-        // was showing users an empty state while data was still coming in.
-        // Only clear the loading state once the connection is definitively gone.
-        if (sse.readyState !== EventSource.CLOSED) {
-          console.log("SSE transient error, browser will reconnect", err);
-          return;
-        }
-        console.log("SSE closed", err);
-        setLoading(false);
-      };
-
-      // The onmessage handler is called if no event name is specified for a message.
-      sse.onmessage = (msg) => {
-        console.log("on message", msg);
-      };
-
-      sse.onopen = (...args) => {
-        console.log("on open", args);
-      };
-
-      sse.addEventListener("current-value", (event) => {
-        if (!isMountedRef.current) return; // Component unmounted
-        if (currentRepoRef.current !== repo) {
-          // A different repo was requested, close this SSE
-          console.log("Stale SSE event, closing");
-          sse.close();
-          return;
-        }
-        const parsedData = JSON.parse(event.data);
-        const currentValue = parsedData.data;
-        setProgressValue(currentValue);
-
-        // console.log("currentValue", currentValue, callsNeeded);
-
-        if (currentValue === callsNeeded) {
-          console.log("CLOSE SSE");
-          closeSSE();
-
-          setTimeout(async () => {
-            if (!isMountedRef.current) return; // Component unmounted
-            if (currentRepoRef.current !== repo) return; // Stale request
-            // Fetch the current total stars
-            const res = await fetchTotalStars(repo);
-            if (res && isMountedRef.current && currentRepoRef.current === repo) {
-              const freshTotalStars = res.stars;
-              // Use fetchAllStars with the current total stars to ensure it's properly updated
-              fetchAllStars(repo, false, freshTotalStars);
-            } else if (isMountedRef.current && currentRepoRef.current === repo) {
-              // Fallback to handleClick if we couldn't fetch total stars
-              handleClick();
-            }
-          }, 1000);
-
-          setLoading(false);
-        }
-      });
-    } catch (error) {
-      console.error("Error setting up SSE connection:", error);
-      // Only show an error for SSE connection issues when it's not part of the initial load/retry process
-      if (!onGoing) {
-        setError("Failed to establish connection for live updates.");
-        setShowError(true);
-      }
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    handleClick();
-  }, []);
-
-  const handleClick = async () => {
-    const repoParsed = parseGitHubRepoURL(selectedRepo);
-
-    if (repoParsed === null) {
-      setError("Invalid GitHub repository format. Please use owner/repo format or a valid GitHub URL.");
-      setShowError(true);
-      setLoading(false);
-      return;
-    }
-
-    setLastRepo(repoParsed);
-
-    // Close any existing SSE connection before starting a new request
-    closeSSE();
-
-    // Check if switching to a different repo before updating the ref
-    const isSameRepo = currentRepoRef.current === repoParsed;
-
-    // Update the current repo ref immediately
-    currentRepoRef.current = repoParsed;
-
-    // Clear any previous errors when starting a valid fetch
-    setShowError(false);
-
-    // Update graph title immediately and clear data if switching repos
-    setds(prevDs => ({
-      ...prevDs,
-      dataSource: {
-        ...prevDs.dataSource,
-        caption: { text: `Stars ${repoParsed}` },
-        ...(isSameRepo ? {} : { data: null })
-      }
-    }));
-
-    navigate(`/${repoParsed}`, {
-      replace: false,
+  const startSSEUpdates = (repo) => {
+    const sse = sseClient.open(`${HOST}/sse?repo=${encodeURIComponent(repo)}`);
+    sse.addEventListener("current-value", event => {
+      if (!isMountedRef.current || currentRepoRef.current !== repo) return;
+      try {
+        const value = Number(JSON.parse(event.data).data);
+        if (Number.isFinite(value)) setProgressValue(value);
+      } catch { /* History requests can finish even if a progress event is malformed. */ }
     });
-
-    setLoading(true);
-
-    const res = await fetchTotalStars(repoParsed);
-    // console.log(res);
-
-    let freshTotalStars = 0;
-    if (res) {
-      setTotalStars(res.stars);
-      setCreationDate(res.createdAt);
-
-      const { years, months, days } = intervalToDuration({
-        start: parseISO(res.createdAt),
-        end: Date.now(),
-      });
-      setAge(
-        `${years && years !== 0 ? `${years}y ` : ""}${months && months !== 0 ? `${months}m ` : ""}${days && days !== 0 ? `${days}d ` : ""}`
-      );
-      freshTotalStars = res.stars;
-    } else {
-      // If we couldn't fetch total stars, stop the loading process
-      setLoading(false);
-      return;
-    }
-
-    const status = await fetchStatus(repoParsed);
-    console.log(status);
-
-    // If status is undefined or couldn't be fetched properly, exit early
-    if (!status) {
-      setLoading(false);
-      return;
-    }
-
-    setProgressValue(0);
-    setMaxProgress(0);
-
-    if (!status.onGoing) {
-      // Always pass the freshly fetched total stars value
-      fetchAllStars(repoParsed, false, freshTotalStars);
-    }
-
-    if (!status.cached) {
-      let timeEstimate = res ? res.stars / 610 : 0;
-      timeEstimate = Math.max(1, Math.ceil(timeEstimate));
-      setEstimatedTime(timeEstimate);
-    }
-
-    const callsNeeded = Math.floor(res.stars / 100);
-    setMaxProgress(callsNeeded);
-    startSSEUpates(repoParsed, callsNeeded, status.onGoing);
   };
 
-  const handleInputChange = async (event, setStateFunction) => {
-    const inputText = event.target.value;
-    setStateFunction(inputText);
-  };
+  const handleClick = () => handleClickWithRepo(repoInput);
 
   const handleClickWithRepo = async (repo) => {
-    const repoParsed = parseGitHubRepoURL(repo);
-
-    if (repoParsed === null) {
-      setError("Invalid GitHub repository format. Please use owner/repo format or a valid GitHub URL.");
+    const repoParsed = parseGitHubRepoURL(repo.trim());
+    if (!repoParsed) {
+      setError("Enter owner/repository or paste a GitHub repository URL.");
       setShowError(true);
-      setLoading(false);
       return;
     }
-
-    setLastRepo(repoParsed);
-
-    // Close any existing SSE connection before starting a new request
+    if (pendingRepoRef.current === repoParsed) return;
+    pendingRepoRef.current = repoParsed;
+    const requestVersion = ++requestVersionRef.current;
+    graphVersionRef.current += 1;
+    trendRequestRef.current?.controller.abort();
+    trendRequestRef.current = null;
+    const isCurrent = () => isMountedRef.current && requestVersionRef.current === requestVersion;
     closeSSE();
-
-    // Check if switching to a different repo before updating the ref
-    const isSameRepo = currentRepoRef.current === repoParsed;
-
-    // Update the current repo ref immediately
+    clearTimeout(historyRetryRef.current);
     currentRepoRef.current = repoParsed;
-
-    // Clear any previous errors when starting a valid fetch
+    setLastRepo(repoParsed);
+    setSelectedRepo(repoParsed);
+    setRepoInput(repoParsed);
     setShowError(false);
-
-    // Update graph title immediately and clear data if switching repos
-    setds(prevDs => ({
-      ...prevDs,
-      dataSource: {
-        ...prevDs.dataSource,
-        caption: { text: `Stars ${repoParsed}` },
-        ...(isSameRepo ? {} : { data: null })
-      }
-    }));
-
-    navigate(`/${repoParsed}`, {
-      replace: false,
-    });
-
-    setLoading(true);
-
-    const res = await fetchTotalStars(repoParsed);
-
-    let freshTotalStars = 0;
-    if (res) {
-      setTotalStars(res.stars);
-      setCreationDate(res.createdAt);
-
-      const { years, months, days } = intervalToDuration({
-        start: parseISO(res.createdAt),
-        end: Date.now(),
-      });
-      setAge(
-        `${years && years !== 0 ? `${years}y ` : ""}${months && months !== 0 ? `${months}m ` : ""}${days && days !== 0 ? `${days}d ` : ""}`
-      );
-      freshTotalStars = res.stars;
-    } else {
-      // If we couldn't fetch total stars, stop the loading process
-      setLoading(false);
-      return;
-    }
-
-    const status = await fetchStatus(repoParsed);
-
-    // If status is undefined or couldn't be fetched properly, exit early
-    if (!status) {
-      setLoading(false);
-      return;
-    }
-
+    setHistoryLoaded(false);
+    setCurrentStarsHistory([]);
+    rawStarsRef.current = [];
+    setTotalStars(0);
+    setStarsLast10d("");
+    setCreationDate("");
+    setAge("");
+    setZoomedStars(0);
+    setZoomedStarsPercentageTotal(0);
     setProgressValue(0);
-    setMaxProgress(0);
-
-    if (!status.onGoing) {
-      // Always pass the freshly fetched total stars value
-      fetchAllStars(repoParsed, false, freshTotalStars);
+    setLoading(true);
+    setds(previous => ({
+      ...previous,
+      dataSource: { ...previous.dataSource, caption: { text: `Stars ${repoParsed}` }, data: null },
+    }));
+    if (location.pathname !== `/${repoParsed}`) {
+      navigate({ pathname: `/${repoParsed}`, search: location.search });
     }
-
-    if (!status.cached) {
-      let timeEstimate = res ? res.stars / 610 : 0;
-      timeEstimate = Math.max(1, Math.ceil(timeEstimate));
-      setEstimatedTime(timeEstimate);
+    const res = await fetchTotalStars(repoParsed, requestVersion);
+    if (!isCurrent()) return;
+    if (!res) {
+      pendingRepoRef.current = null;
+      setLoading(false);
+      return;
     }
-
-    const callsNeeded = Math.floor(res.stars / 100);
-    setMaxProgress(callsNeeded);
-    startSSEUpates(repoParsed, callsNeeded, status.onGoing);
+    setTotalStars(res.stars);
+    setCreationDate(res.createdAt || "");
+    if (res.createdAt) {
+      const { years, months, days } = intervalToDuration({ start: parseISO(res.createdAt), end: Date.now() });
+      setAge([years ? `${years}y` : "", months ? `${months}m` : "", days ? `${days}d` : ""].filter(Boolean).join(" ") || "<1d");
+    }
+    startSSEUpdates(repoParsed);
+    fetchAllStars(repoParsed, false, res.stars, 0, requestVersion);
   };
 
   useEffect(() => {
-    if (showError) {
-      // Auto-dismiss error after 6 seconds
-      const timer = setTimeout(() => {
-        setShowError(false);
-      }, 6000);
-
-      // Clean up the timer when the component unmounts or showError changes
-      return () => clearTimeout(timer);
-    }
-  }, [showError]);
-
-  // Auto-hide feedback banner after 15 seconds
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowFeedbackBanner(false);
-    }, 15000);
-
-    return () => clearTimeout(timer);
-  }, []);
+    handleClickWithRepo(user && repository ? `${user}/${repository}` : lastRepo);
+  }, [user, repository]);
 
   const activityLaneData = useMemo(() => {
     if (!currentStarsHistory || currentStarsHistory.length === 0 || feed === "none") {
@@ -2121,418 +1909,194 @@ function TimeSeriesChart() {
     };
   }, [currentStarsHistory, selectedTimeRange, feed, ds]);
 
+  const hasChart = currentStarsHistory.length > 0 && Boolean(ds?.dataSource?.data);
+  useEffect(() => {
+    const host = chartHostRef.current;
+    const content = host?.closest(".content");
+    if (!host || !content || !hasChart) return;
+    let lastSize = "";
+    let frame;
+    const resizeChart = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const bounds = host.getBoundingClientRect();
+        const top = bounds.top - content.getBoundingClientRect().top + content.scrollTop;
+        const width = Math.floor(bounds.width);
+        const height = Math.max(360, Math.floor(content.clientHeight - top - 16));
+        const size = `${width}:${height}`;
+        if (width > 0 && size !== lastSize && chartRef.current?.chartObj) {
+          lastSize = size;
+          chartRef.current.chartObj.resizeTo(width, height);
+        }
+      });
+    };
+    const observer = new ResizeObserver(resizeChart);
+    observer.observe(host);
+    host.closest(".desktop-stars")?.querySelectorAll(".desktop-stars__pins, .desktop-stars__search, .desktop-stars__controls, .desktop-stars__loading, .desktop-stars__error")
+      .forEach(element => observer.observe(element));
+    window.addEventListener("resize", resizeChart);
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(frame);
+      window.removeEventListener("resize", resizeChart);
+    };
+  }, [hasChart, pinnedRepos.length]);
+
+  const chartBusy = loading || !hasChart;
+  const transforms = [
+    ["none", "Daily stars"], ["trend", "Trend"], ["yearlyBinning", "Group by year"],
+    ["monthlyBinning", "Group by month"], ["weeklyBinning", "Group by week"],
+    ["normalize", "Normalize peaks"], ["loess", "LOESS smoothing"],
+    ["runningAverage", "Running average"], ["runningMedian", "Running median"],
+    ["firstOrderDerivative", "First derivative"], ["secondOrderDerivative", "Second derivative"],
+    ["weeklyGrowthRate", "Weekly growth rate"],
+  ];
+
   return (
-    <div style={{ background: currentTheme.background, minHeight: '100vh', padding: '10px' }}>
-      {showError && (
-        <Alert
-          severity="error"
-          action={
-            <IconButton
-              aria-label="close"
-              color="inherit"
-              size="small"
-              onClick={() => {
-                setShowError(false);
-              }}
-            >
-              <CloseIcon fontSize="inherit" />
-            </IconButton>
-          }
-          sx={{ mb: 1.5 }}
-        >
-          {error}
-        </Alert>
-      )}
-      {/* Pinned Repos Quick Access */}
-      {pinnedRepos.length > 0 && (
-        <div style={{
-          background: currentTheme.cardGradient,
-          borderRadius: '12px',
-          padding: '10px 16px',
-          marginBottom: '10px',
-          border: `1px solid ${currentTheme.cardBorder}`,
-        }}>
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-            <Tooltip title="Pinned repositories">
-              <PushPinIcon sx={{ fontSize: 16, color: currentTheme.textMuted }} />
-            </Tooltip>
-
-            {pinnedRepos.slice(0, isMobile ? 2 : undefined).map(repo => (
-              <Box
-                key={repo}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 0.5,
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  background: currentTheme.accentBg,
-                  border: `1px solid ${currentTheme.cardBorder}`,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  '&:hover': {
-                    background: currentTheme.accentHover,
-                    borderColor: '#3b82f6',
-                  }
-                }}
-              >
-                <span
-                  onClick={() => {
-                    setSelectedRepo(repo);
-                    handleClickWithRepo(repo);
-                  }}
-                  style={{
-                    fontSize: '13px',
-                    color: currentTheme.textPrimary,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {repo}
-                </span>
-                <CloseIcon
-                  onClick={() => togglePin(repo)}
-                  sx={{
-                    fontSize: 16,
-                    color: currentTheme.textMuted,
-                    cursor: 'pointer',
-                    '&:hover': { color: '#ef4444' }
-                  }}
-                />
-              </Box>
-            ))}
-            {isMobile && pinnedRepos.length > 2 && (
-              <Typography variant="caption" sx={{ color: currentTheme.textMuted, fontSize: '11px' }}>
-                +{pinnedRepos.length - 2} more
-              </Typography>
-            )}
-            <Button
-              size="small"
-              variant="text"
-              onClick={clearPinned}
-              sx={{ fontSize: '11px', minWidth: 'auto', px: 1 }}
-            >
-              Clear All
-            </Button>
-          </Box>
+    <div className="desktop-stars" data-theme={appTheme}>
+      <header className="desktop-stars__header">
+        <div>
+          <p className="desktop-stars__eyebrow">Repository star history</p>
+          <h1>{selectedRepo}</h1>
         </div>
+      </header>
+
+      {pinnedRepos.length > 0 && (
+        <nav className="desktop-stars__card desktop-stars__pins" aria-label="Pinned repositories">
+          <PushPinIcon className="desktop-stars__pins-icon" fontSize="small" />
+          {pinnedRepos.map(repo => (
+            <div className="desktop-stars__pin" key={repo}>
+              <button type="button" onClick={() => handleClickWithRepo(repo)} aria-label={`Open ${repo}`}
+                aria-current={repo === selectedRepo ? "page" : undefined}>{repo}</button>
+              <button type="button" onClick={() => togglePin(repo)} aria-label={`Unpin ${repo}`}><CloseIcon fontSize="inherit" /></button>
+            </div>
+          ))}
+          <Button size="small" color="inherit" onClick={clearPinned}>Clear pins</Button>
+        </nav>
       )}
 
-      {/* Main Controls */}
-      <div style={{
-        background: currentTheme.cardGradient,
-        borderRadius: '12px',
-        padding: '12px 16px',
-        marginBottom: '10px',
-        border: `1px solid ${currentTheme.cardBorder}`,
-      }}>
-        <Box sx={{ display: "flex", gap: 1.2, flexWrap: "wrap", alignItems: "center" }}>
+      <section className="desktop-stars__card desktop-stars__search" aria-label="Repository search">
+        <div className="desktop-stars__search-row">
           <Autocomplete
-            freeSolo
-            disablePortal
-            id="combo-box-repo"
-            size="small"
-            options={starsRepos.map((el) => ({ label: el }))}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                sx={{ width: 400 }}
-                label="Enter a GitHub repository"
-                variant="outlined"
-                size="small"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleClickWithRepo(e.target.value);
-                  }
-                }}
-              />
-            )}
-            value={
-              starsRepos.includes(selectedRepo)
-                ? { label: selectedRepo }
-                : selectedRepo
-                  ? { label: selectedRepo }
-                  : null
-            }
-            onChange={(e, v, reason) => {
-              const repo = typeof v === "string" ? v : v?.label || "";
-              setSelectedRepo(repo);
-              if (reason === "selectOption" || reason === "createOption") {
-                handleClickWithRepo(repo);
+            freeSolo disablePortal id="combo-box-repo" size="small"
+            options={starsRepos} value={selectedRepo} inputValue={repoInput}
+            sx={{ flex: "1 1 260px", minWidth: 220, maxWidth: 400 }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.target.getAttribute("aria-activedescendant")) {
+                event.defaultMuiPrevented = true;
+                event.preventDefault();
+                handleClick();
               }
             }}
-            onInputChange={(e, v, reason) => {
-              if (reason === "input") setSelectedRepo(v);
+            renderInput={params => (
+              <TextField {...params} label="GitHub repository" placeholder="owner/repository or GitHub URL"
+                slotProps={{ ...params.slotProps, htmlInput: { ...params.slotProps.htmlInput, autoCapitalize: "none", autoCorrect: "off", spellCheck: false } }} />
+            )}
+            onChange={(event, value, reason) => {
+              if (reason === "selectOption" || reason === "createOption") handleClickWithRepo(value || "");
+              if (reason === "clear") setRepoInput("");
+            }}
+            onInputChange={(event, value, reason) => {
+              if (reason === "input") setRepoInput(value);
             }}
           />
-          <FormControl sx={{ width: 120 }} size="small">
-            <InputLabel id="style-select-drop">Feeds</InputLabel>
-            <Select
-              labelId="feed"
-              id="feed"
-              value={feed}
-              label="Feed"
-              onChange={handleFeedChange}
-              renderValue={(selected) => FEED_LABELS[selected] || selected}
-            >
-              <MenuItem value={"none"}>None</MenuItem>
-              <MenuItem value={"releases"}>Releases</MenuItem>
-              <MenuItem value={"hacker"}>HNews</MenuItem>
-              <MenuItem value={"redditStrict"}>Reddit (strict)</MenuItem>
-              <MenuItem value={"redditBroad"}>Reddit (broad)</MenuItem>
-              <MenuItem value={"ghmentions"}>GitHub</MenuItem>
-              <MenuItem value={"youtube"}>YouTube</MenuItem>
+          <FormControl size="small" sx={{ width: 120 }} disabled={loading || !historyLoaded}>
+            <InputLabel id="desktop-feed-label">Feeds</InputLabel>
+            <Select labelId="desktop-feed-label" id="desktop-feed" value={feed} label="Feeds" onChange={handleFeedChange}
+              renderValue={selected => FEED_LABELS[selected] || selected}>
+              <MenuItem value="none">None</MenuItem><MenuItem value="releases">Releases</MenuItem>
+              <MenuItem value="hacker">Hacker News</MenuItem><MenuItem value="redditStrict">Reddit (strict)</MenuItem>
+              <MenuItem value="redditBroad">Reddit (broad)</MenuItem><MenuItem value="ghmentions">GitHub mentions</MenuItem>
+              <MenuItem value="youtube">YouTube</MenuItem>
             </Select>
           </FormControl>
-
-          <LoadingButton
-            size="small"
-            onClick={handleClick}
-            endIcon={<SendIcon />}
-            loading={loading}
-            loadingPosition="end"
-            variant="contained"
-          >
-            <span>Fetch</span>
+          <LoadingButton onClick={handleClick} endIcon={<SendIcon />} loading={loading} loadingPosition="end"
+            variant="contained" size="small" aria-label="Fetch repository" disabled={!repoInput.trim()}>
+            Fetch
           </LoadingButton>
           <Tooltip title={pinnedRepos.includes(selectedRepo) ? "Unpin repository" : "Pin repository"}>
-            <IconButton
-              size="small"
-              onClick={() => togglePin(selectedRepo)}
-              sx={{
-                color: pinnedRepos.includes(selectedRepo) ? '#3b82f6' : currentTheme.textMuted,
-                '&:hover': { color: '#3b82f6' },
-                flexShrink: 0
-              }}
-            >
+            <span><IconButton size="small" onClick={() => togglePin(selectedRepo)} disabled={!historyLoaded || loading}
+              aria-label={pinnedRepos.includes(selectedRepo) ? `Unpin ${selectedRepo}` : `Pin ${selectedRepo}`}
+              aria-pressed={pinnedRepos.includes(selectedRepo)} color={pinnedRepos.includes(selectedRepo) ? "primary" : "default"}>
               {pinnedRepos.includes(selectedRepo) ? <PushPinIcon fontSize="small" /> : <PushPinOutlinedIcon fontSize="small" />}
-            </IconButton>
+            </IconButton></span>
           </Tooltip>
           {showForceRefetch && (
             <Tooltip title={FORCE_REFETCH_TOOLTIP}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={forceRefetch}
-                    onChange={handleForceRefetchChange}
-                    name="forceRefetch"
-                  />
-                }
-                label="Update"
-              />
+              <FormControlLabel control={<Checkbox checked={forceRefetch} onChange={handleForceRefetchChange} size="small" />} label="Refresh cached data" />
             </Tooltip>
           )}
           <Tooltip title={INFO_TOOLTIP}>
-            <InfoOutlinedIcon sx={{ color: "grey" }} />
+            <IconButton size="small" aria-label="How to explore the chart"><InfoOutlinedIcon fontSize="small" /></IconButton>
           </Tooltip>
-          <TextField
-            sx={{ width: 120 }}
-            size="small"
-            id="total-stars"
-            label="⭐ Total"
-            value={totalStars.toLocaleString()}
-            InputProps={{
-              readOnly: true,
-            }}
-          />
-          <TextField
-            sx={{ width: 120 }}
-            size="small"
-            id="last-10d"
-            label="⭐ Last 10 d"
-            value={typeof starsLast10d === 'number' ? starsLast10d.toLocaleString() : starsLast10d}
-            InputProps={{
-              readOnly: true,
-            }}
-          />
-          <TextField
-            sx={{ width: 220 }}
-            size="small"
-            id="creation-date"
-            label="Creation Date"
-            value={creationDate}
-            InputProps={{
-              readOnly: true,
-            }}
-          />
-          <TextField
-            sx={{ width: 145 }}
-            size="small"
-            id="age"
-            label="Age"
-            value={age}
-            InputProps={{
-              readOnly: true,
-            }}
-          />
-        </Box>
-      </div>
-
-      {/* Controls & Actions */}
-      <div style={{
-        background: currentTheme.cardGradient,
-        borderRadius: '12px',
-        padding: '12px 16px',
-        marginBottom: '10px',
-        border: `1px solid ${currentTheme.cardBorder}`,
-      }}>
-        <Box sx={{ display: "flex", gap: 1.2, flexWrap: "wrap", alignItems: "center" }}>
-          <Tooltip title="Open mobile version">
-            <IconButton
-              size="small"
-              color="primary"
-              onClick={openMobileVersion}
-            >
-              <SmartphoneIcon />
-            </IconButton>
-          </Tooltip>
-
-          <FormControl sx={{ width: 110 }} size="small">
-            <InputLabel>Theme</InputLabel>
-            <Select
-              value={theme}
-              label="Theme"
-              onChange={handleThemeChange}
-            >
-              <MenuItem value={"fusion"}>Fusion</MenuItem>
-              <MenuItem value={"candy"}>Candy</MenuItem>
-              <MenuItem value={"gammel"}>Gammel</MenuItem>
-              <MenuItem value={"zune"}>Zune</MenuItem>
-              <MenuItem value={"umber"}>Umber</MenuItem>
-            </Select>
-          </FormControl>
-
-          <FormControl sx={{ width: 160 }} size="small">
-            <InputLabel>Transform</InputLabel>
-            <Select
-              value={transformation}
-              label="Transform"
-              onChange={handleTransformationChange}
-            >
-              <MenuItem value={"none"}>None</MenuItem>
-              <MenuItem value={"trend"}>Trend</MenuItem>
-              <MenuItem value={"yearlyBinning"}>Yearly Binning</MenuItem>
-              <MenuItem value={"monthlyBinning"}>Monthly Binning</MenuItem>
-              <MenuItem value={"weeklyBinning"}>Weekly Binning</MenuItem>
-              <MenuItem value={"normalize"}>Normalize</MenuItem>
-              <MenuItem value={"loess"}>LOESS</MenuItem>
-              <MenuItem value={"runningAverage"}>Running Average</MenuItem>
-              <MenuItem value={"runningMedian"}>Running Median</MenuItem>
-              <MenuItem value={"firstOrderDerivative"}>Derivative</MenuItem>
-              <MenuItem value={"secondOrderDerivative"}>2nd Derivative</MenuItem>
-              <MenuItem value={"weeklyGrowthRate"}>WoW Growth Rate</MenuItem>
-            </Select>
-          </FormControl>
-          {transformation.includes("Binning") && (
-            <FormControl sx={{ width: 90 }} size="small">
-              <InputLabel>Aggregate</InputLabel>
-              <Select
-                value={aggregation}
-                label="Aggregate"
-                onChange={handleAggregationChange}
-              >
-                <MenuItem value={"average"}>Mean</MenuItem>
-                <MenuItem value={"sum"}>Total</MenuItem>
-                <MenuItem value={"max"}>Max</MenuItem>
-                <MenuItem value={"min"}>Min</MenuItem>
-              </Select>
-            </FormControl>
-          )}
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={checkedYAxisType}
-                onChange={handleYAxisTypeCheckChange}
-                size="small"
-              />
-            }
-            label="Log Y"
-          />
-          <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
-          <Button size="small" variant="outlined" onClick={downloadCSV}>
-            CSV
-          </Button>
-          <Button size="small" variant="outlined" onClick={downloadJSON}>
-            JSON
-          </Button>
-          <CopyToClipboardButton
-            dateRange={checkedDateRange ? selectedTimeRange : null}
-            transformation={transformation}
-          />
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={checkedDateRange}
-                onChange={handleDateRangeCheckChange}
-                size="small"
-              />
-            }
-            label="Date Range"
-          />
-          <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
-          <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5 }}>
-            Zoomed:
-          </Typography>
-          <TextField
-            size="small"
-            value={`${formatNumber(zoomedStars)} (${zoomedStarsPercentageTotal}%)`}
-            InputProps={{
-              readOnly: true,
-            }}
-            sx={{ width: 165 }}
-          />
-          <Tooltip
-            title={last30Active ? "Restore full timeline" : "Zoom to last 30 days"}
-            arrow
-          >
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={() => {
-                if (!last30Active) {
-                  applyLast30DaysView();
-                } else {
-                  applyFullTimelineView();
-                }
-              }}
-            >
-              {last30Active ? "Full" : "Last 30d"}
-            </Button>
-          </Tooltip>
-          <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
-          <Button size="small" variant="outlined" onClick={openCurrentRepoPage}>
-            Open Repo
-          </Button>
-        </Box>
-      </div>
-
-      {/* Progress Indicators - Only show when actively loading */}
-      {loading && (
-        <div style={{
-          background: currentTheme.cardGradient,
-          borderRadius: '12px',
-          padding: '12px 16px',
-          marginBottom: '10px',
-          border: `1px solid ${currentTheme.cardBorder}`,
-        }}>
-          <EstimatedTimeProgress
-            text="Estimated Time Left"
-            totalTime={estimatedTime}
-          />
-          <ProgressBar value={progressValue} max={maxProgress} />
+          <TextField id="total-stars" size="small" label="Total stars" sx={{ width: 110 }}
+            value={historyLoaded ? totalStars.toLocaleString() : "—"} slotProps={{ input: { readOnly: true } }} />
+          <TextField id="last-10d" size="small" label="Last 10 days" sx={{ width: 110 }}
+            value={historyLoaded && starsLast10d !== "" ? `+${Number(starsLast10d).toLocaleString()}` : "—"} slotProps={{ input: { readOnly: true } }} />
+          <TextField id="creation-date" size="small" label="Created (UTC)" sx={{ width: 220 }}
+            value={historyLoaded ? creationDate || "—" : "—"} slotProps={{ input: { readOnly: true } }} />
+          <TextField id="age" size="small" label="Age" sx={{ width: 120 }}
+            value={historyLoaded ? age || "—" : "—"} slotProps={{ input: { readOnly: true } }} />
         </div>
+      </section>
+
+      {showError && (
+        <Alert severity="error" className="desktop-stars__error" action={
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Button color="inherit" size="small" onClick={() => handleClickWithRepo(selectedRepo)} disabled={loading}>Try again</Button>
+            <IconButton aria-label="Dismiss error" color="inherit" size="small" onClick={() => setShowError(false)}><CloseIcon fontSize="inherit" /></IconButton>
+          </Box>
+        }>{error}</Alert>
       )}
 
-      {/* Chart Container */}
-      <div style={{
-        background: currentTheme.cardGradient,
-        borderRadius: '12px',
-        padding: '12px 16px',
-        border: `1px solid ${currentTheme.cardBorder}`,
-      }}>
-        <Box id="chart-container">
-          {ds != null && ds != chart_props && ds && ds.dataSource.data && (
-            <ReactFC ref={chartRef} {...ds} />
+      <section className="desktop-stars__card desktop-stars__controls" aria-label="Chart controls">
+        <FormControl size="small" sx={{ width: 110 }} disabled={chartBusy}>
+          <InputLabel id="desktop-theme-label">Theme</InputLabel>
+          <Select labelId="desktop-theme-label" value={theme} label="Theme" onChange={handleThemeChange}>
+            <MenuItem value="fusion">Fusion</MenuItem><MenuItem value="candy">Candy</MenuItem><MenuItem value="gammel">Gammel</MenuItem><MenuItem value="zune">Zune</MenuItem><MenuItem value="umber">Umber</MenuItem>
+          </Select>
+        </FormControl>
+        <FormControl size="small" sx={{ width: 160 }} disabled={loading || !historyLoaded}>
+          <InputLabel id="desktop-transform-label">Transform</InputLabel>
+          <Select labelId="desktop-transform-label" value={transformation} label="Transform" onChange={handleTransformationChange}>
+            {transforms.map(([value, label]) => <MenuItem value={value} key={value}>{label}</MenuItem>)}
+          </Select>
+        </FormControl>
+        {transformation.includes("Binning") && (
+          <FormControl size="small" sx={{ width: 110 }} disabled={chartBusy}>
+            <InputLabel id="desktop-aggregate-label">Aggregate</InputLabel>
+            <Select labelId="desktop-aggregate-label" value={aggregation} label="Aggregate" onChange={handleAggregationChange}>
+              <MenuItem value="average">Mean</MenuItem><MenuItem value="sum">Total</MenuItem><MenuItem value="max">Maximum</MenuItem><MenuItem value="min">Minimum</MenuItem>
+            </Select>
+          </FormControl>
+        )}
+        <FormControlLabel control={<Checkbox checked={checkedYAxisType} onChange={handleYAxisTypeCheckChange} size="small" disabled={chartBusy} slotProps={{ input: { "aria-label": "Logarithmic Y axis" } }} />} label="Log Y" />
+        <span className="desktop-stars__separator" aria-hidden="true" />
+        <Button size="small" variant="outlined" onClick={downloadCSV} disabled={chartBusy} aria-label="Download star history as CSV">CSV</Button>
+        <Button size="small" variant="outlined" onClick={downloadJSON} disabled={chartBusy} aria-label="Download star history as JSON">JSON</Button>
+        <CopyToClipboardButton dateRange={checkedDateRange ? selectedTimeRange : null} transformation={transformation} aggregation={transformation.includes("Binning") ? aggregation : null} disabled={chartBusy} />
+        <Tooltip title="Include the selected dates in the shared link">
+          <FormControlLabel control={<Checkbox checked={checkedDateRange} onChange={handleDateRangeCheckChange} size="small" disabled={chartBusy} slotProps={{ input: { "aria-label": "Share selected dates" } }} />} label="Date range" />
+        </Tooltip>
+        <span className="desktop-stars__separator" aria-hidden="true" />
+        <TextField id="zoomed-stars" size="small" label="Stars in selection" sx={{ width: 165 }}
+          value={hasChart ? `${formatNumber(zoomedStars)} (${zoomedStarsPercentageTotal}%)` : "—"}
+          slotProps={{ input: { readOnly: true } }} />
+        <Button id="desktop-range" size="small" variant="outlined" onClick={last30Active ? applyFullTimelineView : applyLast30DaysView} disabled={chartBusy}>
+          {last30Active ? "All history" : "Last 30 days"}
+        </Button>
+        <span className="desktop-stars__separator" aria-hidden="true" />
+        <Button size="small" variant="outlined" onClick={openCurrentRepoPage} disabled={!historyLoaded || loading}>Open repo</Button>
+      </section>
+
+      <section className="desktop-stars__card desktop-stars__chart" aria-label="Star history chart">
+        {loading && <div className="desktop-stars__loading" role="status"><p>Loading {selectedRepo}… {progressValue > 0 && `${progressValue} history requests completed.`}</p><LinearProgress aria-label="Loading repository history" /></div>}
+        <Box id="chart-container" ref={chartHostRef} className="desktop-stars__canvas" aria-busy={loading}>
+          {hasChart ? <ReactFC ref={chartRef} {...ds} /> : (
+            <div className="desktop-stars__empty">
+              <h2>{loading ? "Fetching star history" : showError ? "History could not be loaded" : "No daily history yet"}</h2>
+              <p>{loading ? "The chart will appear here when the data is ready." : showError ? "Try again above, or choose another repository." : "Daily history includes completed days. Try another repository or check back after the next UTC day."}</p>
+            </div>
           )}
         </Box>
         {activityLaneData && activityLaneData.bins.length > 0 && (
@@ -2585,12 +2149,12 @@ function TimeSeriesChart() {
             </Typography>
           </Box>
         )}
-      </div>
-
+        <footer className="desktop-stars__chart-footer">
+          <p className="desktop-stars__hint">Scroll to zoom · Drag the lower navigator · Today’s count may be partial</p>
+        </footer>
+      </section>
     </div>
   );
 }
 
 export default TimeSeriesChart;
-
-// https://img.shields.io/github/stars/emanuelef/daily-stars-explorer
