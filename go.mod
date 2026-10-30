@@ -21,7 +21,7 @@ require (
 	golang.org/x/net v0.61.0
 	golang.org/x/oauth2 v0.37.0
 	golang.org/x/sync v0.24.0
-	google.golang.org/api v0.304.0
+	google.golang.org/api v0.309.0
 )
 
 require (
@@ -64,7 +64,7 @@ require (
 	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20261012220534-4341edf3f941 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20261012220534-4341edf3f941 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20261019180522-ce908d29299b // indirect
 	google.golang.org/grpc v1.84.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 )
