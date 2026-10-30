@@ -10,7 +10,7 @@ RUN --mount=type=cache,target=/root/.npm npm install --force --prefer-offline --
 COPY website .
 RUN npm run build
 
-FROM --platform=$BUILDPLATFORM golang:1.27.2-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.27.3-alpine AS builder
 ARG TARGETOS
 ARG TARGETARCH
 WORKDIR /app
